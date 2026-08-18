@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
+// import FiltreFactures from './filtreFactures'; // <-- Décommentez et ajustez le chemin selon votre structure
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -10,6 +11,12 @@ const THEME = {
   erreur: '#FF5252',
   succes: '#81C784',
 };
+
+const ConteneurFactureTous = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
 
 const TableauFactures = styled.table`
   width: 100%;
@@ -60,10 +67,16 @@ export default function FactureTous({
   supprimerFacture,
   formaterDateFr,
   rechercheFacture,
+  setRechercheFacture,
   modePeriode,
+  setModePeriode,
   filtreMoisFacture,
+  setFiltreMoisFacture,
   filtreTrimestreFacture,
-  filtreAnneeFacture
+  setFiltreTrimestreFacture,
+  filtreAnneeFacture,
+  setFiltreAnneeFacture,
+  reinitialiserFiltres
 }) {
   const facturesFiltrees = useMemo(() => {
     return listeFactures.filter(facture => {
@@ -101,41 +114,60 @@ export default function FactureTous({
   }, [listeFactures, rechercheFacture, modePeriode, filtreMoisFacture, filtreTrimestreFacture, filtreAnneeFacture]);
 
   return (
-    <TableauFactures>
-      <thead>
-        <tr>
-          <th>N° Facture</th>
-          <th>Client</th>
-          <th>Date</th>
-          <th>Montant</th>
-          <th>Statut</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {facturesFiltrees.length > 0 ? (
-          facturesFiltrees.map((f) => (
-            <tr key={f.id}>
-              <td>{f.numero || f.bail || 'N/A'}</td>
-              <td>{f.client || f.locataire || f.nom || 'N/A'}</td>
-              <td>{formaterDateFr && f.dateFacture ? formaterDateFr(f.dateFacture) : (f.dateFacture || 'N/A')}</td>
-              <td>{f.montant !== undefined ? `${f.montant} USD` : (f.mont ? `${f.mont} USD` : 'N/A')}</td>
-              <td style={{ color: f.statut === 'Payée' ? THEME.succes : '#FFB74D' }}>{f.statut || 'En attente'}</td>
-              <td>
-                <BoutonActionPetit $couleur={THEME.erreur} onClick={() => supprimerFacture(f.id)}>
-                  Supprimer
-                </BoutonActionPetit>
+    <ConteneurFactureTous>
+      {/* 
+        Insérez ici votre composant de filtre de factures unifié si besoin, par exemple :
+        <FiltreFactures 
+          rechercheFacture={rechercheFacture}
+          setRechercheFacture={setRechercheFacture}
+          modePeriode={modePeriode}
+          setModePeriode={setModePeriode}
+          filtreMoisFacture={filtreMoisFacture}
+          setFiltreMoisFacture={setFiltreMoisFacture}
+          filtreTrimestreFacture={filtreTrimestreFacture}
+          setFiltreTrimestreFacture={setFiltreTrimestreFacture}
+          filtreAnneeFacture={filtreAnneeFacture}
+          setFiltreAnneeFacture={setFiltreAnneeFacture}
+          reinitialiserFiltres={reinitialiserFiltres}
+        />
+      */}
+
+      <TableauFactures>
+        <thead>
+          <tr>
+            <th>N° Facture</th>
+            <th>Client</th>
+            <th>Date</th>
+            <th>Montant</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {facturesFiltrees.length > 0 ? (
+            facturesFiltrees.map((f) => (
+              <tr key={f.id}>
+                <td>{f.numero || f.bail || 'N/A'}</td>
+                <td>{f.client || f.locataire || f.nom || 'N/A'}</td>
+                <td>{formaterDateFr && f.dateFacture ? formaterDateFr(f.dateFacture) : (f.dateFacture || 'N/A')}</td>
+                <td>{f.montant !== undefined ? `${f.montant} USD` : (f.mont ? `${f.mont} USD` : 'N/A')}</td>
+                <td style={{ color: f.statut === 'Payée' ? THEME.succes : '#FFB74D' }}>{f.statut || 'En attente'}</td>
+                <td>
+                  <BoutonActionPetit $couleur={THEME.erreur} onClick={() => supprimerFacture(f.id)}>
+                    Supprimer
+                  </BoutonActionPetit>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="6" style={{ textAlign: 'center', padding: '1.5rem' }}>
+                Aucune facture trouvée.
               </td>
             </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan="6" style={{ textAlign: 'center', padding: '1.5rem' }}>
-              Aucune facture trouvée.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </TableauFactures>
+          )}
+        </tbody>
+      </TableauFactures>
+    </ConteneurFactureTous>
   );
 }

@@ -45,7 +45,7 @@ db.connect((err) => {
   }
   console.log('Connecté avec succès à la base de données MySQL : proFactDB');
 
-  // Création automatique de la table clients
+  // Création automatique de la table clients (sans la table factures)
   const sqlClients = `
     CREATE TABLE IF NOT EXISTS clients (
       id INT PRIMARY KEY,
@@ -66,25 +66,9 @@ db.connect((err) => {
     );
   `;
 
-  const sqlFactures = `
-    CREATE TABLE IF NOT EXISTS factures (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      numeroFacture VARCHAR(50) NOT NULL UNIQUE,
-      clientId INT NOT NULL,
-      montantTotal DECIMAL(10, 2) NOT NULL,
-      statut VARCHAR(50) DEFAULT 'Non payée',
-      dateEcheance DATE,
-      supprime TINYINT(1) DEFAULT 0,
-      creeLe DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `;
-
   db.query(sqlClients, (errCli) => {
     if (errCli) console.error("Erreur lors de la création de la table clients :", errCli);
-  });
-
-  db.query(sqlFactures, (errFac) => {
-    if (errFac) console.error("Erreur lors de la création de la table factures :", errFac);
+    else console.log("Table clients vérifiée/créée avec succès.");
   });
 });
 

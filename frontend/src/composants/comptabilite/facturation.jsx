@@ -36,9 +36,18 @@ const BoutonOnglet = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: -2px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 
   &:hover {
     color: ${THEME.textePrincipal};
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
   }
 `;
 
@@ -92,6 +101,9 @@ export default function Facturation({ formaterDateFr, clientSelectionne }) {
     <ConteneurFactures>
       <BarreOnglets>
         <BoutonOnglet $actif={ongletActif === 'liste'} onClick={() => setOngletActif('liste')}>
+          <svg viewBox="0 0 24 24">
+            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+          </svg>
           Liste des Factures ({listeFactures.length})
         </BoutonOnglet>
       </BarreOnglets>

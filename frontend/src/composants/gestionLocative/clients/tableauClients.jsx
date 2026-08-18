@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 
 const THEME = {
@@ -12,6 +12,13 @@ const THEME = {
   danger: '#FF5252',
   succes: '#4CAF50',
 };
+
+// Animation de clignotement pour toute la ligne au survol
+const clignotementLigne = keyframes`
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+`;
 
 const ConteneurTableau = styled.div`
   width: 100%;
@@ -65,6 +72,8 @@ const LigneTableau = styled.tr`
 
   &:hover {
     background-color: ${THEME.survol};
+    /* Fait clignoter toute la ligne au survol */
+    animation: ${clignotementLigne} 1s infinite ease-in-out;
   }
 
   &:last-child ${CelluleData} {

@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { 
+  FiUsers, 
+  FiInfo, 
+  FiCheckSquare, 
+  FiTrash2 
+} from 'react-icons/fi'; // <-- Import des icônes depuis react-icons
 
 import ClientsActifs from './clients/clientsActifs';
 import ClientsSupprimes from './clients/clientsSupprimes';
 import InfosClients from './clients/infosClients';
+import ClientsEnregistres from './clients/clientsEnregistres';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -53,6 +60,7 @@ const BarreOnglets = styled.div`
   gap: 1rem;
   border-bottom: 1px solid ${THEME.bordure};
   padding-bottom: 0.5rem;
+  overflow-x: auto;
 `;
 
 const Onglet = styled.button`
@@ -68,6 +76,11 @@ const Onglet = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
+
+  svg {
+    font-size: 1rem;
+  }
 
   &:hover {
     color: ${THEME.textePrincipal};
@@ -106,8 +119,11 @@ const extraireHeureAuto = (client) => {
 export default function Clients() {
   const [listeClients, setListeClients] = useState([]);
   const [listeCorbeille, setListeCorbeille] = useState([]);
+  const [clientsEnregistres, setClientsEnregistres] = useState([]);
   const [ongletActif, setOngletActif] = useState('actifs');
   const [notification, setNotification] = useState(null);
+  const [clientSelectionne, setClientSelectionne] = useState(null);
+
   const [formulaire, setFormulaire] = useState({
     bail: '', dateBail: '', client: '', nom: '', loc: '', adres: '', pays: 'RDC',
     designat: '', type: 'locataire', devise: 'USD', mont: '', mode: 'Virement',
@@ -133,6 +149,38 @@ export default function Clients() {
     setTimeout(() => setNotification(null), duree);
   };
 
+  const allerAInfosClient = (client) => {
+    setClientSelectionne(client);
+    setOngletActif('gestion');
+
+    if (client) {
+      setFormulaire({
+        bail: client.bail || '',
+        dateBail: client.dateBail || '',
+        client: client.client || client.matricule || '',
+        nom: client.nom || '',
+        loc: client.loc || '',
+        adres: client.adres || '',
+        pays: client.pays || 'RDC',
+        designat: client.designat || '',
+        type: client.typeClient || client.type || 'locataire',
+        devise: client.devise || 'USD',
+        mont: client.mont || '',
+        mode: client.mode || 'Virement',
+        reference: client.reference || '',
+        moisF: client.moisF || '',
+        debCt: client.debCt || '',
+        finCt: client.finCt || '',
+        dateC: client.dateC || '',
+        cpt: client.cpt || '',
+        imp: client.imp || '',
+        derN: client.derN || '',
+        derMt: client.derMt || '',
+        derDt: client.derDt || ''
+      });
+    }
+  };
+
   const handleChangeFormulaire = (e) => {
     const { name, value } = e.target;
     setFormulaire(prev => ({ ...prev, [name]: value }));
@@ -147,12 +195,15 @@ export default function Clients() {
     }
   };
 
-  const reinitialiserFormulaire = () => setFormulaire({
-    bail: '', dateBail: '', client: '', nom: '', loc: '', adres: '', pays: 'RDC',
-    designat: '', type: 'locataire', devise: 'USD', mont: '', mode: 'Virement',
-    reference: '', moisF: '', debCt: '', finCt: '', dateC: '', cpt: '',
-    imp: '', derN: '', derMt: '', derDt: ''
-  });
+  const reinitialiserFormulaire = () => {
+    setClientSelectionne(null);
+    setFormulaire({
+      bail: '', dateBail: '', client: '', nom: '', loc: '', adres: '', pays: 'RDC',
+      designat: '', type: 'locataire', devise: 'USD', mont: '', mode: 'Virement',
+      reference: '', moisF: '', debCt: '', finCt: '', dateC: '', cpt: '',
+      imp: '', derN: '', derMt: '', derDt: ''
+    });
+  };
 
   const soumettreFormulaireClient = async (e) => {
     e.preventDefault();
@@ -162,6 +213,7 @@ export default function Clients() {
     }
     try {
       await axios.post(`${API_URL}/clients`, formulaire);
+      setClientsEnregistres(prev => [...prev, formulaire]);
       afficherNotificationProvisoire('Enregistrement effectué avec succès.', 'succes', 3000);
       reinitialiserFormulaire();
       chargerClients();
@@ -181,13 +233,19 @@ export default function Clients() {
 
       <BarreOnglets>
         <Onglet $actif={ongletActif === 'actifs'} onClick={() => setOngletActif('actifs')}>
-          Clients Actifs <BadgeCompteur $actif={ongletActif === 'actifs'}>{listeClients.length}</BadgeCompteur>
+          <FiUsers /> Clients Actifs <BadgeCompteur $actif={ongletActif === 'actifs'}>{listeClients.length}</BadgeCompteur>
         </Onglet>
+        
         <Onglet $actif={ongletActif === 'gestion'} onClick={() => setOngletActif('gestion')}>
-          Infos Clients
+          <FiInfo /> Infos Clients
         </Onglet>
+
+        <Onglet $actif={ongletActif === 'enregistres'} onClick={() => setOngletActif('enregistres')}>
+          <FiCheckSquare /> Clients Enregistrés <BadgeCompteur $actif={ongletActif === 'enregistres'}>{clientsEnregistres.length}</BadgeCompteur>
+        </Onglet>
+
         <Onglet $actif={ongletActif === 'corbeille'} onClick={() => setOngletActif('corbeille')}>
-          Clients Supprimés <BadgeCompteur $actif={ongletActif === 'corbeille'}>{listeCorbeille.length}</BadgeCompteur>
+          <FiTrash2 /> Clients Supprimés <BadgeCompteur $actif={ongletActif === 'corbeille'}>{listeCorbeille.length}</BadgeCompteur>
         </Onglet>
       </BarreOnglets>
 
@@ -199,8 +257,10 @@ export default function Clients() {
 
       {ongletActif === 'actifs' ? (
         <ClientsActifs 
-          listeClients={listeClients} setListeClients={setListeClients}
+          listeClients={listeClients} 
+          setListeClients={setListeClients}
           chargerClients={chargerClients} 
+          allerAFacturation={allerAInfosClient} 
         />
       ) : ongletActif === 'gestion' ? (
         <InfosClients 
@@ -209,6 +269,8 @@ export default function Clients() {
           onReset={reinitialiserFormulaire} 
           onSubmit={soumettreFormulaireClient} 
         />
+      ) : ongletActif === 'enregistres' ? (
+        <ClientsEnregistres clientsEnregistres={clientsEnregistres} />
       ) : (
         <ClientsSupprimes listeCorbeille={listeCorbeille} chargerClients={chargerClients} />
       )}
