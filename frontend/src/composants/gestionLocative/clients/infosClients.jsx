@@ -59,7 +59,7 @@ const Etiquette = styled.label`
 
 const EntreeTexte = styled.input`
   background-color: ${THEME.fondChamp};
-  border: 1px solid ${THEME.bordure};
+  border: 1px solid ${props => props.$hasError ? '#FF5252' : THEME.bordure};
   border-radius: 8px;
   padding: 0.65rem 0.8rem;
   color: ${THEME.textePrincipal};
@@ -67,22 +67,42 @@ const EntreeTexte = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${THEME.accentuation};
+    border-color: ${props => props.$hasError ? '#FF5252' : THEME.accentuation};
   }
 `;
 
 const SelectEntree = styled.select`
   background-color: ${THEME.fondChamp};
-  border: 1px solid ${THEME.bordure};
+  border: 1px solid ${props => props.$hasError ? '#FF5252' : THEME.bordure};
   border-radius: 8px;
   padding: 0.65rem 0.8rem;
   color: ${THEME.textePrincipal};
   font-size: 0.85rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
 
   &:focus {
     outline: none;
-    border-color: ${THEME.accentuation};
+    border-color: ${props => props.$hasError ? '#FF5252' : THEME.accentuation};
   }
+
+  option {
+    background-color: ${THEME.fondCarte};
+    color: ${THEME.textePrincipal};
+    padding: 0.5rem;
+  }
+`;
+
+const MessageErreurChamp = styled.span`
+  color: #FF5252;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
 `;
 
 const BarreBoutons = styled.div`
@@ -123,29 +143,10 @@ const BoutonReinitialiser = styled.button`
   }
 `;
 
-export default function InfosClients({ formulaire, handleChange, onReset, onSubmit }) {
+export default function InfosClients({ formulaire, erreurs = {}, handleChange, onReset, onSubmit }) {
   
   const gererChangementLocal = (e) => {
-    const { name, value } = e.target;
     handleChange(e);
-
-    if (name === 'designat') {
-      const valLower = value.toLowerCase();
-      let typeAuto = 'divers';
-
-      if (valLower.includes('eau') || valLower.includes('regideso')) {
-        typeAuto = 'eau';
-      } else if (valLower.includes('elect') || valLower.includes('snel') || valLower.includes('courant')) {
-        typeAuto = 'electricite';
-      } else if (valLower.includes('loyer') || valLower.includes('locat') || valLower.includes('bail')) {
-        typeAuto = 'locataire';
-      }
-
-      const eventTypeSimule = {
-        target: { name: 'type', value: typeAuto }
-      };
-      handleChange(eventTypeSimule);
-    }
   };
 
   return (
@@ -157,26 +158,55 @@ export default function InfosClients({ formulaire, handleChange, onReset, onSubm
             <Etiquette>N° Bail</Etiquette>
             <EntreeTexte name="bail" value={formulaire?.bail ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+          
           <ChampConteneur>
             <Etiquette>Date Bail</Etiquette>
             <EntreeTexte type="date" name="dateBail" value={formulaire?.dateBail ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
-            <Etiquette>Code Client</Etiquette>
-            <EntreeTexte name="client" value={formulaire?.client ?? ''} onChange={gererChangementLocal} />
+            <Etiquette>Matricule / Code Client</Etiquette>
+            <EntreeTexte 
+              name="matricule" 
+              value={formulaire?.matricule ?? ''} 
+              onChange={gererChangementLocal} 
+              $hasError={!!erreurs.matricule}
+            />
+            {erreurs.matricule && <MessageErreurChamp>{erreurs.matricule}</MessageErreurChamp>}
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Nom</Etiquette>
-            <EntreeTexte name="nom" value={formulaire?.nom ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte 
+              name="nom" 
+              value={formulaire?.nom ?? ''} 
+              onChange={gererChangementLocal} 
+              placeholder="Ex: Mulaji" 
+              $hasError={!!erreurs.nom}
+            />
+            {erreurs.nom && <MessageErreurChamp>{erreurs.nom}</MessageErreurChamp>}
           </ChampConteneur>
+
           <ChampConteneur>
-            <Etiquette>Local / Logement (LOC)</Etiquette>
-            <EntreeTexte name="loc" value={formulaire?.loc ?? ''} onChange={gererChangementLocal} />
+            <Etiquette>Post-nom</Etiquette>
+            <EntreeTexte name="postNom" value={formulaire?.postNom ?? ''} onChange={gererChangementLocal} placeholder="Ex: Jael" />
           </ChampConteneur>
+          
+          <ChampConteneur>
+            <Etiquette>Prénom</Etiquette>
+            <EntreeTexte name="prenom" value={formulaire?.prenom ?? ''} onChange={gererChangementLocal} placeholder="Ex: Bukasa" />
+          </ChampConteneur>
+
+          <ChampConteneur>
+            <Etiquette>Logement (LOC)</Etiquette>
+            <EntreeTexte name="logement" value={formulaire?.logement ?? ''} onChange={gererChangementLocal} />
+          </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Adresse (ADRES)</Etiquette>
-            <EntreeTexte name="adres" value={formulaire?.adres ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte name="adresse" value={formulaire?.adresse ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Pays</Etiquette>
             <EntreeTexte name="pays" value={formulaire?.pays ?? 'RDC'} onChange={gererChangementLocal} />
@@ -189,17 +219,19 @@ export default function InfosClients({ formulaire, handleChange, onReset, onSubm
         <GrilleChamps>
           <ChampConteneur>
             <Etiquette>Désignation (DESIGNAT)</Etiquette>
-            <EntreeTexte name="designat" value={formulaire?.designat ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte name="designation" value={formulaire?.designation ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
-            <Etiquette>Type (Automatique)</Etiquette>
-            <SelectEntree name="type" value={formulaire?.type ?? 'locataire'} onChange={gererChangementLocal}>
-              <option value="locataire">locataire</option>
-              <option value="electricite">electricite</option>
-              <option value="eau">eau</option>
-              <option value="divers">divers</option>
+            <Etiquette>Type de Facture (Automatique)</Etiquette>
+            <SelectEntree name="typeFacture" value={formulaire?.typeFacture ?? 'Loyers'} onChange={gererChangementLocal}>
+              <option value="Loyers">Loyers</option>
+              <option value="Electricite">Electricite</option>
+              <option value="Eau">Eau</option>
+              <option value="Divers">Divers</option>
             </SelectEntree>
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Devise</Etiquette>
             <SelectEntree name="devise" value={formulaire?.devise ?? 'USD'} onChange={gererChangementLocal}>
@@ -207,38 +239,54 @@ export default function InfosClients({ formulaire, handleChange, onReset, onSubm
               <option value="CDF">CDF (FC)</option>
             </SelectEntree>
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Montant ({formulaire?.devise || 'USD'})</Etiquette>
-            <EntreeTexte type="number" name="mont" value={formulaire?.mont ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte type="number" name="montant" value={formulaire?.montant ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Mode de paiement</Etiquette>
-            <SelectEntree name="mode" value={formulaire?.mode ?? 'Virement'} onChange={gererChangementLocal}>
+            <SelectEntree name="modePaiement" value={formulaire?.modePaiement ?? 'Virement'} onChange={gererChangementLocal}>
               <option value="Virement">Virement</option>
               <option value="Espèces">Espèces</option>
               <option value="Chèque">Chèque</option>
               <option value="Mobile Money">Mobile Money</option>
             </SelectEntree>
           </ChampConteneur>
-          <ChampConteneur>
-            <Etiquette>Référence</Etiquette>
-            <EntreeTexte name="reference" value={formulaire?.reference ?? ''} onChange={gererChangementLocal} />
-          </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Mois Facturé</Etiquette>
-            <EntreeTexte name="moisF" value={formulaire?.moisF ?? ''} onChange={gererChangementLocal} />
+            <SelectEntree name="moisFacture" value={formulaire?.moisFacture ?? ''} onChange={gererChangementLocal}>
+              <option value="">-- Sélectionner un mois --</option>
+              <option value="Janvier">Janvier</option>
+              <option value="Février">Février</option>
+              <option value="Mars">Mars</option>
+              <option value="Avril">Avril</option>
+              <option value="Mai">Mai</option>
+              <option value="Juin">Juin</option>
+              <option value="Juillet">Juillet</option>
+              <option value="Août">Août</option>
+              <option value="Septembre">Septembre</option>
+              <option value="Octobre">Octobre</option>
+              <option value="Novembre">Novembre</option>
+              <option value="Décembre">Décembre</option>
+            </SelectEntree>
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Début Contrat</Etiquette>
-            <EntreeTexte type="date" name="debCt" value={formulaire?.debCt ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte type="date" name="debutContrat" value={formulaire?.debutContrat ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Fin Contrat</Etiquette>
-            <EntreeTexte type="date" name="finCt" value={formulaire?.finCt ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte type="date" name="finContrat" value={formulaire?.finContrat ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Date Comptable</Etiquette>
-            <EntreeTexte type="date" name="dateC" value={formulaire?.dateC ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte type="date" name="dateComptable" value={formulaire?.dateComptable ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
         </GrilleChamps>
       </GroupeSection>
@@ -248,23 +296,27 @@ export default function InfosClients({ formulaire, handleChange, onReset, onSubm
         <GrilleChamps>
           <ChampConteneur>
             <Etiquette>N° Compteur (CPT)</Etiquette>
-            <EntreeTexte name="cpt" value={formulaire?.cpt ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte name="compteur" value={formulaire?.compteur ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Imputation (IMP.)</Etiquette>
-            <EntreeTexte name="imp" value={formulaire?.imp ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte name="imputation" value={formulaire?.imputation ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Dernier N° (DER N°)</Etiquette>
-            <EntreeTexte name="derN" value={formulaire?.derN ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte name="dernierNumero" value={formulaire?.dernierNumero ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Dernier Montant (DER Mt)</Etiquette>
-            <EntreeTexte type="number" name="derMt" value={formulaire?.derMt ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte type="number" name="dernierMontant" value={formulaire?.dernierMontant ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Dernière Date (DER Dt)</Etiquette>
-            <EntreeTexte type="date" name="derDt" value={formulaire?.derDt ?? ''} onChange={gererChangementLocal} />
+            <EntreeTexte type="date" name="derniereDate" value={formulaire?.derniereDate ?? ''} onChange={gererChangementLocal} />
           </ChampConteneur>
         </GrilleChamps>
       </GroupeSection>

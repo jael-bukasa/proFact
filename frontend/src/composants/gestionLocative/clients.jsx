@@ -7,7 +7,7 @@ import {
   FiInfo, 
   FiCheckSquare, 
   FiTrash2 
-} from 'react-icons/fi'; // <-- Import des icônes depuis react-icons
+} from 'react-icons/fi';
 
 import ClientsActifs from './clients/clientsActifs';
 import ClientsSupprimes from './clients/clientsSupprimes';
@@ -103,15 +103,16 @@ const MessageNotification = styled(motion.div)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
   background-color: ${props => props.$type === 'succes' ? 'rgba(76, 175, 80, 0.15)' : 'rgba(174, 234, 0, 0.15)'};
   color: ${props => props.$type === 'succes' ? '#81C784' : THEME.accentuation};
   border: 1px solid ${props => props.$type === 'succes' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(174, 234, 0, 0.3)'};
+  margin-top: 1rem;
 `;
 
 const extraireHeureAuto = (client) => {
   if (client.heure) return client.heure;
-  const dateSource = client.dateEnregistrement || client.creeLe || client.cree_le || client.created_at;
-  if (!dateSource) return '--:--';
+  const dateSource = client.dateEnregistrement || client.creeLe || client.cree_le || client.created_at || new Date();
   const d = new Date(dateSource);
   return !isNaN(d.getTime()) ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
 };
@@ -120,15 +121,37 @@ export default function Clients() {
   const [listeClients, setListeClients] = useState([]);
   const [listeCorbeille, setListeCorbeille] = useState([]);
   const [clientsEnregistres, setClientsEnregistres] = useState([]);
+
   const [ongletActif, setOngletActif] = useState('actifs');
   const [notification, setNotification] = useState(null);
   const [clientSelectionne, setClientSelectionne] = useState(null);
+  const [erreursChamps, setErreursChamps] = useState({});
 
   const [formulaire, setFormulaire] = useState({
-    bail: '', dateBail: '', client: '', nom: '', loc: '', adres: '', pays: 'RDC',
-    designat: '', type: 'locataire', devise: 'USD', mont: '', mode: 'Virement',
-    reference: '', moisF: '', debCt: '', finCt: '', dateC: '', cpt: '',
-    imp: '', derN: '', derMt: '', derDt: ''
+    bail: '', 
+    dateBail: '', 
+    matricule: '', 
+    nom: '', 
+    postNom: '', 
+    prenom: '', 
+    logement: '', 
+    adresse: '', 
+    pays: 'RDC',
+    designation: '', 
+    typeFacture: 'Loyers', 
+    devise: 'USD', 
+    montant: '', 
+    modePaiement: 'Virement',
+    reference: '', 
+    moisFacture: '', 
+    debutContrat: '', 
+    finContrat: '', 
+    dateComptable: '', 
+    compteur: '',
+    imputation: '', 
+    dernierNumero: '', 
+    dernierMontant: '', 
+    derniereDate: ''
   });
 
   useEffect(() => { chargerClients(); }, []);
@@ -137,14 +160,17 @@ export default function Clients() {
     try {
       const resActifs = await axios.get(`${API_URL}/clients`);
       const resCorbeille = await axios.get(`${API_URL}/clients/corbeille`);
-      setListeClients(Array.isArray(resActifs.data) ? resActifs.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : []);
+      
+      const clientsFormates = Array.isArray(resActifs.data) ? resActifs.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : [];
+      
+      setListeClients(clientsFormates);
       setListeCorbeille(Array.isArray(resCorbeille.data) ? resCorbeille.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : []);
     } catch (erreur) {
       console.error("Erreur de chargement :", erreur);
     }
   };
 
-  const afficherNotificationProvisoire = (texte, type = 'info', duree = 4000) => {
+  const afficherNotificationProvisoire = (texte, type = 'info', duree = 10000) => {
     setNotification({ texte, type });
     setTimeout(() => setNotification(null), duree);
   };
@@ -152,31 +178,34 @@ export default function Clients() {
   const allerAInfosClient = (client) => {
     setClientSelectionne(client);
     setOngletActif('gestion');
+    setErreursChamps({});
 
     if (client) {
       setFormulaire({
         bail: client.bail || '',
         dateBail: client.dateBail || '',
-        client: client.client || client.matricule || '',
+        matricule: client.matricule || client.client || '',
         nom: client.nom || '',
-        loc: client.loc || '',
-        adres: client.adres || '',
+        postNom: client.postNom || client.postnom || '',
+        prenom: client.prenom || '',
+        logement: client.logement || client.loc || '',
+        adresse: client.adresse || client.adres || '',
         pays: client.pays || 'RDC',
-        designat: client.designat || '',
-        type: client.typeClient || client.type || 'locataire',
+        designation: client.designation || client.designat || '',
+        typeFacture: client.typeFacture || client.type || 'Loyers',
         devise: client.devise || 'USD',
-        mont: client.mont || '',
-        mode: client.mode || 'Virement',
+        montant: client.montant || client.mont || '',
+        modePaiement: client.modePaiement || client.mode || 'Virement',
         reference: client.reference || '',
-        moisF: client.moisF || '',
-        debCt: client.debCt || '',
-        finCt: client.finCt || '',
-        dateC: client.dateC || '',
-        cpt: client.cpt || '',
-        imp: client.imp || '',
-        derN: client.derN || '',
-        derMt: client.derMt || '',
-        derDt: client.derDt || ''
+        moisFacture: client.moisFacture || client.moisF || '',
+        debutContrat: client.debutContrat || client.debCt || '',
+        finContrat: client.finContrat || client.finCt || '',
+        dateComptable: client.dateComptable || client.dateC || '',
+        compteur: client.compteur || client.cpt || '',
+        imputation: client.imputation || client.imp || '',
+        dernierNumero: client.dernierNumero || client.derN || '',
+        dernierMontant: client.dernierMontant || client.derMt || '',
+        derniereDate: client.derniereDate || client.derDt || ''
       });
     }
   };
@@ -185,40 +214,72 @@ export default function Clients() {
     const { name, value } = e.target;
     setFormulaire(prev => ({ ...prev, [name]: value }));
     
-    if (name === 'designat') {
+    // Efface l'erreur du champ dès que l'utilisateur commence à corriger
+    if (erreursChamps[name]) {
+      setErreursChamps(prev => ({ ...prev, [name]: null }));
+    }
+    
+    if (name === 'designation') {
       const valLower = value.toLowerCase();
-      let typeAuto = 'divers';
-      if (valLower.includes('eau') || valLower.includes('regideso')) typeAuto = 'eau';
-      else if (valLower.includes('elect') || valLower.includes('snel') || valLower.includes('courant')) typeAuto = 'electricite';
-      else if (valLower.includes('loyer') || valLower.includes('locat') || valLower.includes('bail')) typeAuto = 'locataire';
-      setFormulaire(prev => ({ ...prev, type: typeAuto }));
+      let typeAuto = 'Loyers';
+      if (valLower.includes('eau') || valLower.includes('regideso')) typeAuto = 'Eau';
+      else if (valLower.includes('elect') || valLower.includes('snel') || valLower.includes('courant')) typeAuto = 'Electricite';
+      else if (valLower.includes('loyer') || valLower.includes('locat') || valLower.includes('bail')) typeAuto = 'Loyers';
+      setFormulaire(prev => ({ ...prev, typeFacture: typeAuto }));
     }
   };
 
   const reinitialiserFormulaire = () => {
     setClientSelectionne(null);
+    setErreursChamps({});
     setFormulaire({
-      bail: '', dateBail: '', client: '', nom: '', loc: '', adres: '', pays: 'RDC',
-      designat: '', type: 'locataire', devise: 'USD', mont: '', mode: 'Virement',
-      reference: '', moisF: '', debCt: '', finCt: '', dateC: '', cpt: '',
-      imp: '', derN: '', derMt: '', derDt: ''
+      bail: '', dateBail: '', matricule: '', nom: '', postNom: '', prenom: '',
+      logement: '', adresse: '', pays: 'RDC', designation: '', typeFacture: 'Loyers',
+      devise: 'USD', montant: '', modePaiement: 'Virement', reference: '',
+      moisFacture: '', debutContrat: '', finContrat: '', dateComptable: '',
+      compteur: '', imputation: '', dernierNumero: '', dernierMontant: '', derniereDate: ''
     });
   };
 
   const soumettreFormulaireClient = async (e) => {
     e.preventDefault();
-    if (!formulaire.nom || !formulaire.client) {
-      afficherNotificationProvisoire("Veuillez renseigner au moins le nom et le code client.", 'info', 3000);
+    
+    // Validation locale des champs requis
+    const nouvellesErreurs = {};
+    if (!formulaire.nom) nouvellesErreurs.nom = "Le nom est obligatoire.";
+    if (!formulaire.matricule) nouvellesErreurs.matricule = "Le matricule est obligatoire.";
+
+    if (Object.keys(nouvellesErreurs).length > 0) {
+      setErreursChamps(nouvellesErreurs);
+      afficherNotificationProvisoire("Veuillez corriger les erreurs signalées dans le formulaire.", 'info', 10000);
       return;
     }
+
+    setErreursChamps({});
+
     try {
-      await axios.post(`${API_URL}/clients`, formulaire);
-      setClientsEnregistres(prev => [...prev, formulaire]);
-      afficherNotificationProvisoire('Enregistrement effectué avec succès.', 'succes', 3000);
+      // Enregistrement effectif en base de données via l'API
+      const reponse = await axios.post(`${API_URL}/clients`, formulaire);
+      
+      const nouveauClientEnregistre = {
+        ...formulaire,
+        ...(reponse.data?.client || {}),
+        heure: extraireHeureAuto(new Date())
+      };
+
+      setClientsEnregistres([nouveauClientEnregistre]);
+      
+      afficherNotificationProvisoire('Enregistré avec succès dans la base de données !', 'succes', 10000);
+      
+      // Recharge la liste complète depuis la base de données pour mettre à jour la table des clients actifs
+      await chargerClients();
+      
       reinitialiserFormulaire();
-      chargerClients();
+      setOngletActif('actifs'); // Bascule vers les clients actifs pour voir la mise à jour immédiate
     } catch (erreur) {
-      afficherNotificationProvisoire("Échec de l'enregistrement.", 'info', 3000);
+      console.error("Détail complet de l'erreur :", erreur.response?.data || erreur.message);
+      const messageServeur = erreur.response?.data?.message || erreur.message;
+      afficherNotificationProvisoire(`Échec de l'enregistrement : ${messageServeur}`, 'info', 10000);
     }
   };
 
@@ -249,12 +310,6 @@ export default function Clients() {
         </Onglet>
       </BarreOnglets>
 
-      <AnimatePresence>
-        {notification && (
-          <MessageNotification $type={notification.type}>{notification.texte}</MessageNotification>
-        )}
-      </AnimatePresence>
-
       {ongletActif === 'actifs' ? (
         <ClientsActifs 
           listeClients={listeClients} 
@@ -263,12 +318,27 @@ export default function Clients() {
           allerAFacturation={allerAInfosClient} 
         />
       ) : ongletActif === 'gestion' ? (
-        <InfosClients 
-          formulaire={formulaire} 
-          handleChange={handleChangeFormulaire} 
-          onReset={reinitialiserFormulaire} 
-          onSubmit={soumettreFormulaireClient} 
-        />
+        <div>
+          <InfosClients 
+            formulaire={formulaire} 
+            erreurs={erreursChamps}
+            handleChange={handleChangeFormulaire} 
+            onReset={reinitialiserFormulaire} 
+            onSubmit={soumettreFormulaireClient} 
+          />
+          <AnimatePresence>
+            {notification && (
+              <MessageNotification
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                $type={notification.type}
+              >
+                {notification.texte}
+              </MessageNotification>
+            )}
+          </AnimatePresence>
+        </div>
       ) : ongletActif === 'enregistres' ? (
         <ClientsEnregistres clientsEnregistres={clientsEnregistres} />
       ) : (

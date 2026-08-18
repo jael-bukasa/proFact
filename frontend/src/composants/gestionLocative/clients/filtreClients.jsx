@@ -27,7 +27,7 @@ const GroupeFiltre = styled.div`
   flex-direction: column;
   gap: 0.4rem;
   flex: 1;
-  min-width: 130px;
+  min-width: 180px;
 `;
 
 const Etiquette = styled.label`
@@ -45,23 +45,16 @@ const ChampSaisie = styled.input`
   padding: 0.65rem 0.8rem;
   font-size: 0.85rem;
   outline: none;
+  width: 100%;
 
   &:focus {
     border-color: ${THEME.accentuation};
   }
-`;
 
-const SelecteurFiltre = styled.select`
-  background-color: ${THEME.fondChamp};
-  color: ${THEME.textePrincipal};
-  border: 1px solid ${THEME.bordure};
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.85rem;
-  outline: none;
-
-  &:focus {
-    border-color: ${THEME.accentuation};
+  /* Style pour l'icône du calendrier sur Chrome/Safari/Edge */
+  &::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
   }
 `;
 
@@ -69,7 +62,7 @@ const BoutonReinitialiser = styled.button`
   background-color: transparent;
   color: ${THEME.accentuation};
   border: 1px solid ${THEME.accentuation};
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 1.2rem;
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -93,12 +86,6 @@ export default function FiltreClients({
   setRechercheTexte,
   filtreDateExacte,
   setFiltreDateExacte,
-  filtreJour,
-  setFiltreJour,
-  filtreMois,
-  setFiltreMois,
-  filtreAnnee,
-  setFiltreAnnee,
   reinitialiserFiltres
 }) {
   return (
@@ -108,7 +95,7 @@ export default function FiltreClients({
       viewport={{ once: false, amount: 0.15 }}
       variants={variantesAnimationScroll}
     >
-      <GroupeFiltre style={{ flex: 2, minWidth: '200px' }}>
+      <GroupeFiltre style={{ flex: 2, minWidth: '220px' }}>
         <Etiquette>Recherche</Etiquette>
         <ChampSaisie 
           type="text" 
@@ -118,70 +105,13 @@ export default function FiltreClients({
         />
       </GroupeFiltre>
 
-      <GroupeFiltre>
-        <Etiquette>Date Exacte</Etiquette>
+      <GroupeFiltre style={{ flex: 1.5, minWidth: '180px' }}>
+        <Etiquette>Date de filtrage</Etiquette>
         <ChampSaisie 
           type="date" 
           value={filtreDateExacte} 
-          onChange={(e) => {
-            setFiltreDateExacte(e.target.value);
-            setFiltreJour('');
-            setFiltreMois('');
-            setFiltreAnnee('');
-          }} 
+          onChange={(e) => setFiltreDateExacte(e.target.value)} 
         />
-      </GroupeFiltre>
-
-      <GroupeFiltre>
-        <Etiquette>Jour</Etiquette>
-        <SelecteurFiltre 
-          value={filtreJour} 
-          onChange={(e) => setFiltreJour(e.target.value)}
-          disabled={Boolean(filtreDateExacte)}
-        >
-          <option value="">Tous</option>
-          {Array.from({ length: 31 }, (_, i) => {
-            const d = String(i + 1).padStart(2, '0');
-            return <option key={d} value={d}>{d}</option>;
-          })}
-        </SelecteurFiltre>
-      </GroupeFiltre>
-
-      <GroupeFiltre>
-        <Etiquette>Mois</Etiquette>
-        <SelecteurFiltre 
-          value={filtreMois} 
-          onChange={(e) => setFiltreMois(e.target.value)}
-          disabled={Boolean(filtreDateExacte)}
-        >
-          <option value="">Tous</option>
-          <option value="01">Janvier</option>
-          <option value="02">Février</option>
-          <option value="03">Mars</option>
-          <option value="04">Avril</option>
-          <option value="05">Mai</option>
-          <option value="06">Juin</option>
-          <option value="07">Juillet</option>
-          <option value="08">Août</option>
-          <option value="09">Septembre</option>
-          <option value="10">Octobre</option>
-          <option value="11">Novembre</option>
-          <option value="12">Décembre</option>
-        </SelecteurFiltre>
-      </GroupeFiltre>
-
-      <GroupeFiltre>
-        <Etiquette>Année</Etiquette>
-        <SelecteurFiltre 
-          value={filtreAnnee} 
-          onChange={(e) => setFiltreAnnee(e.target.value)}
-          disabled={Boolean(filtreDateExacte)}
-        >
-          <option value="">Toutes</option>
-          <option value="2024">2024</option>
-          <option value="2025">2025</option>
-          <option value="2026">2026</option>
-        </SelecteurFiltre>
       </GroupeFiltre>
 
       <BoutonReinitialiser onClick={reinitialiserFiltres}>
