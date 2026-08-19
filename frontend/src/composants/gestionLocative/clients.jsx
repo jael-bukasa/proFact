@@ -4,14 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { 
   FiUsers, 
-  FiInfo, 
+  FiUserPlus, 
   FiCheckSquare, 
   FiTrash2 
 } from 'react-icons/fi';
 
 import ClientsActifs from './clients/clientsActifs';
 import ClientsSupprimes from './clients/clientsSupprimes';
-import InfosClients from './clients/infosClients';
+import EnregistrementClients from './clients/enregistrementClients';
 import ClientsEnregistres from './clients/clientsEnregistres';
 
 const API_URL = 'http://localhost:5000/api';
@@ -120,7 +120,16 @@ const extraireHeureAuto = (client) => {
 export default function Clients() {
   const [listeClients, setListeClients] = useState([]);
   const [listeCorbeille, setListeCorbeille] = useState([]);
-  const [clientsEnregistres, setClientsEnregistres] = useState([]);
+  
+  // Initialisation à partir du localStorage pour ne pas perdre les enregistrements en quittant l'onglet
+  const [clientsEnregistres, setClientsEnregistres] = useState(() => {
+    try {
+      const saved = localStorage.getItem('proFact_clientsEnregistres');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   const [ongletActif, setOngletActif] = useState('actifs');
   const [notification, setNotification] = useState(null);
@@ -154,7 +163,18 @@ export default function Clients() {
     derniereDate: ''
   });
 
-  useEffect(() => { chargerClients(); }, []);
+  useEffect(() => { 
+    chargerClients(); 
+  }, []);
+
+  // Sauvegarde automatique dans localStorage à chaque modification de clientsEnregistres
+  useEffect(() => {
+    try {
+      localStorage.setItem('proFact_clientsEnregistres', JSON.stringify(clientsEnregistres));
+    } catch (e) {
+      console.error("Erreur de sauvegarde localStorage", e);
+    }
+  }, [clientsEnregistres]);
 
   const chargerClients = async () => {
     try {
@@ -175,7 +195,7 @@ export default function Clients() {
     setTimeout(() => setNotification(null), duree);
   };
 
-  const allerAInfosClient = (client) => {
+  const allerAEnregistrementClient = (client) => {
     setClientSelectionne(client);
     setOngletActif('gestion');
     setErreursChamps({});
@@ -214,7 +234,6 @@ export default function Clients() {
     const { name, value } = e.target;
     setFormulaire(prev => ({ ...prev, [name]: value }));
     
-    // Efface l'erreur du champ dès que l'utilisateur commence à corriger
     if (erreursChamps[name]) {
       setErreursChamps(prev => ({ ...prev, [name]: null }));
     }
@@ -244,10 +263,22 @@ export default function Clients() {
   const soumettreFormulaireClient = async (e) => {
     e.preventDefault();
     
-    // Validation locale des champs requis
     const nouvellesErreurs = {};
-    if (!formulaire.nom) nouvellesErreurs.nom = "Le nom est obligatoire.";
+    if (!formulaire.bail) nouvellesErreurs.bail = "Le bail est obligatoire.";
     if (!formulaire.matricule) nouvellesErreurs.matricule = "Le matricule est obligatoire.";
+    if (!formulaire.nom) nouvellesErreurs.nom = "Le nom est obligatoire.";
+    if (!formulaire.postNom) nouvellesErreurs.postNom = "Le post-nom est obligatoire.";
+    if (!formulaire.prenom) nouvellesErreurs.prenom = "Le prénom est obligatoire.";
+    if (!formulaire.logement) nouvellesErreurs.logement = "Le logement est obligatoire.";
+    
+    if (!formulaire.montant) {
+      nouvellesErreurs.montant = "Le montant est obligatoire.";
+    } else if (parseFloat(formulaire.montant) <= 0) {
+      nouvellesErreurs.montant = "Le montant doit être supérieur à 0.";
+    }
+
+    if (!formulaire.debutContrat) nouvellesErreurs.debutContrat = "Le début du contrat est obligatoire.";
+    if (!formulaire.finContrat) nouvellesErreurs.finContrat = "La fin du contrat est obligatoire.";
 
     if (Object.keys(nouvellesErreurs).length > 0) {
       setErreursChamps(nouvellesErreurs);
@@ -258,7 +289,6 @@ export default function Clients() {
     setErreursChamps({});
 
     try {
-      // Enregistrement effectif en base de données via l'API
       const reponse = await axios.post(`${API_URL}/clients`, formulaire);
       
       const nouveauClientEnregistre = {
@@ -267,15 +297,14 @@ export default function Clients() {
         heure: extraireHeureAuto(new Date())
       };
 
-      setClientsEnregistres([nouveauClientEnregistre]);
+      setClientsEnregistres(prev => [nouveauClientEnregistre, ...prev]);
       
       afficherNotificationProvisoire('Enregistré avec succès dans la base de données !', 'succes', 10000);
       
-      // Recharge la liste complète depuis la base de données pour mettre à jour la table des clients actifs
       await chargerClients();
       
       reinitialiserFormulaire();
-      setOngletActif('actifs'); // Bascule vers les clients actifs pour voir la mise à jour immédiate
+      setOngletActif('actifs');
     } catch (erreur) {
       console.error("Détail complet de l'erreur :", erreur.response?.data || erreur.message);
       const messageServeur = erreur.response?.data?.message || erreur.message;
@@ -298,7 +327,7 @@ export default function Clients() {
         </Onglet>
         
         <Onglet $actif={ongletActif === 'gestion'} onClick={() => setOngletActif('gestion')}>
-          <FiInfo /> Infos Clients
+          <FiUserPlus /> Enregistrement Clients
         </Onglet>
 
         <Onglet $actif={ongletActif === 'enregistres'} onClick={() => setOngletActif('enregistres')}>
@@ -315,11 +344,11 @@ export default function Clients() {
           listeClients={listeClients} 
           setListeClients={setListeClients}
           chargerClients={chargerClients} 
-          allerAFacturation={allerAInfosClient} 
+          allerAFacturation={allerAEnregistrementClient} 
         />
       ) : ongletActif === 'gestion' ? (
         <div>
-          <InfosClients 
+          <EnregistrementClients 
             formulaire={formulaire} 
             erreurs={erreursChamps}
             handleChange={handleChangeFormulaire} 

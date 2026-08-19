@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import FiltreClients from './filtreClients'; // <-- Import du nouveau composant
+import FiltreClients from './filtreClients';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -31,8 +31,9 @@ const TableElement = styled.table`
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: ${THEME.textePrincipal};
+  white-space: nowrap;
 `;
 
 const EnTeteTableau = styled.thead`
@@ -44,17 +45,15 @@ const CelluleHeader = styled.th`
   padding: 0.9rem 1rem;
   color: ${THEME.texteSecondaire};
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  white-space: nowrap;
 `;
 
 const CelluleData = styled.td`
   padding: 0.85rem 1rem;
   border-bottom: 1px solid ${THEME.bordure};
   vertical-align: middle;
-  white-space: nowrap;
 `;
 
 const LigneTableau = styled.tr`
@@ -77,19 +76,18 @@ const BadgeMatricule = styled.span`
   color: ${THEME.accentuation};
   background-color: rgba(174, 234, 0, 0.1);
   border: 1px solid rgba(174, 234, 0, 0.25);
-  padding: 0.25rem 0.55rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 6px;
 `;
 
 const BadgeType = styled.span`
   display: inline-block;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  text-transform: capitalize;
   color: ${THEME.textePrincipal};
   background-color: rgba(255, 255, 255, 0.06);
   border: 1px solid ${THEME.bordure};
-  padding: 0.2rem 0.5rem;
+  padding: 0.2rem 0.4rem;
   border-radius: 4px;
 `;
 
@@ -124,11 +122,11 @@ export default function ClientsEnregistres({ clientsEnregistres = [] }) {
 
       if (rechercheTexte) {
         const terme = rechercheTexte.toLowerCase();
-        const nomComplet = `${client.nom || ''} ${client.postNom || ''} ${client.prenom || ''} ${client.client || client.matricule || ''} ${client.bail || ''}`.toLowerCase();
+        const nomComplet = `${client.nom || ''} ${client.postNom || ''} ${client.prenom || ''} ${client.matricule || ''} ${client.bail || ''}`.toLowerCase();
         if (!nomComplet.includes(terme)) return false;
       }
 
-      const rawDate = client.dateEnregistrement || client.created_at || client.createdAt || client.dateC;
+      const rawDate = client.dateEnregistrement || client.created_at || client.createdAt || client.dateBail;
       if (rawDate) {
         const dateSeule = String(rawDate).includes('T') 
           ? String(rawDate).split('T')[0] 
@@ -150,7 +148,6 @@ export default function ClientsEnregistres({ clientsEnregistres = [] }) {
 
   return (
     <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      {/* Appel du composant FiltreClients */}
       <FiltreClients 
         rechercheTexte={rechercheTexte}
         setRechercheTexte={setRechercheTexte}
@@ -172,23 +169,37 @@ export default function ClientsEnregistres({ clientsEnregistres = [] }) {
           <TableElement>
             <EnTeteTableau>
               <tr>
-                <CelluleHeader>Code Client</CelluleHeader>
-                <CelluleHeader>Nom</CelluleHeader>
-                <CelluleHeader>N° Bail</CelluleHeader>
-                <CelluleHeader>Type / Catégorie</CelluleHeader>
+                <CelluleHeader>Matricule</CelluleHeader>
+                <CelluleHeader>Nom complet</CelluleHeader>
+                <CelluleHeader>N° Bail & Date</CelluleHeader>
+                <CelluleHeader>Logement / Adresse</CelluleHeader>
+                <CelluleHeader>Type Facture</CelluleHeader>
                 <CelluleHeader>Désignation</CelluleHeader>
-                <CelluleHeader>Devise</CelluleHeader>
+                <CelluleHeader>Montant</CelluleHeader>
+                <CelluleHeader>Paiement & Mois</CelluleHeader>
+                <CelluleHeader>Contrat (Début / Fin)</CelluleHeader>
+                <CelluleHeader>Compteur & Index</CelluleHeader>
               </tr>
             </EnTeteTableau>
             <tbody>
               {clientsFiltres.map((cli, index) => (
                 <LigneTableau key={cli.id || index}>
-                  <CelluleData><BadgeMatricule>{cli.client || cli.matricule || 'N/A'}</BadgeMatricule></CelluleData>
-                  <CelluleData style={{ fontWeight: 600 }}>{cli.nom || '-'}</CelluleData>
-                  <CelluleData>{cli.bail || '-'}</CelluleData>
-                  <CelluleData><BadgeType>{cli.type || cli.typeClient || 'locataire'}</BadgeType></CelluleData>
-                  <CelluleData>{cli.designat || '-'}</CelluleData>
-                  <CelluleData>{cli.devise || 'USD'}</CelluleData>
+                  <CelluleData><BadgeMatricule>{cli.matricule || 'N/A'}</BadgeMatricule></CelluleData>
+                  <CelluleData style={{ fontWeight: 600 }}>
+                    {cli.nom || ''} {cli.postNom || ''} {cli.prenom || ''}
+                  </CelluleData>
+                  <CelluleData>{cli.bail || '-'} <span style={{ color: THEME.texteSecondaire }}>({cli.dateBail || 'N/A'})</span></CelluleData>
+                  <CelluleData>{cli.logement || '-'} / {cli.adresse || '-'}</CelluleData>
+                  <CelluleData><BadgeType>{cli.typeFacture || 'Loyers'}</BadgeType></CelluleData>
+                  <CelluleData>{cli.designation || '-'}</CelluleData>
+                  <CelluleData style={{ fontWeight: 700, color: THEME.accentuation }}>
+                    {cli.montant ? `${cli.montant} ${cli.devise || 'USD'}` : '-'}
+                  </CelluleData>
+                  <CelluleData>{cli.modePaiement || '-'} <span style={{ color: THEME.texteSecondaire }}>[{cli.moisFacture || 'N/A'}]</span></CelluleData>
+                  <CelluleData>{cli.debutContrat || '-'} au {cli.finContrat || '-'}</CelluleData>
+                  <CelluleData>
+                    {cli.compteur ? `CPT: ${cli.compteur} (Dernier N°: ${cli.dernierNumero || 0})` : 'Aucun'}
+                  </CelluleData>
                 </LigneTableau>
               ))}
             </tbody>

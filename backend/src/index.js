@@ -14,7 +14,6 @@ app.use(express.json());
 // ==========================================
 // CONFIGURATION BASE DE DONNÉES MYSQL
 // ==========================================
-// 1. Connexion initiale au serveur MySQL pour garantir la création de la BDD
 const dbRoot = mysql.createConnection({
   host: 'localhost',
   user: 'root',
@@ -30,7 +29,6 @@ dbRoot.query('CREATE DATABASE IF NOT EXISTS proFactDB', (err) => {
   dbRoot.end();
 });
 
-// 2. Connexion principale à proFactDB
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
@@ -45,7 +43,7 @@ db.connect((err) => {
   }
   console.log('Connecté avec succès à la base de données MySQL : proFactDB');
 
-  // Création automatique de la table clients (sans la table factures)
+  // Table mise à jour avec TOUS les champs du formulaire
   const sqlClients = `
     CREATE TABLE IF NOT EXISTS clients (
       id INT PRIMARY KEY,
@@ -53,13 +51,28 @@ db.connect((err) => {
       nom VARCHAR(100) NOT NULL,
       postNom VARCHAR(100) DEFAULT '',
       prenom VARCHAR(100) NOT NULL,
-      typeClient VARCHAR(50) DEFAULT 'locataire',
-      devise VARCHAR(10) DEFAULT 'USD',
-      telephone VARCHAR(50) DEFAULT '',
-      email VARCHAR(100) DEFAULT '',
+      bail VARCHAR(50) DEFAULT '',
+      dateBail DATE NULL,
       logement VARCHAR(100) DEFAULT '',
       adresse VARCHAR(255) DEFAULT '',
-      dateEntree DATE,
+      pays VARCHAR(50) DEFAULT 'RDC',
+      designation VARCHAR(255) DEFAULT '',
+      typeClient VARCHAR(50) DEFAULT 'locataire',
+      typeFacture VARCHAR(50) DEFAULT 'Loyers',
+      devise VARCHAR(10) DEFAULT 'USD',
+      montant DECIMAL(12,2) DEFAULT 0,
+      modePaiement VARCHAR(50) DEFAULT 'Virement',
+      moisFacture VARCHAR(20) DEFAULT '',
+      debutContrat DATE NULL,
+      finContrat DATE NULL,
+      dateComptable DATE NULL,
+      compteur VARCHAR(50) DEFAULT '',
+      imputation VARCHAR(50) DEFAULT '',
+      dernierNumero VARCHAR(50) DEFAULT '',
+      dernierMontant DECIMAL(12,2) DEFAULT 0,
+      derniereDate DATE NULL,
+      telephone VARCHAR(50) DEFAULT '',
+      email VARCHAR(100) DEFAULT '',
       statut VARCHAR(50) DEFAULT 'Actif',
       supprime TINYINT(1) DEFAULT 0,
       creeLe DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -118,12 +131,11 @@ app.get('/', (req, res) => {
   res.send('API proFact en cours de fonctionnement...');
 });
 
-// Route de santé pour le composant VoyantSignal de React
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// 1. Récupérer la CORBEILLE (Doit être avant toute route avec :id)
+// 1. Récupérer la CORBEILLE
 app.get('/api/clients/corbeille', (req, res) => {
   const query = 'SELECT * FROM clients WHERE supprime = 1 ORDER BY id ASC';
   db.query(query, (err, results) => {
@@ -147,25 +159,40 @@ app.get('/api/clients', (req, res) => {
   });
 });
 
-// 3. AJOUTER UN CLIENT
+// 3. AJOUTER UN CLIENT (Tous les champs pris en compte)
 app.post('/api/clients', (req, res) => {
   const { 
     nom, 
     postNom = '', 
     prenom = '', 
-    typeClient = 'locataire', 
-    devise = 'USD', 
-    telephone = '', 
-    email = '', 
-    logement = '', 
-    adresse = '' 
+    bail = '',
+    dateBail = null,
+    logement = '',
+    adresse = '',
+    pays = 'RDC',
+    designation = '',
+    typeClient = 'locataire',
+    typeFacture = 'Loyers',
+    devise = 'USD',
+    montant = 0,
+    modePaiement = 'Virement',
+    moisFacture = '',
+    debutContrat = null,
+    finContrat = null,
+    dateComptable = null,
+    compteur = '',
+    imputation = '',
+    dernierNumero = '',
+    dernierMontant = 0,
+    derniereDate = null,
+    telephone = '',
+    email = ''
   } = req.body;
 
   if (!nom || !prenom) {
     return res.status(400).json({ erreur: "Le nom et le prénom sont obligatoires." });
   }
 
-  // Sélection de TOUS les IDs (actifs + corbeille) pour éviter tout conflit de clé primaire
   const queryAllIds = 'SELECT id FROM clients ORDER BY id ASC';
 
   db.query(queryAllIds, (err, results) => {
@@ -180,7 +207,6 @@ app.post('/api/clients', (req, res) => {
       idDisponible++;
     }
 
-    // Calcul du préfixe selon le type
     let prefixe = 'LOY-';
     if (typeClient === 'electricite') prefixe = 'ELE-';
     else if (typeClient === 'eau') prefixe = 'EAU-';
@@ -190,30 +216,17 @@ app.post('/api/clients', (req, res) => {
     const matricule = `${prefixe}${String(idDisponible).padStart(10, '0')}`;
     const dateEntree = new Date().toISOString().split('T')[0];
     
-    // Date locale propre pour MySQL DATETIME
     const now = new Date();
     const creeLe = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
     const queryInsert = `
       INSERT INTO clients 
-      (id, matricule, nom, postNom, prenom, typeClient, devise, telephone, email, logement, adresse, dateEntree, statut, supprime, creeLe) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Actif', 0, ?)
+      (id, matricule, nom, postNom, prenom, bail, dateBail, logement, adresse, pays, designation, typeClient, typeFacture, devise, montant, modePaiement, moisFacture, debutContrat, finContrat, dateComptable, compteur, imputation, dernierNumero, dernierMontant, derniereDate, telephone, email, dateEntree, statut, supprime, creeLe) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Actif', 0, ?)
     `;
 
     const valeurs = [
-      idDisponible, 
-      matricule, 
-      nom, 
-      postNom, 
-      prenom, 
-      typeClient, 
-      devise, 
-      telephone, 
-      email, 
-      logement, 
-      adresse, 
-      dateEntree, 
-      creeLe
+      idDisponible, matricule, nom, postNom, prenom, bail, dateBail || null, logement, adresse, pays, designation, typeClient, typeFacture, devise, montant || 0, modePaiement, moisFacture, debutContrat || null, finContrat || null, dateComptable || null, compteur, imputation, dernierNumero, dernierMontant || 0, derniereDate || null, telephone, email, dateEntree, creeLe
     ];
 
     db.query(queryInsert, valeurs, (insertErr) => {
@@ -228,12 +241,28 @@ app.post('/api/clients', (req, res) => {
         nom,
         postNom,
         prenom,
-        typeClient,
-        devise,
-        telephone,
-        email,
+        bail,
+        dateBail,
         logement,
         adresse,
+        pays,
+        designation,
+        typeClient,
+        typeFacture,
+        devise,
+        montant,
+        modePaiement,
+        moisFacture,
+        debutContrat,
+        finContrat,
+        dateComptable,
+        compteur,
+        imputation,
+        dernierNumero,
+        dernierMontant,
+        derniereDate,
+        telephone,
+        email,
         dateEntree,
         statut: 'Actif',
         supprime: 0,
@@ -248,15 +277,27 @@ app.post('/api/clients', (req, res) => {
 // 4. Modifier un client (PUT)
 app.put('/api/clients/:id', (req, res) => {
   const { id } = req.params;
-  const { nom, postNom, prenom, typeClient, devise, telephone, email, logement, adresse } = req.body;
+  const { 
+    nom, postNom, prenom, bail, dateBail, logement, adresse, pays, designation, 
+    typeClient, typeFacture, devise, montant, modePaiement, moisFacture, 
+    debutContrat, finContrat, dateComptable, compteur, imputation, 
+    dernierNumero, dernierMontant, derniereDate, telephone, email 
+  } = req.body;
 
   const query = `
     UPDATE clients 
-    SET nom = ?, postNom = ?, prenom = ?, typeClient = ?, devise = ?, telephone = ?, email = ?, logement = ?, adresse = ? 
+    SET nom = ?, postNom = ?, prenom = ?, bail = ?, dateBail = ?, logement = ?, adresse = ?, pays = ?, designation = ?, typeClient = ?, typeFacture = ?, devise = ?, montant = ?, modePaiement = ?, moisFacture = ?, debutContrat = ?, finContrat = ?, dateComptable = ?, compteur = ?, imputation = ?, dernierNumero = ?, dernierMontant = ?, derniereDate = ?, telephone = ?, email = ?
     WHERE id = ?
   `;
 
-  db.query(query, [nom, postNom, prenom, typeClient, devise, telephone, email, logement, adresse, id], (err) => {
+  const valeurs = [
+    nom, postNom, prenom, bail, dateBail || null, logement, adresse, pays, designation, 
+    typeClient, typeFacture, devise, montant || 0, modePaiement, moisFacture, 
+    debutContrat || null, finContrat || null, dateComptable || null, compteur, imputation, 
+    dernierNumero, dernierMontant || 0, derniereDate || null, telephone, email, id
+  ];
+
+  db.query(query, valeurs, (err) => {
     if (err) {
       console.error("Erreur SQL lors de la modification :", err);
       return res.status(500).json({ erreur: "Erreur lors de la modification" });
@@ -265,7 +306,7 @@ app.put('/api/clients/:id', (req, res) => {
   });
 });
 
-// 5. RESTAURER un client (Placé AVANT les suppresions génériques par :id)
+// 5. RESTAURER un client (PATCH)
 app.patch('/api/clients/:id/restaurer', (req, res) => {
   const { id } = req.params;
   const restoreQuery = 'UPDATE clients SET supprime = 0 WHERE id = ?';
@@ -279,7 +320,7 @@ app.patch('/api/clients/:id/restaurer', (req, res) => {
   });
 });
 
-// 6. VIDER LA CORBEILLE (⚠️ Doit impérativement être AVANT DELETE /api/clients/:id)
+// 6. VIDER LA CORBEILLE
 app.delete('/api/clients/corbeille/vider', (req, res) => {
   const query = 'DELETE FROM clients WHERE supprime = 1';
 
@@ -292,7 +333,7 @@ app.delete('/api/clients/corbeille/vider', (req, res) => {
   });
 });
 
-// 7. SUPPRESSION DÉFINITIVE D'UN CLIENT (Depuis la corbeille)
+// 7. SUPPRESSION DÉFINITIVE D'UN CLIENT
 app.delete('/api/clients/:id/definitif', (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM clients WHERE id = ?';
@@ -307,7 +348,6 @@ app.delete('/api/clients/:id/definitif', (req, res) => {
 });
 
 // 8. ENVOYER EN CORBEILLE (Soft Delete)
-// Cette route générique /:id est placée en DERNIER parmi les DELETE
 app.delete('/api/clients/:id', (req, res) => {
   const { id } = req.params;
   const query = 'UPDATE clients SET supprime = 1 WHERE id = ?';

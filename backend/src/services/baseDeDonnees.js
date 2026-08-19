@@ -74,7 +74,6 @@ const serviceClients = {
       )
     `);
 
-    // 1. Insertion en base de données
     const result = requete.run({
       matricule: donnees.matricule || null,
       typeClient: donnees.typeClient || 'locataire',
@@ -91,14 +90,12 @@ const serviceClients = {
 
     const nouvelId = result.lastInsertRowid;
 
-    // 2. Génération automatique d'un matricule propre si non fourni
     if (!donnees.matricule) {
       const prefixe = donnees.typeClient === 'electricite' ? 'ELE-' : donnees.typeClient === 'eau' ? 'EAU-' : 'LOY-';
       const matriculeAuto = `${prefixe}${String(nouvelId).padStart(10, '0')}`;
       bdd.prepare('UPDATE clients SET matricule = ? WHERE id = ?').run(matriculeAuto, nouvelId);
     }
 
-    // 3. RENVOIE LE CLIENT COMPLET CRÉÉ (Fix du problème React)
     return serviceClients.obtenirParId(nouvelId);
   },
 
