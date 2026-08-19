@@ -269,11 +269,30 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
 
     setErreursChamps({});
 
+    // Fonction utilitaire pour isoler uniquement le format "YYYY-MM-DD"
+    const formaterDateAPI = (valeurDate) => {
+      if (!valeurDate) return null;
+      if (typeof valeurDate === 'string' && valeurDate.includes('T')) {
+        return valeurDate.split('T')[0];
+      }
+      return valeurDate;
+    };
+
+    // Payload avec les dates nettoyées
+    const payloadPropre = {
+      ...formulaire,
+      dateBail: formaterDateAPI(formulaire.dateBail),
+      debutContrat: formaterDateAPI(formulaire.debutContrat),
+      finContrat: formaterDateAPI(formulaire.finContrat),
+      dateComptable: formaterDateAPI(formulaire.dateComptable),
+      derniereDate: formaterDateAPI(formulaire.derniereDate),
+    };
+
     try {
-      const reponse = await axios.post(`${API_URL}/clients`, formulaire);
+      const reponse = await axios.post(`${API_URL}/clients`, payloadPropre);
       
       const nouveauClientEnregistre = {
-        ...formulaire,
+        ...payloadPropre,
         ...(reponse.data?.client || {}),
         heure: extraireHeureAuto(new Date())
       };
@@ -295,7 +314,6 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
     }
   };
 
-  // Récupération dynamique des types uniques depuis la table clients
   const typesUniques = [...new Set(listeClients.map(c => c.typeFacture || c.type).filter(Boolean))];
   const optionsTypesFinales = typesUniques.length > 0 ? typesUniques : ['Locataire', 'Loyers', 'Eau', 'Electricite', 'Divers'];
 
