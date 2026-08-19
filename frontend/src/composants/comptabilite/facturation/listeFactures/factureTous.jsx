@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 
 const THEME = {
@@ -7,7 +7,6 @@ const THEME = {
   texteSecondaire: '#888888',
   bordure: '#2A2A2A',
   fondChamp: '#121212',
-  erreur: '#FF5252',
   succes: '#81C784',
 };
 
@@ -44,69 +43,10 @@ const TableauFactures = styled.table`
   }
 `;
 
-const BoutonActionPetit = styled.button`
-  background: transparent;
-  border: 1px solid ${props => props.$couleur || THEME.bordure};
-  color: ${props => props.$couleur || THEME.textePrincipal};
-  padding: 0.35rem 0.65rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: ${props => props.$couleur || THEME.textePrincipal};
-    color: #000000;
-  }
-`;
-
 export default function FactureTous({
   listeFactures = [],
-  supprimerFacture,
-  formaterDateFr,
-  rechercheFacture,
-  modePeriode,
-  filtreMoisFacture,
-  filtreTrimestreFacture,
-  filtreAnneeFacture
+  formaterDateFr
 }) {
-  // Filtrage intelligent des factures selon la recherche et la période
-  const facturesFiltrees = useMemo(() => {
-    return listeFactures.filter(facture => {
-      if (rechercheFacture) {
-        const terme = rechercheFacture.toLowerCase();
-        const num = facture.numero ? facture.numero.toLowerCase() : '';
-        const cli = facture.client ? facture.client.toLowerCase() : '';
-        const loc = facture.locataire ? facture.locataire.toLowerCase() : '';
-        const nom = facture.nom ? facture.nom.toLowerCase() : '';
-        if (!num.includes(terme) && !cli.includes(terme) && !loc.includes(terme) && !nom.includes(terme)) {
-          return false;
-        }
-      }
-
-      if (facture.dateFacture) {
-        const [annee, mois] = facture.dateFacture.split('-');
-        const moisNum = parseInt(mois, 10);
-
-        if (filtreAnneeFacture && annee !== filtreAnneeFacture) return false;
-
-        if (modePeriode === 'mois' && filtreMoisFacture) {
-          if (mois !== filtreMoisFacture) return false;
-        }
-
-        if (modePeriode === 'trimestre' && filtreTrimestreFacture) {
-          if (filtreTrimestreFacture === 'T1' && !(moisNum >= 1 && moisNum <= 3)) return false;
-          if (filtreTrimestreFacture === 'T2' && !(moisNum >= 4 && moisNum <= 6)) return false;
-          if (filtreTrimestreFacture === 'T3' && !(moisNum >= 7 && moisNum <= 9)) return false;
-          if (filtreTrimestreFacture === 'T4' && !(moisNum >= 10 && moisNum <= 12)) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [listeFactures, rechercheFacture, modePeriode, filtreMoisFacture, filtreTrimestreFacture, filtreAnneeFacture]);
-
   return (
     <ConteneurFactureTous>
       <TableauFactures>
@@ -118,18 +58,17 @@ export default function FactureTous({
             <th>Date</th>
             <th>Montant</th>
             <th>Statut</th>
-            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {facturesFiltrees.length > 0 ? (
-            facturesFiltrees.map((f) => (
-              <tr key={f.id || Math.random()}>
+          {listeFactures.length > 0 ? (
+            listeFactures.map((f) => (
+              <tr key={f.id || f.numero || Math.random()}>
                 <td>{f.numero || f.bail || 'N/A'}</td>
                 <td>{f.client || f.locataire || f.nom || 'N/A'}</td>
                 <td>
                   <span style={{ padding: '0.2rem 0.5rem', backgroundColor: THEME.fondChamp, borderRadius: '4px', fontSize: '0.75rem' }}>
-                    {f.type || f.categorie || 'Général'}
+                    {f.typeFacture || f.type || f.categorie || 'Général'}
                   </span>
                 </td>
                 <td>{formaterDateFr && f.dateFacture ? formaterDateFr(f.dateFacture) : (f.dateFacture || 'N/A')}</td>
@@ -137,16 +76,11 @@ export default function FactureTous({
                 <td style={{ color: f.statut === 'Payée' ? THEME.succes : '#FFB74D' }}>
                   {f.statut || 'En attente'}
                 </td>
-                <td>
-                  <BoutonActionPetit $couleur={THEME.erreur} onClick={() => supprimerFacture(f.id)}>
-                    Supprimer
-                  </BoutonActionPetit>
-                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="7" style={{ textAlign: 'center', padding: '1.5rem' }}>
+              <td colSpan="6" style={{ textAlign: 'center', padding: '1.5rem', color: THEME.texteSecondaire }}>
                 Aucune facture enregistrée ne correspond à vos critères.
               </td>
             </tr>

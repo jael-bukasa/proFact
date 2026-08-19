@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 
 import ListeFactures from './facturation/listeFactures';
@@ -54,13 +54,17 @@ const BoutonOnglet = styled.button`
 export default function Facturation({ formaterDateFr, clientsEnregistres = [] }) {
   const [ongletActif, setOngletActif] = useState('liste');
   const [rechercheFacture, setRechercheFacture] = useState('');
-
-  // Gestion des filtres temporels
-  const [modePeriode, setModePeriode] = useState('mois');
-  const [filtreMoisFacture, setFiltreMoisFacture] = useState('');
-  const [filtreTrimestreFacture, setFiltreTrimestreFacture] = useState('');
-  const [filtreAnneeFacture, setFiltreAnneeFacture] = useState('');
+  
+  // Nouveau filtre par date exacte pour correspondre à FiltreClients
+  const [filtreDateExacte, setFiltreDateExacte] = useState('');
+  
   const [ongletSousListe, setOngletSousListe] = useState('tous');
+
+  // Fonction pour réinitialiser les filtres de recherche et de date
+  const reinitialiserFiltres = () => {
+    setRechercheFacture('');
+    setFiltreDateExacte('');
+  };
 
   // Récupération et transformation automatique des clients enregistrés en factures
   const listeFactures = useMemo(() => {
@@ -73,20 +77,16 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         id: cli.id || index,
         numero: cli.bail || `FACT-${index + 1}`,
         client: nomComplet || 'Client Inconnu',
-        type: cli.typeFacture || 'Loyers',
+        typeFacture: cli.typeFacture || 'Loyers', // Assure-toi que c'est bien typeFacture
         dateFacture: cli.dateBail || cli.dateEnregistrement || new Date().toISOString().split('T')[0],
-        montant: cli.montant ? `${cli.montant} ${cli.devise || 'USD'}` : '0 USD',
-        statut: cli.montant ? 'Émise' : 'En attente',
-        // On conserve toutes les données d'origine au cas où d'autres sous-onglets en ont besoin
+        montant: cli.montant !== undefined ? cli.montant : 0,
+        statut: cli.statut || (cli.montant ? 'Émise' : 'En attente'),
         ...cli
       };
     });
   }, [clientsEnregistres]);
 
-  // Option de suppression locale si nécessaire (ou propagation)
   const supprimerFacture = (id) => {
-    // Note: Si la suppression doit impacter les clients, il faudra l'ajuster dans le composant parent global, 
-    // mais ici on filtre l'affichage si besoin.
     console.log("Suppression de la facture ID:", id);
   };
 
@@ -108,14 +108,9 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
           formaterDateFr={formaterDateFr} 
           rechercheFacture={rechercheFacture}
           setRechercheFacture={setRechercheFacture}
-          modePeriode={modePeriode}
-          setModePeriode={setModePeriode}
-          filtreMoisFacture={filtreMoisFacture}
-          setFiltreMoisFacture={setFiltreMoisFacture}
-          filtreTrimestreFacture={filtreTrimestreFacture}
-          setFiltreTrimestreFacture={setFiltreTrimestreFacture}
-          filtreAnneeFacture={filtreAnneeFacture}
-          setFiltreAnneeFacture={setFiltreAnneeFacture}
+          filtreDateExacte={filtreDateExacte}
+          setFiltreDateExacte={setFiltreDateExacte}
+          reinitialiserFiltres={reinitialiserFiltres}
           ongletActif={ongletSousListe}
           setOngletActif={setOngletSousListe}
         />

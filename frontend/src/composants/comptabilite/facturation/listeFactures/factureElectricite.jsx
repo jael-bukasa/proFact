@@ -1,6 +1,5 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-// import FiltreFactures from './filtreFactures'; // <-- Décommentez et ajustez le chemin selon votre structure
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -65,66 +64,10 @@ const BoutonActionPetit = styled.button`
 export default function FactureElectricite({
   listeFactures = [],
   supprimerFacture,
-  formaterDateFr,
-  rechercheFacture,
-  setRechercheFacture,
-  modePeriode,
-  setModePeriode,
-  filtreMoisFacture,
-  setFiltreMoisFacture,
-  filtreTrimestreFacture,
-  setFiltreTrimestreFacture,
-  filtreAnneeFacture,
-  setFiltreAnneeFacture,
-  reinitialiserFiltres
+  formaterDateFr
 }) {
-  const facturesFiltrees = useMemo(() => {
-    return listeFactures.filter(facture => {
-      if (facture.type && facture.type !== 'electricite') return false;
-
-      if (rechercheFacture) {
-        const terme = rechercheFacture.toLowerCase();
-        const num = facture.numero ? facture.numero.toLowerCase() : '';
-        const loc = facture.locataire ? facture.locataire.toLowerCase() : '';
-        if (!num.includes(terme) && !loc.includes(terme)) return false;
-      }
-
-      if (facture.dateFacture) {
-        const [annee, mois] = facture.dateFacture.split('-');
-        const moisNum = parseInt(mois, 10);
-        if (filtreAnneeFacture && annee !== filtreAnneeFacture) return false;
-        if (modePeriode === 'mois' && filtreMoisFacture && mois !== filtreMoisFacture) return false;
-        if (modePeriode === 'trimestre' && filtreTrimestreFacture) {
-          if (filtreTrimestreFacture === 'T1' && !(moisNum >= 1 && moisNum <= 3)) return false;
-          if (filtreTrimestreFacture === 'T2' && !(moisNum >= 4 && moisNum <= 6)) return false;
-          if (filtreTrimestreFacture === 'T3' && !(moisNum >= 7 && moisNum <= 9)) return false;
-          if (filtreTrimestreFacture === 'T4' && !(moisNum >= 10 && moisNum <= 12)) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [listeFactures, rechercheFacture, modePeriode, filtreMoisFacture, filtreTrimestreFacture, filtreAnneeFacture]);
-
   return (
     <ConteneurFactureElectricite>
-      {/* 
-        Insérez ici votre composant de filtre de factures unifié si besoin, par exemple :
-        <FiltreFactures 
-          rechercheFacture={rechercheFacture}
-          setRechercheFacture={setRechercheFacture}
-          modePeriode={modePeriode}
-          setModePeriode={setModePeriode}
-          filtreMoisFacture={filtreMoisFacture}
-          setFiltreMoisFacture={setFiltreMoisFacture}
-          filtreTrimestreFacture={filtreTrimestreFacture}
-          setFiltreTrimestreFacture={setFiltreTrimestreFacture}
-          filtreAnneeFacture={filtreAnneeFacture}
-          setFiltreAnneeFacture={setFiltreAnneeFacture}
-          reinitialiserFiltres={reinitialiserFiltres}
-        />
-      */}
-
       <TableauFactures>
         <thead>
           <tr>
@@ -137,14 +80,16 @@ export default function FactureElectricite({
           </tr>
         </thead>
         <tbody>
-          {facturesFiltrees.length > 0 ? (
-            facturesFiltrees.map((f) => (
-              <tr key={f.id}>
+          {listeFactures.length > 0 ? (
+            listeFactures.map((f) => (
+              <tr key={f.id || f.numero}>
                 <td>{f.numero || 'N/A'}</td>
-                <td>{f.locataire || f.nom || 'N/A'}</td>
+                <td>{f.locataire || f.client || f.nom || 'N/A'}</td>
                 <td>{formaterDateFr && f.dateFacture ? formaterDateFr(f.dateFacture) : f.dateFacture}</td>
                 <td>{f.montant !== undefined ? `${f.montant} USD` : 'N/A'}</td>
-                <td style={{ color: f.statut === 'Payée' ? THEME.succes : '#FFB74D' }}>{f.statut || 'En attente'}</td>
+                <td style={{ color: f.statut === 'Payée' ? THEME.succes : '#FFB74D' }}>
+                  {f.statut || 'En attente'}
+                </td>
                 <td>
                   <BoutonActionPetit $couleur={THEME.erreur} onClick={() => supprimerFacture(f.id)}>
                     Supprimer
@@ -154,7 +99,7 @@ export default function FactureElectricite({
             ))
           ) : (
             <tr>
-              <td colSpan="6" style={{ textAlign: 'center', padding: '1.5rem' }}>
+              <td colSpan="6" style={{ textAlign: 'center', padding: '1.5rem', color: THEME.texteSecondaire }}>
                 Aucune facture d'électricité trouvée.
               </td>
             </tr>
