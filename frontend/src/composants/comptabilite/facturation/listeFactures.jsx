@@ -4,7 +4,7 @@ import styled from 'styled-components';
 // Importation de ton composant de filtre personnalisé
 import FiltreClients from "../../gestionLocative/clients/filtreClients";
 
-// Importation des 5 sous-composants de listes (sans la colonne action)
+// Importation des sous-composants de listes
 import FactureTous from './listeFactures/factureTous';
 import FactureLocataire from './listeFactures/factureLocataire';
 import FactureEau from './listeFactures/factureEau';
@@ -27,7 +27,6 @@ const ConteneurOnglets = styled.div`
   flex-wrap: wrap;
 `;
 
-// Utilisation de $actif pour éviter qu'elle soit transmise au DOM HTML
 const BoutonOnglet = styled.button`
   background-color: ${({ $actif }) => ($actif ? THEME.accentuation : THEME.fondChamp)};
   color: ${({ $actif }) => ($actif ? '#000000' : THEME.textePrincipal)};
@@ -80,11 +79,13 @@ export default function ListeFactures({
   // Filtrage global centralisé et sécurisé
   const facturesFiltreesGlobal = useMemo(() => {
     return listeFactures.filter(facture => {
-      // 1. Filtrage par onglet (Type de facture)
-      if (ongletActif === 'locataire' && facture.typeFacture !== 'Loyers') return false;
-      if (ongletActif === 'eau' && facture.typeFacture !== 'Eau') return false;
-      if (ongletActif === 'electricite' && facture.typeFacture !== 'Electricite') return false;
-      if (ongletActif === 'divers' && facture.typeFacture !== 'Divers') return false;
+      const typeBrut = (facture.typeFacture || facture.type || '').toLowerCase();
+
+      // 1. Filtrage par onglet (Type de facture assoupli)
+      if (ongletActif === 'locataire' && !typeBrut.includes('loyer') && !typeBrut.includes('locataire')) return false;
+      if (ongletActif === 'eau' && !typeBrut.includes('eau')) return false;
+      if (ongletActif === 'electricite' && !typeBrut.includes('elect')) return false;
+      if (ongletActif === 'divers' && !typeBrut.includes('divers')) return false;
 
       // 2. Filtrage par texte de recherche
       if (rechercheFacture) {
@@ -94,7 +95,7 @@ export default function ListeFactures({
         if (!num.includes(terme) && !client.includes(terme)) return false;
       }
 
-      // 3. Filtrage par date exacte (avec prise en compte des formats avec heure ou ISO)
+      // 3. Filtrage par date exacte
       if (filtreDateExacte) {
         const dateFacturePropre = facture.dateFacture ? facture.dateFacture.split('T')[0] : '';
         if (dateFacturePropre !== filtreDateExacte) return false;
@@ -131,7 +132,6 @@ export default function ListeFactures({
         ))}
       </ConteneurOnglets>
 
-      {/* Appel du composant de filtre externe */}
       <div style={{ marginBottom: '1.5rem' }}>
         <FiltreClients
           rechercheTexte={rechercheFacture}
@@ -142,7 +142,6 @@ export default function ListeFactures({
         />
       </div>
 
-      {/* Affichage du tableau correspondant à l'onglet actif */}
       <RenduFactureActif
         listeFactures={facturesFiltreesGlobal}
         formaterDateFr={formaterDateFr}

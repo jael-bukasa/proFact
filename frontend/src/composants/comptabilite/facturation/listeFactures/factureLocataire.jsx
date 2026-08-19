@@ -82,16 +82,16 @@ export default function FactureLocataire({
         <tbody>
           {listeFactures.length > 0 ? (
             listeFactures.map((f) => (
-              <tr key={f.id || f.numero}>
+              <tr key={f.id || f.numero || Math.random()}>
                 <td>{f.numero || 'N/A'}</td>
-                <td>{f.locataire || f.client || 'N/A'}</td>
-                <td>{formaterDateFr && f.dateFacture ? formaterDateFr(f.dateFacture) : f.dateFacture}</td>
-                <td>{f.montant !== undefined ? `${f.montant} USD` : 'N/A'}</td>
+                <td>{f.locataire || f.client || f.nom || 'N/A'}</td>
+                <td>{formaterDateFr && f.dateFacture ? formaterDateFr(f.dateFacture) : (f.dateFacture || 'N/A')}</td>
+                <td>{f.montant !== undefined ? `${f.montant} ${f.devise || 'USD'}` : 'N/A'}</td>
                 <td style={{ color: f.statut === 'Payée' ? THEME.succes : '#FFB74D' }}>
                   {f.statut || 'En attente'}
                 </td>
                 <td>
-                  <BoutonActionPetit $couleur={THEME.erreur} onClick={() => supprimerFacture(f.id)}>
+                  <BoutonActionPetit $couleur={THEME.erreur} onClick={() => supprimerFacture && supprimerFacture(f.id)}>
                     Supprimer
                   </BoutonActionPetit>
                 </td>

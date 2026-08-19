@@ -179,12 +179,7 @@ const RoueGraphique = styled.div`
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background: conic-gradient(
-    ${THEME.vert} 0% 55%,
-    ${THEME.orange} 55% 75%,
-    ${THEME.rouge} 75% 88%,
-    ${THEME.bleu} 88% 100%
-  );
+  background: ${props => props.$gradient || `conic-gradient(${THEME.vert} 0% 100%)`};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -270,7 +265,6 @@ const TableauCompact = styled.table`
     padding: 0.65rem 0.5rem;
   }
 
-  /* Alignement parfait des colonnes */
   th:nth-child(1), td:nth-child(1) { text-align: left; }
   th:nth-child(2), td:nth-child(2) { text-align: left; }
   th:nth-child(3), td:nth-child(3) { text-align: right; }
@@ -300,13 +294,15 @@ const BadgeStatut = styled.span`
   border-radius: 12px;
   font-weight: 600;
   background-color: ${props => {
-    if (props.$statut === 'Payé') return 'rgba(76, 175, 80, 0.15)';
-    if (props.$statut === 'En retard') return 'rgba(255, 82, 82, 0.15)';
+    const s = (props.$statut || '').toLowerCase();
+    if (s.includes('payé') || s.includes('payée')) return 'rgba(76, 175, 80, 0.15)';
+    if (s.includes('retard')) return 'rgba(255, 82, 82, 0.15)';
     return 'rgba(255, 152, 0, 0.15)';
   }};
   color: ${props => {
-    if (props.$statut === 'Payé') return THEME.vert;
-    if (props.$statut === 'En retard') return THEME.rouge;
+    const s = (props.$statut || '').toLowerCase();
+    if (s.includes('payé') || s.includes('payée')) return THEME.vert;
+    if (s.includes('retard')) return THEME.rouge;
     return THEME.orange;
   }};
 `;
@@ -342,15 +338,51 @@ const obtenirMoisCourant = () => {
   return moisAnnee.charAt(0).toUpperCase() + moisAnnee.slice(1);
 };
 
-export default function TableauDeBord({ onNouvelleFacture }) {
+export default function TableauDeBord({ listeFactures = [], onNouvelleFacture }) {
   const [moisSelectionne] = useState(obtenirMoisCourant());
 
-  const transactions = [
-    { locataire: 'Kibwe Masengo', local: 'Appt 4B', montant: '450,00 $', statut: 'Payé' },
-    { locataire: 'Jael Bukasa', local: 'Studio 12', montant: '350,00 $', statut: 'Payé' },
-    { locataire: 'Alain Kabeya', local: 'Magasin 02', montant: '180,00 $', statut: 'En retard' },
-    { locataire: 'Sifa Mwamba', local: 'Appt 1A', montant: '140,00 $', statut: 'En attente' }
-  ];
+  // Calculs dynamiques basés sur la liste des factures synchronisée
+  const totalFactures = listeFactures.length;
+
+  const facturesPayees = listeFactures.filter(f => {
+    const statut = (f.statut || f.modePaiement || '').toLowerCase();
+    return statut.includes('payé') || statut.includes('payée') || statut.includes('virement') || statut.includes('cash');
+  });
+
+  const facturesRetard = listeFactures.filter(f => {
+    const statut = (f.statut || '').toLowerCase();
+    return statut.includes('retard');
+  });
+
+  const facturesAttente = listeFactures.filter(f => {
+    const statut = (f.statut || '').toLowerCase();
+    return !statut.includes('payé') && !statut.includes('retard');
+  });
+
+  // Somme totale des loyers perçus
+  const sommePercue = facturesPayees.reduce((acc, f) => acc + (Number(f.montant) || 0), 0);
+  const sommeRetards = facturesRetard.reduce((acc, f) => acc + (Number(f.montant) || 0), 0);
+
+  // Pourcentages pour la roue des activités
+  const pPayes = totalFactures > 0 ? (facturesPayees.length / totalFactures) * 100 : 0;
+  const pAttente = totalFactures > 0 ? (facturesAttente.length / totalFactures) * 100 : 0;
+  const pRetard = totalFactures > 0 ? (facturesRetard.length / totalFactures) * 100 : 0;
+
+  const fin1 = pPayes;
+  const fin2 = fin1 + pAttente;
+  const fin3 = fin2 + pRetard;
+
+  const gradientRoue = totalFactures > 0 
+    ? `conic-gradient(${THEME.vert} 0% ${fin1}%, ${THEME.orange} ${fin1}% ${fin2}%, ${THEME.rouge} ${fin2}% ${fin3}%, ${THEME.bleu} ${fin3}% 100%)`
+    : `conic-gradient(${THEME.bordure} 0% 100%)`;
+
+  // Dernières transactions (4 dernières de la liste)
+  const dernieresTransactions = [...listeFactures].reverse().slice(0, 4).map(f => ({
+    locataire: `${f.nom || ''} ${f.prenom || f.client || f.locataire || 'Inconnu'}`.trim(),
+    local: f.logement || f.adresse || 'N/A',
+    montant: f.montant !== undefined ? `${f.montant} ${f.devise || 'USD'}` : '0 USD',
+    statut: f.statut || 'En attente'
+  }));
 
   const exporterPDF = () => {
     const doc = new jsPDF();
@@ -363,7 +395,7 @@ export default function TableauDeBord({ onNouvelleFacture }) {
     autoTable(doc, {
       startY: 40,
       head: [['Locataire', 'Local', 'Montant', 'Statut']],
-      body: transactions.map(item => [item.locataire, item.local, item.montant, item.statut]),
+      body: dernieresTransactions.map(item => [item.locataire, item.local, item.montant, item.statut]),
       headStyles: { fillColor: [30, 30, 30] }
     });
 
@@ -388,10 +420,10 @@ export default function TableauDeBord({ onNouvelleFacture }) {
             <TitreCarte>Loyers Perçus</TitreCarte>
             <IconeWrapper $bg="rgba(174, 234, 0, 0.15)" $couleur={THEME.accentuation}>💰</IconeWrapper>
           </EnTeteCarte>
-          <ValeurCarte>2 450,00 $</ValeurCarte>
+          <ValeurCarte>{sommePercue.toLocaleString()} USD</ValeurCarte>
           <PiedCarte>
-            <BadgeTendance $positif={true}>+12%</BadgeTendance>
-            <SousTexteCarte>vs mois dernier</SousTexteCarte>
+            <BadgeTendance $positif={true}>+{facturesPayees.length}</BadgeTendance>
+            <SousTexteCarte>factures réglées</SousTexteCarte>
           </PiedCarte>
         </CarteMetrique>
 
@@ -400,9 +432,9 @@ export default function TableauDeBord({ onNouvelleFacture }) {
             <TitreCarte>Quittances à Émettre</TitreCarte>
             <IconeWrapper $bg="rgba(255, 152, 0, 0.15)" $couleur={THEME.orange}>📄</IconeWrapper>
           </EnTeteCarte>
-          <ValeurCarte>8</ValeurCarte>
+          <ValeurCarte>{totalFactures}</ValeurCarte>
           <PiedCarte>
-            <SousTexteCarte>83% des contrats actifs</SousTexteCarte>
+            <SousTexteCarte>Total enregistrées</SousTexteCarte>
           </PiedCarte>
         </CarteMetrique>
 
@@ -411,9 +443,9 @@ export default function TableauDeBord({ onNouvelleFacture }) {
             <TitreCarte>Impayés / Retards</TitreCarte>
             <IconeWrapper $bg="rgba(255, 82, 82, 0.15)" $couleur={THEME.rouge}>⚠️</IconeWrapper>
           </EnTeteCarte>
-          <ValeurCarte style={{ color: THEME.rouge }}>320,00 $</ValeurCarte>
+          <ValeurCarte style={{ color: THEME.rouge }}>{sommeRetards.toLocaleString()} USD</ValeurCarte>
           <PiedCarte>
-            <BadgeTendance $positif={false}>2 locataires</BadgeTendance>
+            <BadgeTendance $positif={false}>{facturesRetard.length} locataires</BadgeTendance>
             <SousTexteCarte>en retard</SousTexteCarte>
           </PiedCarte>
         </CarteMetrique>
@@ -423,10 +455,10 @@ export default function TableauDeBord({ onNouvelleFacture }) {
       <BlocContent>
         <TitreBloc>Déroulement des Activités</TitreBloc>
         <ConteneurRoue>
-          <RoueGraphique>
+          <RoueGraphique $gradient={gradientRoue}>
             <CentreRoue>
-              <ValeurCentre>100%</ValeurCentre>
-              <LibelleCentre>12 Opérations</LibelleCentre>
+              <ValeurCentre>{totalFactures > 0 ? '100%' : '0%'}</ValeurCentre>
+              <LibelleCentre>{totalFactures} Opérations</LibelleCentre>
             </CentreRoue>
           </RoueGraphique>
 
@@ -435,7 +467,7 @@ export default function TableauDeBord({ onNouvelleFacture }) {
               <PuceCouleur $couleur={THEME.vert} />
               <div>
                 <NomLegende>Encaissements</NomLegende>
-                <ValeurLegende>55% (6)</ValeurLegende>
+                <ValeurLegende>{Math.round(pPayes)}% ({facturesPayees.length})</ValeurLegende>
               </div>
             </ArticleLegende>
 
@@ -443,7 +475,7 @@ export default function TableauDeBord({ onNouvelleFacture }) {
               <PuceCouleur $couleur={THEME.orange} />
               <div>
                 <NomLegende>En attente</NomLegende>
-                <ValeurLegende>20% (3)</ValeurLegende>
+                <ValeurLegende>{Math.round(pAttente)}% ({facturesAttente.length})</ValeurLegende>
               </div>
             </ArticleLegende>
 
@@ -451,15 +483,15 @@ export default function TableauDeBord({ onNouvelleFacture }) {
               <PuceCouleur $couleur={THEME.rouge} />
               <div>
                 <NomLegende>Retards</NomLegende>
-                <ValeurLegende>13% (2)</ValeurLegende>
+                <ValeurLegende>{Math.round(pRetard)}% ({facturesRetard.length})</ValeurLegende>
               </div>
             </ArticleLegende>
 
             <ArticleLegende>
               <PuceCouleur $couleur={THEME.bleu} />
               <div>
-                <NomLegende>Facturés</NomLegende>
-                <ValeurLegende>12% (1)</ValeurLegende>
+                <NomLegende>Total Global</NomLegende>
+                <ValeurLegende>100% ({totalFactures})</ValeurLegende>
               </div>
             </ArticleLegende>
           </LegendeGrille>
@@ -471,7 +503,7 @@ export default function TableauDeBord({ onNouvelleFacture }) {
           <TitreBloc>
             Dernières Transactions
             <span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire, fontWeight: 'normal' }}>
-              Affichage des 4 derniers
+              Affichage des derniers enregistrements
             </span>
           </TitreBloc>
           <TableauCompact>
@@ -484,14 +516,22 @@ export default function TableauDeBord({ onNouvelleFacture }) {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((t, i) => (
-                <tr key={i}>
-                  <td>{t.locataire}</td>
-                  <td>{t.local}</td>
-                  <td>{t.montant}</td>
-                  <td><BadgeStatut $statut={t.statut}>{t.statut}</BadgeStatut></td>
+              {dernieresTransactions.length > 0 ? (
+                dernieresTransactions.map((t, i) => (
+                  <tr key={i}>
+                    <td>{t.locataire}</td>
+                    <td>{t.local}</td>
+                    <td>{t.montant}</td>
+                    <td><BadgeStatut $statut={t.statut}>{t.statut}</BadgeStatut></td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center', color: THEME.texteSecondaire, padding: '1rem' }}>
+                    Aucune transaction récente.
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </TableauCompact>
         </BlocContent>

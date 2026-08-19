@@ -39,23 +39,46 @@ const THEME = {
   bordure: '#2A2A2A'
 };
 
-const ConteneurApp = styled.div` display: flex; height: 100vh; width: 100%; background-color: ${THEME.fondApplication}; `;
+const ConteneurApp = styled.div`
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background-color: ${THEME.fondApplication};
+`;
 
 const ConteneurContenuPrincipal = styled.main`
-  flex: 1; min-width: 0; padding: 2.5rem; overflow-y: auto;
+  flex: 1;
+  min-width: 0;
+  padding: 2.5rem;
+  overflow-y: auto;
   background: radial-gradient(circle at 80% 10%, rgba(30, 30, 30, 0.4) 0%, rgba(0, 0, 0, 1) 70%);
 `;
 
-const ZoneAnimee = styled.div` animation: ${transitionDouce} 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards; `;
+const ZoneAnimee = styled.div`
+  animation: ${transitionDouce} 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+`;
 
 const BadgeStatutApi = styled.div`
-  position: fixed; bottom: 1.2rem; right: 1.5rem; padding: 0.5rem 1rem;
-  border-radius: 30px; background-color: rgba(30, 30, 30, 0.85); border: 1px solid ${THEME.bordure};
-  backdrop-filter: blur(10px); color: #FFFFFF; font-size: 0.75rem; display: flex; align-items: center; gap: 0.6rem; z-index: 100;
+  position: fixed;
+  bottom: 1.2rem;
+  right: 1.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  background-color: rgba(30, 30, 30, 0.85);
+  border: 1px solid ${THEME.bordure};
+  backdrop-filter: blur(10px);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  z-index: 100;
 `;
 
 const VoyantSignal = styled.span`
-  width: 8px; height: 8px; border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background-color: ${props => (props.$connecte ? '#22c55e' : '#ef4444')};
   animation: ${props => (props.$connecte ? pulsionSignal : 'none')} 2s infinite;
 `;
@@ -75,6 +98,13 @@ export default function App() {
     }
   });
 
+  // Fonction de formatage de date en français
+  const formaterDateFr = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return isNaN(date) ? dateString : date.toLocaleDateString('fr-FR');
+  };
+
   // Synchronisation en temps réel via l'événement storage du navigateur
   useEffect(() => {
     const gererStockageChange = (e) => {
@@ -90,7 +120,7 @@ export default function App() {
     return () => window.removeEventListener('storage', gererStockageChange);
   }, []);
 
-  // Synchronisation locale de secours au cas où les modifications proviennent du même onglet
+  // Synchronisation locale de secours
   useEffect(() => {
     try {
       localStorage.setItem('proFact_clientsEnregistres', JSON.stringify(clientsEnregistres));
@@ -129,6 +159,8 @@ export default function App() {
           <Facturation 
             clientSelectionne={clientSelectionne} 
             clientsEnregistres={clientsEnregistres}
+            setClientsEnregistres={setClientsEnregistres}
+            formaterDateFr={formaterDateFr}
             onRetour={() => setOngletActif('Tableau de bord')} 
           />
         );

@@ -54,19 +54,15 @@ const BoutonOnglet = styled.button`
 export default function Facturation({ formaterDateFr, clientsEnregistres = [] }) {
   const [ongletActif, setOngletActif] = useState('liste');
   const [rechercheFacture, setRechercheFacture] = useState('');
-  
-  // Nouveau filtre par date exacte pour correspondre à FiltreClients
   const [filtreDateExacte, setFiltreDateExacte] = useState('');
-  
   const [ongletSousListe, setOngletSousListe] = useState('tous');
 
-  // Fonction pour réinitialiser les filtres de recherche et de date
   const reinitialiserFiltres = () => {
     setRechercheFacture('');
     setFiltreDateExacte('');
   };
 
-  // Récupération et transformation automatique des clients enregistrés en factures
+  // Transformation complète des clients enregistrés en objets factures
   const listeFactures = useMemo(() => {
     if (!clientsEnregistres || clientsEnregistres.length === 0) return [];
 
@@ -75,19 +71,25 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
       
       return {
         id: cli.id || index,
-        numero: cli.bail || `FACT-${index + 1}`,
-        client: nomComplet || 'Client Inconnu',
-        typeFacture: cli.typeFacture || 'Loyers', // Assure-toi que c'est bien typeFacture
-        dateFacture: cli.dateBail || cli.dateEnregistrement || new Date().toISOString().split('T')[0],
-        montant: cli.montant !== undefined ? cli.montant : 0,
-        statut: cli.statut || (cli.montant ? 'Émise' : 'En attente'),
-        ...cli
+        numero: cli.bail || cli.numero || `FACT-${index + 1}`,
+        client: nomComplet || cli.client || cli.locataire || 'Client Inconnu',
+        locataire: nomComplet || cli.client || cli.locataire || 'Client Inconnu',
+        
+        // Normalisation cruciale du type pour que les filtres des onglets (Tous, Locataire, Eau, etc.) reconnaissent la facture
+        type: (cli.type || cli.typeFacture || 'locataire').toLowerCase(),
+        devise: cli.devise || 'USD',
+        montant: parseFloat(cli.montant) || 0,
+        dateFacture: cli.dateBail || cli.dateEnregistrement || cli.dateFacture || new Date().toISOString().split('T')[0],
+        statut: cli.statut || 'En attente',
+        
+        ...cli 
       };
     });
   }, [clientsEnregistres]);
 
   const supprimerFacture = (id) => {
     console.log("Suppression de la facture ID:", id);
+    // Logique de suppression à relier au parent si nécessaire
   };
 
   return (
