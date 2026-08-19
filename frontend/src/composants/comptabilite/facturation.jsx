@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 
 import ListeFactures from './facturation/listeFactures';
@@ -51,38 +51,8 @@ const BoutonOnglet = styled.button`
   }
 `;
 
-export default function Facturation({ formaterDateFr, clientSelectionne }) {
+export default function Facturation({ formaterDateFr, clientsEnregistres = [] }) {
   const [ongletActif, setOngletActif] = useState('liste');
-
-  // État du formulaire
-  const [formulaire, setFormulaire] = useState({
-    bail: '', dateBail: '', designat: '', nom: '', loc: '', adres: '',
-    pays: 'RDC', mode: 'Virement', mont: '', cpt: '', imp: '', derN: '',
-    derMt: '', derDt: '', moisF: '', debCt: '', finCt: '', 
-    type: 'locataire',
-    devise: 'USD',
-    nMont: '', dateC: '', client: '', tauxCon: '', montFc: '', reference: ''
-  });
-
-  useEffect(() => {
-    if (clientSelectionne) {
-      const nomComplet = [clientSelectionne.nom, clientSelectionne.postNom, clientSelectionne.prenom]
-        .filter(Boolean)
-        .join(' ');
-
-      setFormulaire(prev => ({
-        ...prev,
-        nom: nomComplet || prev.nom,
-        client: clientSelectionne.matricule || clientSelectionne.id || prev.client,
-        loc: clientSelectionne.lieuNaissance || clientSelectionne.adresse || prev.loc,
-        adres: clientSelectionne.adresse || prev.adres,
-        dateC: clientSelectionne.dateEnregistrement || new Date().toISOString().split('T')[0]
-      }));
-    }
-  }, [clientSelectionne]);
-
-  // Listes et États de gestion
-  const [listeFactures, setListeFactures] = useState([]);
   const [rechercheFacture, setRechercheFacture] = useState('');
 
   // Gestion des filtres temporels
@@ -92,9 +62,32 @@ export default function Facturation({ formaterDateFr, clientSelectionne }) {
   const [filtreAnneeFacture, setFiltreAnneeFacture] = useState('');
   const [ongletSousListe, setOngletSousListe] = useState('tous');
 
-  // Action de suppression
+  // Récupération et transformation automatique des clients enregistrés en factures
+  const listeFactures = useMemo(() => {
+    if (!clientsEnregistres || clientsEnregistres.length === 0) return [];
+
+    return clientsEnregistres.map((cli, index) => {
+      const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim();
+      
+      return {
+        id: cli.id || index,
+        numero: cli.bail || `FACT-${index + 1}`,
+        client: nomComplet || 'Client Inconnu',
+        type: cli.typeFacture || 'Loyers',
+        dateFacture: cli.dateBail || cli.dateEnregistrement || new Date().toISOString().split('T')[0],
+        montant: cli.montant ? `${cli.montant} ${cli.devise || 'USD'}` : '0 USD',
+        statut: cli.montant ? 'Émise' : 'En attente',
+        // On conserve toutes les données d'origine au cas où d'autres sous-onglets en ont besoin
+        ...cli
+      };
+    });
+  }, [clientsEnregistres]);
+
+  // Option de suppression locale si nécessaire (ou propagation)
   const supprimerFacture = (id) => {
-    setListeFactures(prev => prev.filter(f => f.id !== id));
+    // Note: Si la suppression doit impacter les clients, il faudra l'ajuster dans le composant parent global, 
+    // mais ici on filtre l'affichage si besoin.
+    console.log("Suppression de la facture ID:", id);
   };
 
   return (

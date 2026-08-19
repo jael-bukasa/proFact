@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
-// import FiltreFactures from './filtreFactures'; // <-- Décommentez et ajustez le chemin selon votre structure
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -67,17 +66,12 @@ export default function FactureTous({
   supprimerFacture,
   formaterDateFr,
   rechercheFacture,
-  setRechercheFacture,
   modePeriode,
-  setModePeriode,
   filtreMoisFacture,
-  setFiltreMoisFacture,
   filtreTrimestreFacture,
-  setFiltreTrimestreFacture,
-  filtreAnneeFacture,
-  setFiltreAnneeFacture,
-  reinitialiserFiltres
+  filtreAnneeFacture
 }) {
+  // Filtrage intelligent des factures selon la recherche et la période
   const facturesFiltrees = useMemo(() => {
     return listeFactures.filter(facture => {
       if (rechercheFacture) {
@@ -115,28 +109,12 @@ export default function FactureTous({
 
   return (
     <ConteneurFactureTous>
-      {/* 
-        Insérez ici votre composant de filtre de factures unifié si besoin, par exemple :
-        <FiltreFactures 
-          rechercheFacture={rechercheFacture}
-          setRechercheFacture={setRechercheFacture}
-          modePeriode={modePeriode}
-          setModePeriode={setModePeriode}
-          filtreMoisFacture={filtreMoisFacture}
-          setFiltreMoisFacture={setFiltreMoisFacture}
-          filtreTrimestreFacture={filtreTrimestreFacture}
-          setFiltreTrimestreFacture={setFiltreTrimestreFacture}
-          filtreAnneeFacture={filtreAnneeFacture}
-          setFiltreAnneeFacture={setFiltreAnneeFacture}
-          reinitialiserFiltres={reinitialiserFiltres}
-        />
-      */}
-
       <TableauFactures>
         <thead>
           <tr>
             <th>N° Facture</th>
-            <th>Client</th>
+            <th>Client / Locataire</th>
+            <th>Type</th>
             <th>Date</th>
             <th>Montant</th>
             <th>Statut</th>
@@ -146,12 +124,19 @@ export default function FactureTous({
         <tbody>
           {facturesFiltrees.length > 0 ? (
             facturesFiltrees.map((f) => (
-              <tr key={f.id}>
+              <tr key={f.id || Math.random()}>
                 <td>{f.numero || f.bail || 'N/A'}</td>
                 <td>{f.client || f.locataire || f.nom || 'N/A'}</td>
+                <td>
+                  <span style={{ padding: '0.2rem 0.5rem', backgroundColor: THEME.fondChamp, borderRadius: '4px', fontSize: '0.75rem' }}>
+                    {f.type || f.categorie || 'Général'}
+                  </span>
+                </td>
                 <td>{formaterDateFr && f.dateFacture ? formaterDateFr(f.dateFacture) : (f.dateFacture || 'N/A')}</td>
                 <td>{f.montant !== undefined ? `${f.montant} USD` : (f.mont ? `${f.mont} USD` : 'N/A')}</td>
-                <td style={{ color: f.statut === 'Payée' ? THEME.succes : '#FFB74D' }}>{f.statut || 'En attente'}</td>
+                <td style={{ color: f.statut === 'Payée' ? THEME.succes : '#FFB74D' }}>
+                  {f.statut || 'En attente'}
+                </td>
                 <td>
                   <BoutonActionPetit $couleur={THEME.erreur} onClick={() => supprimerFacture(f.id)}>
                     Supprimer
@@ -161,8 +146,8 @@ export default function FactureTous({
             ))
           ) : (
             <tr>
-              <td colSpan="6" style={{ textAlign: 'center', padding: '1.5rem' }}>
-                Aucune facture trouvée.
+              <td colSpan="7" style={{ textAlign: 'center', padding: '1.5rem' }}>
+                Aucune facture enregistrée ne correspond à vos critères.
               </td>
             </tr>
           )}

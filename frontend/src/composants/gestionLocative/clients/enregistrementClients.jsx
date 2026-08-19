@@ -179,17 +179,21 @@ export default function EnregistrementClients({
 }) {
   const refs = useRef({});
 
-  // Navigation fluide avec la touche Entrée (jusqu'au bouton Enregistrer)
+  // Navigation fluide avec la touche Entrée entre les champs
   const gererToucheEntree = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      const listeChamps = Object.keys(refs.current);
-      const nomChampActuel = e.target.name || e.target.getAttribute('name');
+      const listeChamps = Object.keys(refs.current).filter(k => k !== 'submitButton');
+      const nomChampActuel = e.target.name;
       const indexActuel = listeChamps.indexOf(nomChampActuel);
       
       if (indexActuel > -1 && indexActuel < listeChamps.length - 1) {
+        e.preventDefault();
         refs.current[listeChamps[indexActuel + 1]]?.focus();
+      } else if (indexActuel === listeChamps.length - 1) {
+        e.preventDefault();
+        refs.current['submitButton']?.focus();
       }
+      // Si on est sur le bouton submit, on laisse l'événement se propager pour soumettre
     }
   };
 

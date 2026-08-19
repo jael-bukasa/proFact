@@ -62,8 +62,42 @@ const VoyantSignal = styled.span`
 
 export default function App() {
   const [ongletActif, setOngletActif] = useState('Tableau de bord');
-  const [clientSelectionne, setClientSelectionne] = useState(null); // Stocke le client pour la facture
+  const [clientSelectionne, setClientSelectionne] = useState(null);
   const [backendConnecte, setBackendConnecte] = useState(false);
+
+  // État global initialisé depuis le localStorage
+  const [clientsEnregistres, setClientsEnregistres] = useState(() => {
+    try {
+      const sauvegarde = localStorage.getItem('proFact_clientsEnregistres');
+      return sauvegarde ? JSON.parse(sauvegarde) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Synchronisation en temps réel via l'événement storage du navigateur
+  useEffect(() => {
+    const gererStockageChange = (e) => {
+      if (e.key === 'proFact_clientsEnregistres' && e.newValue) {
+        try {
+          setClientsEnregistres(JSON.parse(e.newValue));
+        } catch (err) {
+          console.error("Erreur parsing localStorage", err);
+        }
+      }
+    };
+    window.addEventListener('storage', gererStockageChange);
+    return () => window.removeEventListener('storage', gererStockageChange);
+  }, []);
+
+  // Synchronisation locale de secours au cas où les modifications proviennent du même onglet
+  useEffect(() => {
+    try {
+      localStorage.setItem('proFact_clientsEnregistres', JSON.stringify(clientsEnregistres));
+    } catch (e) {
+      console.error("Erreur de sauvegarde localStorage", e);
+    }
+  }, [clientsEnregistres]);
 
   useEffect(() => {
     axios.get('http://localhost:5000/api/health')
@@ -71,7 +105,6 @@ export default function App() {
       .catch(() => setBackendConnecte(false));
   }, []);
 
-  // Fonction appelée par le composant <Clients /> lors du clic "Facturer"
   const allerAFacturation = (client) => {
     setClientSelectionne(client);
     setOngletActif('Facturation');
@@ -82,11 +115,23 @@ export default function App() {
       case 'Tableau de bord':
         return <TableauDeBord onNouvelleFacture={() => { setClientSelectionne(null); setOngletActif('Facturation'); }} />;
       case 'Clients':
-        return <Clients onNaviguerVersFacturation={allerAFacturation} />;
+        return (
+          <Clients 
+            onNaviguerVersFacturation={allerAFacturation} 
+            clientsEnregistres={clientsEnregistres}
+            setClientsEnregistres={setClientsEnregistres}
+          />
+        );
       case 'Logements':
         return <Logements />;
       case 'Facturation':
-        return <Facturation clientSelectionne={clientSelectionne} onRetour={() => setOngletActif('Tableau de bord')} />;
+        return (
+          <Facturation 
+            clientSelectionne={clientSelectionne} 
+            clientsEnregistres={clientsEnregistres}
+            onRetour={() => setOngletActif('Tableau de bord')} 
+          />
+        );
       case 'Paiements':
         return <Paiements />;
       case 'Rapports':
@@ -103,7 +148,7 @@ export default function App() {
         <BarreLaterale 
           ongletActif={ongletActif} 
           auChangementOnglet={(element) => {
-            if (element !== 'Facturation') setClientSelectionne(null); // Nettoie si on change de page
+            if (element !== 'Facturation') setClientSelectionne(null);
             setOngletActif(element);
           }} 
         />

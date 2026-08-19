@@ -117,19 +117,9 @@ const extraireHeureAuto = (client) => {
   return !isNaN(d.getTime()) ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
 };
 
-export default function Clients() {
+export default function Clients({ clientsEnregistres = [], setClientsEnregistres }) {
   const [listeClients, setListeClients] = useState([]);
   const [listeCorbeille, setListeCorbeille] = useState([]);
-  
-  // Initialisation à partir du localStorage pour ne pas perdre les enregistrements en quittant l'onglet
-  const [clientsEnregistres, setClientsEnregistres] = useState(() => {
-    try {
-      const saved = localStorage.getItem('proFact_clientsEnregistres');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
 
   const [ongletActif, setOngletActif] = useState('actifs');
   const [notification, setNotification] = useState(null);
@@ -166,15 +156,6 @@ export default function Clients() {
   useEffect(() => { 
     chargerClients(); 
   }, []);
-
-  // Sauvegarde automatique dans localStorage à chaque modification de clientsEnregistres
-  useEffect(() => {
-    try {
-      localStorage.setItem('proFact_clientsEnregistres', JSON.stringify(clientsEnregistres));
-    } catch (e) {
-      console.error("Erreur de sauvegarde localStorage", e);
-    }
-  }, [clientsEnregistres]);
 
   const chargerClients = async () => {
     try {
@@ -297,7 +278,9 @@ export default function Clients() {
         heure: extraireHeureAuto(new Date())
       };
 
-      setClientsEnregistres(prev => [nouveauClientEnregistre, ...prev]);
+      if (typeof setClientsEnregistres === 'function') {
+        setClientsEnregistres(prev => [nouveauClientEnregistre, ...prev]);
+      }
       
       afficherNotificationProvisoire('Enregistré avec succès dans la base de données !', 'succes', 10000);
       
@@ -311,6 +294,10 @@ export default function Clients() {
       afficherNotificationProvisoire(`Échec de l'enregistrement : ${messageServeur}`, 'info', 10000);
     }
   };
+
+  // Récupération dynamique des types uniques depuis la table clients
+  const typesUniques = [...new Set(listeClients.map(c => c.typeFacture || c.type).filter(Boolean))];
+  const optionsTypesFinales = typesUniques.length > 0 ? typesUniques : ['Locataire', 'Loyers', 'Eau', 'Electricite', 'Divers'];
 
   return (
     <ConteneurPage>
@@ -351,6 +338,7 @@ export default function Clients() {
           <EnregistrementClients 
             formulaire={formulaire} 
             erreurs={erreursChamps}
+            optionsTypes={optionsTypesFinales}
             handleChange={handleChangeFormulaire} 
             onReset={reinitialiserFormulaire} 
             onSubmit={soumettreFormulaireClient} 
