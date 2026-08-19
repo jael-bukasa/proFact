@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import FiltreClients from './filtreClients';
@@ -19,12 +19,48 @@ const ConteneurSection = styled.div`
   width: 100%;
 `;
 
+const ScrollbarHautWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 14px;
+  margin-bottom: -5px;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+`;
+
+const ScrollbarHautContenu = styled.div`
+  height: 1px;
+`;
+
 const ConteneurTableau = styled.div`
   width: 100%;
   overflow-x: auto;
   background-color: ${THEME.fondCarte};
   border: 1px solid ${THEME.bordure};
   border-radius: 12px;
+  padding-bottom: 8px; /* <-- Espace ajouté ici pour isoler la barre du bas */
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 0 10px;
+  }
 `;
 
 const TableElement = styled.table`
@@ -108,6 +144,29 @@ export default function ClientsEnregistres({ clientsEnregistres = [] }) {
   const [filtreAnnee, setFiltreAnnee] = useState('');
   const [filtreDateExacte, setFiltreDateExacte] = useState('');
 
+  const scrollbarHautRef = useRef(null);
+  const conteneurTableauRef = useRef(null);
+  const tableRef = useRef(null);
+  const [largeurTableau, setLargeurTableau] = useState(0);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      setLargeurTableau(tableRef.current.scrollWidth);
+    }
+  }, [clientsEnregistres]);
+
+  const gererScrollHaut = () => {
+    if (conteneurTableauRef.current && scrollbarHautRef.current) {
+      conteneurTableauRef.current.scrollLeft = scrollbarHautRef.current.scrollLeft;
+    }
+  };
+
+  const gererScrollBas = () => {
+    if (conteneurTableauRef.current && scrollbarHautRef.current) {
+      scrollbarHautRef.current.scrollLeft = conteneurTableauRef.current.scrollLeft;
+    }
+  };
+
   const reinitialiserFiltres = () => {
     setRechercheTexte('');
     setFiltreJour('');
@@ -165,46 +224,84 @@ export default function ClientsEnregistres({ clientsEnregistres = [] }) {
       {clientsFiltres.length === 0 ? (
         <MessageVide>Aucun client enregistré ne correspond à vos critères de recherche.</MessageVide>
       ) : (
-        <ConteneurTableau>
-          <TableElement>
-            <EnTeteTableau>
-              <tr>
-                <CelluleHeader>Matricule</CelluleHeader>
-                <CelluleHeader>Nom complet</CelluleHeader>
-                <CelluleHeader>N° Bail & Date</CelluleHeader>
-                <CelluleHeader>Logement / Adresse</CelluleHeader>
-                <CelluleHeader>Type Facture</CelluleHeader>
-                <CelluleHeader>Désignation</CelluleHeader>
-                <CelluleHeader>Montant</CelluleHeader>
-                <CelluleHeader>Paiement & Mois</CelluleHeader>
-                <CelluleHeader>Contrat (Début / Fin)</CelluleHeader>
-                <CelluleHeader>Compteur & Index</CelluleHeader>
-              </tr>
-            </EnTeteTableau>
-            <tbody>
-              {clientsFiltres.map((cli, index) => (
-                <LigneTableau key={cli.id || index}>
-                  <CelluleData><BadgeMatricule>{cli.matricule || 'N/A'}</BadgeMatricule></CelluleData>
-                  <CelluleData style={{ fontWeight: 600 }}>
-                    {cli.nom || ''} {cli.postNom || ''} {cli.prenom || ''}
-                  </CelluleData>
-                  <CelluleData>{cli.bail || '-'} <span style={{ color: THEME.texteSecondaire }}>({cli.dateBail || 'N/A'})</span></CelluleData>
-                  <CelluleData>{cli.logement || '-'} / {cli.adresse || '-'}</CelluleData>
-                  <CelluleData><BadgeType>{cli.typeFacture || 'Loyers'}</BadgeType></CelluleData>
-                  <CelluleData>{cli.designation || '-'}</CelluleData>
-                  <CelluleData style={{ fontWeight: 700, color: THEME.accentuation }}>
-                    {cli.montant ? `${cli.montant} ${cli.devise || 'USD'}` : '-'}
-                  </CelluleData>
-                  <CelluleData>{cli.modePaiement || '-'} <span style={{ color: THEME.texteSecondaire }}>[{cli.moisFacture || 'N/A'}]</span></CelluleData>
-                  <CelluleData>{cli.debutContrat || '-'} au {cli.finContrat || '-'}</CelluleData>
-                  <CelluleData>
-                    {cli.compteur ? `CPT: ${cli.compteur} (Dernier N°: ${cli.dernierNumero || 0})` : 'Aucun'}
-                  </CelluleData>
-                </LigneTableau>
-              ))}
-            </tbody>
-          </TableElement>
-        </ConteneurTableau>
+        <>
+          <ScrollbarHautWrapper ref={scrollbarHautRef} onScroll={gererScrollHaut}>
+            <ScrollbarHautContenu style={{ width: `${largeurTableau}px` }} />
+          </ScrollbarHautWrapper>
+
+          <ConteneurTableau ref={conteneurTableauRef} onScroll={gererScrollBas}>
+            <TableElement ref={tableRef}>
+              <EnTeteTableau>
+                <tr>
+                  <CelluleHeader>Matricule</CelluleHeader>
+                  <CelluleHeader>Nom complet</CelluleHeader>
+                  <CelluleHeader>N° Bail & Date</CelluleHeader>
+                  <CelluleHeader>Logement / Adresse / Pays</CelluleHeader>
+                  <CelluleHeader>Type & Désignation</CelluleHeader>
+                  <CelluleHeader>Montant</CelluleHeader>
+                  <CelluleHeader>Paiement & Réf.</CelluleHeader>
+                  <CelluleHeader>Mois Facturé</CelluleHeader>
+                  <CelluleHeader>Contrat (Début / Fin)</CelluleHeader>
+                  <CelluleHeader>Date Comptable</CelluleHeader>
+                  <CelluleHeader>Compteurs & Suivi Index</CelluleHeader>
+                </tr>
+              </EnTeteTableau>
+              <tbody>
+                {clientsFiltres.map((cli, index) => (
+                  <LigneTableau key={cli.id || index}>
+                    <CelluleData><BadgeMatricule>{cli.matricule || 'N/A'}</BadgeMatricule></CelluleData>
+                    
+                    <CelluleData style={{ fontWeight: 600 }}>
+                      {cli.nom || ''} {cli.postNom || ''} {cli.prenom || ''}
+                    </CelluleData>
+                    
+                    <CelluleData>
+                      {cli.bail || '-'} <span style={{ color: THEME.texteSecondaire }}>({cli.dateBail || 'N/A'})</span>
+                    </CelluleData>
+                    
+                    <CelluleData>
+                      {cli.logement || '-'} / {cli.adresse || '-'} <span style={{ color: THEME.texteSecondaire }}>({cli.pays || 'RDC'})</span>
+                    </CelluleData>
+                    
+                    <CelluleData>
+                      <BadgeType>{cli.typeFacture || 'Loyers'}</BadgeType> 
+                      <br/><span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire }}>{cli.designation || '-'}</span>
+                    </CelluleData>
+                    
+                    <CelluleData style={{ fontWeight: 700, color: THEME.accentuation }}>
+                      {cli.montant ? `${cli.montant} ${cli.devise || 'USD'}` : '-'}
+                    </CelluleData>
+                    
+                    <CelluleData>
+                      {cli.modePaiement || '-'} 
+                      {cli.reference && <><br/><span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire }}>Réf: {cli.reference}</span></>}
+                    </CelluleData>
+                    
+                    <CelluleData>{cli.moisFacture || 'N/A'}</CelluleData>
+                    
+                    <CelluleData style={{ fontSize: '0.75rem' }}>
+                      {cli.debutContrat || '-'} <br/>au {cli.finContrat || '-'}
+                    </CelluleData>
+                    
+                    <CelluleData>{cli.dateComptable || '-'}</CelluleData>
+                    
+                    <CelluleData style={{ fontSize: '0.75rem' }}>
+                      {cli.compteur ? (
+                        <>
+                          CPT: {cli.compteur} {cli.imputation ? `| Imp: ${cli.imputation}` : ''}<br/>
+                          Der N°: {cli.dernierNumero || 0} | Mt: {cli.dernierMontant || 0}<br/>
+                          <span style={{ color: THEME.texteSecondaire }}>Dt: {cli.derniereDate || '-'}</span>
+                        </>
+                      ) : (
+                        <span style={{ color: THEME.texteSecondaire }}>Aucun</span>
+                      )}
+                    </CelluleData>
+                  </LigneTableau>
+                ))}
+              </tbody>
+            </TableElement>
+          </ConteneurTableau>
+        </>
       )}
     </ConteneurSection>
   );
