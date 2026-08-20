@@ -9,7 +9,8 @@ import FactureTous from './listeFactures/factureTous';
 import FactureLocataire from './listeFactures/factureLocataire';
 import FactureEau from './listeFactures/factureEau';
 import FactureElectricite from './listeFactures/factureElectricite';
-import FactureDivers from './listeFactures/factureDivers';
+// Correction : Importation nommée pour plus de stabilité
+import { FactureDivers } from './listeFactures/factureDivers';
 
 const THEME = {
   fondCarte: '#1E1E1E',
