@@ -1,7 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FiFileText, FiDownload } from 'react-icons/fi';
+import { FiFileText, FiDownload, FiLoader } from 'react-icons/fi';
 import PDFFacturesLocataire from './listePDF/PDFFacturesLocataire';
 
 const THEME = {
@@ -130,10 +130,16 @@ const BoutonPDF = styled.button`
   cursor: pointer;
   transition: all 0.2s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: ${THEME.accentuation};
     color: #000000;
     border-color: ${THEME.accentuation};
+  }
+
+  &:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    background-color: #181818;
   }
 `;
 
@@ -170,10 +176,19 @@ function FactureLocataire({
   formaterDateFr
 }) {
   const pdfRef = useRef(null);
+  const [idEnCours, setIdEnCours] = useState(null);
 
-  const handleTelechargerPDF = (cli) => {
+  const handleTelechargerPDF = async (cli) => {
+    const factureId = cli.id || cli.numeroFacture;
     if (pdfRef.current) {
-      pdfRef.current.genererPDF(cli);
+      try {
+        setIdEnCours(factureId);
+        await pdfRef.current.genererPDF(cli);
+      } catch (error) {
+        console.error("Erreur lors du téléchargement :", error);
+      } finally {
+        setIdEnCours(null);
+      }
     }
   };
 
@@ -197,13 +212,15 @@ function FactureLocataire({
       ) : (
         <GrilleFactures>
           {listeFactures.map((cli, index) => {
+            const factureId = cli.id || cli.numeroFacture;
+            const enCoursDeChargement = idEnCours === factureId;
             const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Locataire Inconnu';
             const dateBailAffichee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
             const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || '-');
 
             return (
               <CarteFacture 
-                key={cli.id || index}
+                key={factureId || index}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.04 }}
@@ -251,8 +268,27 @@ function FactureLocataire({
                 </SectionDetaillee>
 
                 <GroupeBoutons>
-                  <BoutonPDF onClick={() => handleTelechargerPDF(cli)} title="Télécharger PDF">
-                    <FiDownload /> PDF
+                  <BoutonPDF 
+                    onClick={() => handleTelechargerPDF(cli)} 
+                    disabled={enCoursDeChargement}
+                    title="Télécharger PDF"
+                  >
+                    {enCoursDeChargement ? (
+                      <>
+                        <motion.div 
+                          animate={{ rotate: 360 }} 
+                          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          style={{ display: 'flex', alignItems: 'center' }}
+                        >
+                          <FiLoader />
+                        </motion.div>
+                        Génération...
+                      </>
+                    ) : (
+                      <>
+                        <FiDownload /> PDF
+                      </>
+                    )}
                   </BoutonPDF>
                   {supprimerFacture && (
                     <BoutonSupprimer onClick={() => supprimerFacture(cli.id)}>
