@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { FiFileText, FiDownload, FiSave } from 'react-icons/fi';
+import { FiFileText, FiDownload } from 'react-icons/fi';
+import PDFFacturesLocataire from './listePDF/PDFFacturesLocataire';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -11,16 +10,15 @@ const THEME = {
   textePrincipal: '#FFFFFF',
   texteSecondaire: '#888888',
   bordure: '#2A2A2A',
-  fondChamp: '#121212',
+  survol: '#262626',
+  erreur: '#FF5252',
   vert: '#4CAF50',
-  orange: '#FF9800',
-  rouge: '#FF5252'
 };
 
-const ConteneurFacture = styled.div`
+const ConteneurSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 1.5rem;
   width: 100%;
 `;
 
@@ -43,27 +41,7 @@ const SousTitre = styled.p`
   font-size: 0.8rem;
 `;
 
-const BoutonGlobal = styled.button`
-  background-color: ${THEME.fondCarte};
-  border: 1px solid ${THEME.accentuation};
-  color: ${THEME.accentuation};
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: ${THEME.accentuation};
-    color: #000;
-  }
-`;
-
-const GrilleFactures = styled.div`
+const GrilleFactures = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
@@ -126,18 +104,8 @@ const BadgeStatut = styled.span`
   padding: 0.15rem 0.45rem;
   border-radius: 8px;
   font-weight: 600;
-  background-color: ${props => {
-    const s = (props.$statut || '').toLowerCase();
-    if (s.includes('payé') || s.includes('réglé')) return 'rgba(76, 175, 80, 0.15)';
-    if (s.includes('retard')) return 'rgba(255, 82, 82, 0.15)';
-    return 'rgba(255, 152, 0, 0.15)';
-  }};
-  color: ${props => {
-    const s = (props.$statut || '').toLowerCase();
-    if (s.includes('payé') || s.includes('réglé')) return THEME.vert;
-    if (s.includes('retard')) return THEME.rouge;
-    return THEME.orange;
-  }};
+  background-color: rgba(76, 175, 80, 0.15);
+  color: ${THEME.vert};
 `;
 
 const GroupeBoutons = styled.div`
@@ -146,9 +114,9 @@ const GroupeBoutons = styled.div`
   margin-top: 0.2rem;
 `;
 
-const BoutonAction = styled.button`
+const BoutonPDF = styled.button`
   flex: 1;
-  background-color: ${THEME.fondChamp};
+  background-color: #121212;
   border: 1px solid ${THEME.bordure};
   color: ${THEME.accentuation};
   padding: 0.4rem;
@@ -164,14 +132,15 @@ const BoutonAction = styled.button`
 
   &:hover {
     background-color: ${THEME.accentuation};
-    color: #000;
+    color: #000000;
+    border-color: ${THEME.accentuation};
   }
 `;
 
 const BoutonSupprimer = styled.button`
   background-color: rgba(255, 82, 82, 0.1);
   border: 1px solid rgba(255, 82, 82, 0.3);
-  color: ${THEME.rouge};
+  color: ${THEME.erreur};
   padding: 0.4rem 0.6rem;
   border-radius: 6px;
   font-size: 0.73rem;
@@ -180,104 +149,73 @@ const BoutonSupprimer = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${THEME.rouge};
+    background-color: ${THEME.erreur};
     color: #FFFFFF;
   }
 `;
 
 const MessageVide = styled.div`
-  text-align: center;
   padding: 3rem;
+  text-align: center;
   color: ${THEME.texteSecondaire};
   font-size: 0.9rem;
   background-color: ${THEME.fondCarte};
-  border-radius: 12px;
   border: 1px solid ${THEME.bordure};
+  border-radius: 12px;
 `;
 
-export default function FactureLocataire({ listeFactures = [], supprimerFacture }) {
-  
-  const genererPDFQuittance = (facture, docInstance = null) => {
-    const isSingle = !docInstance;
-    const doc = docInstance || new jsPDF();
-    const nomComplet = `${facture.nom || ''} ${facture.postNom || ''} ${facture.prenom || facture.client || facture.locataire || ''}`.trim() || 'Client Inconnu';
-    
-    doc.setFontSize(16);
-    doc.setTextColor(30, 30, 30);
-    doc.text('PROFACT - QUITTANCE DE LOYER', 14, 18);
-    
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Date d'impression : ${new Date().toLocaleDateString('fr-FR')}`, 14, 24);
+function FactureLocataire({
+  listeFactures = [],
+  supprimerFacture,
+  formaterDateFr
+}) {
+  const pdfRef = useRef(null);
 
-    autoTable(doc, {
-      startY: 30,
-      head: [['Champs / Informations', 'Détails Enregistrés']],
-      body: [
-        ['ID Unique', facture.id || 'N/A'],
-        ['N° de Bail', facture.bail || facture.numero || 'N/A'],
-        ['Nom Complet', nomComplet],
-        ['Logement', facture.logement || 'N/A'],
-        ['Adresse', facture.adresse || 'N/A'],
-        ['Type de Facture', facture.typeFacture || facture.type || 'Loyer'],
-        ['Montant', `${facture.montant !== undefined ? facture.montant : 0} ${facture.devise || 'USD'}`],
-        ['Statut / Mode de Paiement', facture.statut || facture.modePaiement || 'Payé'],
-        ['Mois Facturé', facture.moisFacture || 'N/A'],
-        ['Date de Facture', facture.dateFacture || 'N/A']
-      ],
-      headStyles: { fillColor: [30, 30, 30], fontSize: 9 },
-      bodyStyles: { textColor: [50, 50, 50], fontSize: 8.5 }
-    });
-
-    if (isSingle) {
-      doc.save(`Quittance_${facture.bail || 'Locataire'}.pdf`);
+  const handleTelechargerPDF = (cli) => {
+    if (pdfRef.current) {
+      pdfRef.current.genererPDF(cli);
     }
   };
 
-  const telechargerToutEnPDF = () => {
-    const doc = new jsPDF();
-    listeFactures.forEach((facture, index) => {
-      if (index > 0) doc.addPage();
-      genererPDFQuittance(facture, doc);
-    });
-    doc.save('Toutes_les_Quittances_Completes.pdf');
-  };
-
-  const facturesLoyers = listeFactures.filter(f => {
-    const type = (f.typeFacture || f.type || '').toLowerCase();
-    return type.includes('loyer') || type.includes('locat') || !type;
-  });
-
   return (
-    <ConteneurFacture>
+    <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <EnTeteSection>
         <div>
-          <Titre>Gestion des Factures & Quittances Locatives</Titre>
-          <SousTitre>Suivi des quittances de loyer des clients enregistrés</SousTitre>
+          <Titre>Gestion des Factures & Loyers Locataires</Titre>
+          <SousTitre>Suivi des baux, quittances et paiements de loyers</SousTitre>
         </div>
-        {facturesLoyers.length > 0 && (
-          <BoutonGlobal onClick={telechargerToutEnPDF}>
-            <FiSave /> Tout Télécharger (PDF)
-          </BoutonGlobal>
-        )}
       </EnTeteSection>
 
-      {facturesLoyers.length > 0 ? (
+      {/* Composant PDF déporté */}
+      <PDFFacturesLocataire ref={pdfRef} formaterDateFr={formaterDateFr} />
+
+      {listeFactures.length === 0 ? (
+        <MessageVide>
+          <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+          <p>Aucune facture de locataire trouvée.</p>
+        </MessageVide>
+      ) : (
         <GrilleFactures>
-          {facturesLoyers.map((facture, index) => {
-            const nomComplet = `${facture.nom || ''} ${facture.postNom || ''} ${facture.prenom || facture.client || facture.locataire || ''}`.trim() || 'Client Inconnu';
+          {listeFactures.map((cli, index) => {
+            const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Locataire Inconnu';
+            const dateBailAffichee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
+            const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || '-');
+
             return (
               <CarteFacture 
-                key={facture.id || index}
+                key={cli.id || index}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.04 }}
               >
                 <LigneInfo>
-                  <span>Bail : <strong>{facture.bail || facture.numero || 'N/A'}</strong></span>
-                  <BadgeStatut $statut={facture.statut || facture.modePaiement || 'Payé'}>
-                    {facture.statut || facture.modePaiement || 'Payé'}
-                  </BadgeStatut>
+                  <span>Bail : <strong>{cli.bail || cli.numero || 'N/A'}</strong> <span style={{fontSize: '0.65rem'}}>({dateBailAffichee})</span></span>
+                  <BadgeStatut>{cli.modePaiement || cli.statut || 'Payé'}</BadgeStatut>
+                </LigneInfo>
+
+                <LigneInfo>
+                  <span>Matricule :</span>
+                  <strong style={{ color: THEME.accentuation }}>{cli.matricule || cli.numero || 'N/A'}</strong>
                 </LigneInfo>
 
                 <LigneInfo>
@@ -289,36 +227,35 @@ export default function FactureLocataire({ listeFactures = [], supprimerFacture 
 
                 <LigneInfo>
                   <span>Logement :</span>
-                  <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={facture.logement || 'Non spécifié'}>
-                    {facture.logement || 'Non spécifié'}
+                  <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${cli.logement || '-'} / ${cli.adresse || '-'}`}>
+                    {cli.logement || '-'} / {cli.adresse || '-'}
                   </strong>
                 </LigneInfo>
 
                 <LigneInfo>
                   <span>Montant :</span>
                   <strong style={{ color: THEME.accentuation, fontSize: '0.9rem' }}>
-                    {facture.montant !== undefined ? `${facture.montant} ${facture.devise || 'USD'}` : '0 USD'}
+                    {cli.montant !== undefined ? `${cli.montant} ${cli.devise || 'USD'}` : '0 USD'}
                   </strong>
                 </LigneInfo>
 
                 <LigneInfo>
                   <span>Période :</span>
-                  <span>{facture.moisFacture || 'Mois en cours'}</span>
+                  <span>{cli.moisFacture || 'Mois en cours'}</span>
                 </LigneInfo>
 
                 <SectionDetaillee>
-                  <div>Type : <strong>{facture.typeFacture || facture.type || 'Loyer'}</strong></div>
-                  <div>Adresse : <strong>{facture.adresse || 'N/A'}</strong></div>
-                  <div>Paiement : <strong>{facture.modePaiement || 'N/A'}</strong></div>
-                  <div>Date : <strong>{facture.dateFacture || 'N/A'}</strong></div>
+                  <div>Type : <strong>{cli.typeFacture || cli.type || 'Loyer'}</strong> {cli.designation ? `- ${cli.designation}` : ''}</div>
+                  <div>Contrat : <strong>{cli.debutContrat || '---'}</strong> au <strong>{cli.finContrat || '---'}</strong></div>
+                  <div>Comptable : <strong>{dateComptableAffichee}</strong> {cli.reference ? `| Réf: ${cli.reference}` : ''}</div>
                 </SectionDetaillee>
 
                 <GroupeBoutons>
-                  <BoutonAction onClick={() => genererPDFQuittance(facture)} title="Télécharger PDF">
+                  <BoutonPDF onClick={() => handleTelechargerPDF(cli)} title="Télécharger PDF">
                     <FiDownload /> PDF
-                  </BoutonAction>
+                  </BoutonPDF>
                   {supprimerFacture && (
-                    <BoutonSupprimer onClick={() => supprimerFacture(facture.id)} title="Supprimer">
+                    <BoutonSupprimer onClick={() => supprimerFacture(cli.id)}>
                       Suppr.
                     </BoutonSupprimer>
                   )}
@@ -327,12 +264,9 @@ export default function FactureLocataire({ listeFactures = [], supprimerFacture 
             );
           })}
         </GrilleFactures>
-      ) : (
-        <MessageVide>
-          <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-          <p>Aucune facture ou quittance de loyer disponible pour le moment.</p>
-        </MessageVide>
       )}
-    </ConteneurFacture>
+    </ConteneurSection>
   );
 }
+
+export default FactureLocataire;

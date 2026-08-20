@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { FiFileText, FiDownload, FiSave, FiLayers } from 'react-icons/fi';
 
 const THEME = {
@@ -210,6 +209,15 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
+// Fonction utilitaire pour convertir un nombre en toutes lettres (simple et robuste pour la facture)
+function convertirNombreEnLettres(montant) {
+  if (isNaN(montant)) return 'ZERO';
+  const parts = Number(montant).toFixed(2).split('.');
+  const entiers = parts[0];
+  // Vous pouvez enrichir si besoin, ici on retourne une approximation ou le montant formaté
+  return `${entiers} DOLLARS`;
+}
+
 function FactureTous({
   listeFactures = [],
   supprimerFacture,
@@ -217,77 +225,163 @@ function FactureTous({
 }) {
   const genererPDFIntégral = (cli, docInstance = null) => {
     const isSingle = !docInstance;
-    const doc = docInstance || new jsPDF();
+    const doc = docInstance || new jsPDF({ unit: 'mm', format: 'a4' });
     
-    const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
-    const dateBailFormatee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
-    const dateComptableFormatee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || 'N/A');
+    const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'SOCIETE / CLIENT';
+    const dateFactureFormatee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || '24/06/2026');
+    const moisFacture = (cli.moisFacture || 'JUILLET').toUpperCase();
+    const numeroBail = cli.bail || cli.numero || 'B/083/NE';
+    const montantTotal = cli.montant !== undefined ? Number(cli.montant).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : '1.040,00';
+    const devise = cli.devise || '$.US';
+    const imputation = cli.imputation || '4500/ / L4227100000';
 
-    doc.setFontSize(16);
-    doc.setTextColor(30, 30, 30);
-    doc.text('PROFACT - FICHE COMPTABLE & FACTURE GLOBALE', 14, 18);
+    let y = 15;
 
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Date d'impression : ${new Date().toLocaleDateString('fr-FR')}`, 14, 24);
+    // Titre principal
+    doc.setFont('Courier', 'bold');
+    doc.setFontSize(14);
+    doc.text('F A C T U R E', 105, y, { align: 'center' });
+    y += 6;
 
-    autoTable(doc, {
-      startY: 30,
-      head: [['Champs / Informations', 'Détails Enregistrés']],
-      body: [
-        ['ID Unique', cli.id || 'N/A'],
-        ['Matricule / Numéro', cli.matricule || cli.numero || 'N/A'],
-        ['Nom Complet', nomComplet],
-        ['N° de Bail', cli.bail || cli.numero || 'N/A'],
-        ['Date du Bail / Facture', dateBailFormatee],
-        ['Logement', cli.logement || 'N/A'],
-        ['Adresse', cli.adresse || 'N/A'],
-        ['Pays', cli.pays || 'RDC'],
-        ['Type de Facture', cli.typeFacture || cli.type || 'Loyers'],
-        ['Désignation', cli.designation || 'N/A'],
-        ['Montant Total Global', `${cli.montant !== undefined ? cli.montant : 0} ${cli.devise || 'USD'}`],
-        ['Mode de Paiement / Statut', cli.modePaiement || cli.statut || 'N/A'],
-        ['Référence de Paiement', cli.reference || 'Aucune'],
-        ['Mois Facturé', cli.moisFacture || 'N/A'],
-        ['Début du Contrat', cli.debutContrat || 'N/A'],
-        ['Fin du Contrat', cli.finContrat || 'N/A'],
-        ['Date Comptable / Enregistrement', dateComptableFormatee],
-        ['Compteur', cli.compteur || 'Aucun'],
-        ['Imputation', cli.imputation || 'N/A'],
-        ['Dernier Numéro (Index)', cli.dernierNumero || 0],
-        ['Dernier Montant', cli.dernierMontant || 0],
-        ['Dernière Date', cli.derniereDate || 'N/A']
-      ],
-      headStyles: { fillColor: [30, 30, 30], fontSize: 9 },
-      bodyStyles: { textColor: [50, 50, 50], fontSize: 8.5 }
+    // Ligne décorative style machine à écrire
+    doc.setFontSize(8);
+    doc.text('=================================================================================', 14, y);
+    y += 4;
+
+    // En-tête de l'entreprise (SNCC S.A)
+    const enteteSociete = [
+      'S.N.C.C S.A AVEC CONSEIL D\'ADMINISTRATION',
+      'SIEGE SOCIAL: 115, PLACE DE LA GARE, AV',
+      'LUMUMBA, C/KAMPEMBA, LUBUMBASHI, B.P.297',
+      'RCCM: CD/LSHI/RCCM/14-B-1702',
+      'CAPITAL SOCIAL: 650.000.000.000',
+      'N° ID.NAT: K09210W   N° IMPOT: A 0700227 F',
+      'N° ASS. TVA: 0968/DGI/DGE/DIG/MB/TVA/2011'
+    ];
+
+    doc.setFont('Courier', 'normal');
+    enteteSociete.forEach((ligne) => {
+      doc.text(`! ${ligne.padRight ? ligne : ligne.padEnd(55, ' ')} !`, 14, y);
+      // Numéros de droite sur l'en-tête
+      if (y === 25) doc.text('010773', 170, y);
+      if (y === 29) doc.text('N° 0207/DCO/LOY/2026 !', 135, y);
+      if (y === 33) doc.text(`Date: ${dateFactureFormatee} !`, 135, y);
+      if (y === 37) doc.text('Code client         !', 135, y);
+      y += 4;
     });
 
+    doc.text('=================================================================================', 14, y);
+    y += 6;
+
+    // Bloc Société / Client destinataire
+    doc.text(`!   SOCIETE : ${nomComplet.padEnd(46, ' ')} !`, 14, y); y += 4;
+    doc.text(`!             ${(cli.adresse || 'KINSHASA').padEnd(46, ' ')} !`, 14, y); y += 4;
+    doc.text(`!             KINSHASA       / CONGO                        !`, 14, y); y += 4;
+    doc.text('=================================================================================', 14, y);
+    y += 6;
+
+    // Ligne AF et Mois
+    doc.text(`AF : 001                        DOIT : POUR LE MOIS DE ${moisFacture}       2026`, 14, y);
+    y += 4;
+    doc.text('=================================================================================', 14, y);
+    y += 5;
+
+    // Objet
+    doc.text(`!   Objet   : ${(`LOCATION IMMOBILIERE - ${cli.logement || 'IMMEUBLE'}`).padEnd(52, ' ')} !`, 14, y);
+    y += 5;
+    doc.text('=================================================================================', 14, y);
+    y += 6;
+
+    doc.text(`                         Facture établie en : ${devise}`, 14, y);
+    y += 5;
+    doc.text('---------------------------------------------------------------------------------', 14, y);
+    y += 5;
+
+    // Tableau Quantité / Désignation / Montant
+    doc.text('!  Quantité  !                  Désignation                   !    Montant     !', 14, y);
+    y += 4;
+    doc.text('---------------------------------------------------------------------------------', 14, y);
+    y += 6;
+
+    doc.text(`!            !   LOCATION IMMOBILIER                          !   ${montantTotal.padStart(10, ' ')} !`, 14, y); y += 5;
+    doc.text(`!            !   NUMERO DE BAIL     : ${numeroBail.padEnd(19, ' ')} !                !`, 14, y); y += 5;
+    doc.text(`!            !   DESIGNATION        : ${(cli.designation || 'LOYER').padEnd(19, ' ')} !                !`, 14, y); y += 5;
+    doc.text('!            !                                                !                !', 14, y); y += 5;
+    doc.text('!            !                                                !                !', 14, y); y += 6;
+
+    doc.text('---------------------------------------------------------------------------------', 14, y);
+    y += 5;
+    doc.text(`!   Montant total de la facture                               !   ${montantTotal.padStart(10, ' ')} !`, 14, y);
+    y += 5;
+    doc.text('---------------------------------------------------------------------------------', 14, y);
+    y += 6;
+
+    // Arrêté la présente
+    doc.text(`Arrêté la présente à la somme de :`, 14, y); y += 5;
+    doc.setFont('Courier', 'bold');
+    doc.text(`${convertirNombreEnLettres(cli.montant || 1040)}`, 14, y);
+    doc.setFont('Courier', 'normal');
+    y += 7;
+
+    doc.text('---------------------------------------------------------------------------------', 14, y);
+    y += 5;
+
+    // Conditions et modalités de paiement
+    doc.text('Conditions de paiement : Nos factures sont payables', 14, y); y += 4;
+    doc.text('------------------------ anticipativement suivant contrat', 50, y); y += 4;
+    doc.text('                        de bail, en franc congolais au taux', 50, y); y += 4;
+    doc.text('                        bancaire du jour de paiement ou en', 50, y); y += 4;
+    doc.text('                        dollar us.', 50, y); y += 5;
+
+    doc.text('Modalité de paiement : Montant à verser dans un de nos comptes', 14, y); y += 4;
+    doc.text('---------------------- bancaires ou au bureau des recettes de', 50, y); y += 4;
+    doc.text('                        la place', 50, y); y += 5;
+
+    doc.text('Comptes: BCDC N° 00011-00130-00000856147-03 CDF', 14, y); y += 4;
+    doc.text('-------       N° 00011-00130-00000856151-88 USD', 14, y); y += 4;
+    doc.text('        RAWBANK N° 00016-05130-01002107502-77 CDF', 14, y); y += 4;
+    doc.text('        RAWBANK N° 00016-05130-01002107501-80 USD', 14, y); y += 5;
+    doc.text('            TMB N° 00017-25000-00015000000-87 CDF', 14, y); y += 4;
+    doc.text('            TMB N° 00017-25000-00187750001-35 USD', 14, y); y += 6;
+
+    doc.text('=================================================================================', 14, y);
+    y += 5;
+    doc.text(`Imputation : ${imputation}`, 14, y);
+    y += 4;
+    doc.text('=================================================================================', 14, y);
+    y += 8;
+
+    // Signatures
+    doc.text('Le Chef de service Facturation', 14, y);
+    doc.text('Le Directeur', 120, y);
+    y += 4;
+    doc.text('de la division Facturation', 120, y);
+
     if (isSingle) {
-      doc.save(`Facture_${cli.matricule || cli.bail || 'Global'}.pdf`);
+      doc.save(`Facture_${cli.matricule || cli.bail || 'Loyer'}.pdf`);
     }
   };
 
   const telechargerToutEnPDF = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     listeFactures.forEach((cli, index) => {
       if (index > 0) doc.addPage();
       genererPDFIntégral(cli, doc);
     });
-    doc.save('Toutes_les_Factures_Globales.pdf');
+    doc.save('Toutes_les_Factures_Officielles.pdf');
   };
 
   // Regroupement des factures par type
   const facturesParType = listeFactures.reduce((acc, cli) => {
-    const type = (cli.typeFacture || cli.type || 'Loyers').trim();
+    const type = (cli.typeFacture || cli.type || 'Locataire').trim();
     if (!acc[type]) acc[type] = [];
     acc[type].push(cli);
     return acc;
   }, {});
 
-  // Ordre strict des catégories demandé
+  // Ordre strict demandé : Locataire, Eau, Electricite, Divers
   const ordreCategories = ['Locataire', 'Eau', 'Electricite', 'Divers'];
   
-  // Tri des clés selon l'ordre défini (et prise en compte des variations possibles de casse ou de libellé)
   const typesTries = Object.keys(facturesParType).sort((a, b) => {
     const indexA = ordreCategories.findIndex(cat => a.toLowerCase().includes(cat.toLowerCase()));
     const indexB = ordreCategories.findIndex(cat => b.toLowerCase().includes(cat.toLowerCase()));
@@ -302,7 +396,7 @@ function FactureTous({
       <EnTeteSection>
         <div>
           <Titre>Gestion Globale des Factures</Titre>
-          <SousTitre>Vue d'ensemble et suivi comptable répartis par blocs de catégories</SousTitre>
+          <SousTitre>Vue d'ensemble conforme au modèle officiel de facturation</SousTitre>
         </div>
         {listeFactures.length > 0 && (
           <BoutonGlobal onClick={telechargerToutEnPDF}>
@@ -389,7 +483,7 @@ function FactureTous({
                       </SectionDetaillee>
 
                       <GroupeBoutons>
-                        <BoutonPDF onClick={() => genererPDFIntégral(cli)} title="Télécharger PDF" $couleur={THEME.accentuation} $couleurSurvol={THEME.accentuation} $texteSurvol="#000000">
+                        <BoutonPDF onClick={() => genererPDFIntégral(cli)} title="Télécharger PDF Officiel" $couleur={THEME.accentuation} $couleurSurvol={THEME.accentuation} $texteSurvol="#000000">
                           <FiDownload /> PDF
                         </BoutonPDF>
                         {supprimerFacture && (

@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { FiFileText, FiDownload, FiSave } from 'react-icons/fi';
 
 const THEME = {
@@ -192,65 +191,50 @@ function FactureElectricite({
   supprimerFacture,
   formaterDateFr
 }) {
-  const genererPDFIntégral = (cli, docInstance = null) => {
-    const isSingle = !docInstance;
-    const doc = docInstance || new jsPDF();
-    
-    const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
-    const dateBailFormatee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
-    const dateComptableFormatee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || 'N/A');
+  const pdfRef = useRef(null);
 
-    doc.setFontSize(16);
-    doc.setTextColor(30, 30, 30);
-    doc.text('PROFACT - FACTURE D\'ÉLECTRICITÉ & FICHE DÉTAILLÉE', 14, 18);
+  const telechargerPDFHtml = async (cli) => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const element = pdfRef.current;
+    if (!element) return;
 
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Date d'impression : ${new Date().toLocaleDateString('fr-FR')}`, 14, 24);
+    // Met à jour dynamiquement les données du modèle HTML masqué selon la facture cliquée
+    document.getElementById('pdf-id').innerText = cli.id || 'N/A';
+    document.getElementById('pdf-matricule').innerText = cli.matricule || cli.numero || 'N/A';
+    document.getElementById('pdf-nom').innerText = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
+    document.getElementById('pdf-bail').innerText = cli.bail || cli.numero || 'N/A';
+    document.getElementById('pdf-date-bail').innerText = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
+    document.getElementById('pdf-logement').innerText = cli.logement || 'N/A';
+    document.getElementById('pdf-adresse').innerText = cli.adresse || 'N/A';
+    document.getElementById('pdf-pays').innerText = cli.pays || 'RDC';
+    document.getElementById('pdf-type').innerText = cli.typeFacture || cli.type || 'Électricité';
+    document.getElementById('pdf-designation').innerText = cli.designation || 'N/A';
+    document.getElementById('pdf-montant').innerText = `${cli.montant !== undefined ? cli.montant : 0} ${cli.devise || 'USD'}`;
+    document.getElementById('pdf-statut').innerText = cli.modePaiement || cli.statut || 'N/A';
+    document.getElementById('pdf-reference').innerText = cli.reference || 'Aucune';
+    document.getElementById('pdf-mois').innerText = cli.moisFacture || 'N/A';
+    document.getElementById('pdf-debut').innerText = cli.debutContrat || 'N/A';
+    document.getElementById('pdf-fin').innerText = cli.finContrat || 'N/A';
+    document.getElementById('pdf-comptable').innerText = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || 'N/A');
+    document.getElementById('pdf-compteur').innerText = cli.compteur || 'Aucun';
+    document.getElementById('pdf-imputation').innerText = cli.imputation || 'N/A';
+    document.getElementById('pdf-dernier-num').innerText = cli.dernierNumero || 0;
+    document.getElementById('pdf-dernier-mt').innerText = cli.dernierMontant || 0;
+    document.getElementById('pdf-derniere-dt').innerText = cli.derniereDate || 'N/A';
+    document.getElementById('pdf-impression').innerText = new Date().toLocaleDateString('fr-FR');
 
-    autoTable(doc, {
-      startY: 30,
-      head: [['Champs / Informations', 'Détails Enregistrés']],
-      body: [
-        ['ID Unique', cli.id || 'N/A'],
-        ['Matricule / Numéro', cli.matricule || cli.numero || 'N/A'],
-        ['Nom Complet', nomComplet],
-        ['N° de Bail', cli.bail || cli.numero || 'N/A'],
-        ['Date du Bail / Facture', dateBailFormatee],
-        ['Logement', cli.logement || 'N/A'],
-        ['Adresse', cli.adresse || 'N/A'],
-        ['Pays', cli.pays || 'RDC'],
-        ['Type de Facture', cli.typeFacture || cli.type || 'Électricité'],
-        ['Désignation', cli.designation || 'N/A'],
-        ['Montant', `${cli.montant !== undefined ? cli.montant : 0} ${cli.devise || 'USD'}`],
-        ['Mode de Paiement / Statut', cli.modePaiement || cli.statut || 'N/A'],
-        ['Référence de Paiement', cli.reference || 'Aucune'],
-        ['Mois Facturé', cli.moisFacture || 'N/A'],
-        ['Début du Contrat', cli.debutContrat || 'N/A'],
-        ['Fin du Contrat', cli.finContrat || 'N/A'],
-        ['Date Comptable / Enregistrement', dateComptableFormatee],
-        ['Compteur', cli.compteur || 'Aucun'],
-        ['Imputation', cli.imputation || 'N/A'],
-        ['Dernier Numéro (Index)', cli.dernierNumero || 0],
-        ['Dernier Montant', cli.dernierMontant || 0],
-        ['Dernière Date', cli.derniereDate || 'N/A']
-      ],
-      headStyles: { fillColor: [30, 30, 30], fontSize: 9 },
-      bodyStyles: { textColor: [50, 50, 50], fontSize: 8.5 }
+    element.style.display = 'block';
+
+    await doc.html(element, {
+      callback: function (docPdf) {
+        element.style.display = 'none';
+        docPdf.save(`FactureElectricite_${cli.matricule || cli.bail || 'Client'}.pdf`);
+      },
+      x: 10,
+      y: 10,
+      width: 190,
+      windowWidth: 800
     });
-
-    if (isSingle) {
-      doc.save(`FactureElectricite_${cli.matricule || cli.bail || 'Client'}.pdf`);
-    }
-  };
-
-  const telechargerToutEnPDF = () => {
-    const doc = new jsPDF();
-    listeFactures.forEach((cli, index) => {
-      if (index > 0) doc.addPage();
-      genererPDFIntégral(cli, doc);
-    });
-    doc.save('Toutes_les_Factures_Electricite.pdf');
   };
 
   return (
@@ -260,12 +244,62 @@ function FactureElectricite({
           <Titre>Gestion des Factures d'Électricité</Titre>
           <SousTitre>Suivi détaillé des quittances et compteurs</SousTitre>
         </div>
-        {listeFactures.length > 0 && (
-          <BoutonGlobal onClick={telechargerToutEnPDF}>
-            <FiSave /> Tout Télécharger (PDF)
-          </BoutonGlobal>
-        )}
       </EnTeteSection>
+
+      {/* --- MODÈLE HTML CACHÉ UTILISANT EXCLUSIVEMENT DES TABLEAUX (table, tr, td) POUR LE PDF --- */}
+      <div 
+        ref={pdfRef} 
+        style={{ 
+          display: 'none', 
+          width: '794px', 
+          background: '#ffffff', 
+          color: '#000000', 
+          padding: '20px', 
+          fontFamily: 'Arial, sans-serif', 
+          fontSize: '12px',
+          boxSizing: 'border-box'
+        }}
+      >
+        <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px', color: '#1E1E1E' }}>
+          PROFACT - FACTURE D'ÉLECTRICITÉ & FICHE DÉTAILLÉE
+        </div>
+        <div style={{ fontSize: '10px', color: '#666', marginBottom: '15px' }}>
+          Date d'impression : <span id="pdf-impression"></span>
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ccc' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#1E1E1E', color: '#FFFFFF' }}>
+              <th style={{ border: '1px solid #ccc', padding: '8px', width: '40%', textAlign: 'left' }}>Champs / Informations</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px', width: '60%', textAlign: 'left' }}>Détails Enregistrés</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>ID Unique</strong></td><td id="pdf-id" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Matricule / Numéro</strong></td><td id="pdf-matricule" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Nom Complet</strong></td><td id="pdf-nom" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>N° de Bail</strong></td><td id="pdf-bail" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Date du Bail / Facture</strong></td><td id="pdf-date-bail" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Logement</strong></td><td id="pdf-logement" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Adresse</strong></td><td id="pdf-adresse" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Pays</strong></td><td id="pdf-pays" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Type de Facture</strong></td><td id="pdf-type" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Désignation</strong></td><td id="pdf-designation" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Montant</strong></td><td id="pdf-montant" style={{ border: '1px solid #ccc', padding: '6px', fontWeight: 'bold' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Mode de Paiement / Statut</strong></td><td id="pdf-statut" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Référence de Paiement</strong></td><td id="pdf-reference" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Mois Facturé</strong></td><td id="pdf-mois" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Début du Contrat</strong></td><td id="pdf-debut" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Fin du Contrat</strong></td><td id="pdf-fin" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Date Comptable / Enregistrement</strong></td><td id="pdf-comptable" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Compteur</strong></td><td id="pdf-compteur" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Imputation</strong></td><td id="pdf-imputation" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Dernier Numéro (Index)</strong></td><td id="pdf-dernier-num" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Dernier Montant</strong></td><td id="pdf-dernier-mt" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+            <tr><td style={{ border: '1px solid #ccc', padding: '6px' }}><strong>Dernière Date</strong></td><td id="pdf-derniere-dt" style={{ border: '1px solid #ccc', padding: '6px' }}>-</td></tr>
+          </tbody>
+        </table>
+      </div>
 
       {listeFactures.length === 0 ? (
         <MessageVide>
@@ -337,7 +371,7 @@ function FactureElectricite({
                 </SectionDetaillee>
 
                 <GroupeBoutons>
-                  <BoutonPDF onClick={() => genererPDFIntégral(cli)} title="Télécharger PDF">
+                  <BoutonPDF onClick={() => telechargerPDFHtml(cli)} title="Télécharger PDF">
                     <FiDownload /> PDF
                   </BoutonPDF>
                   {supprimerFacture && (
