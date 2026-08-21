@@ -62,12 +62,30 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
     setFiltreDateExacte('');
   };
 
-  // Transformation complète des clients enregistrés en objets factures
+  // Transformation complète des clients enregistrés en objets factures avec détection rigoureuse du type
   const listeFactures = useMemo(() => {
     if (!clientsEnregistres || clientsEnregistres.length === 0) return [];
 
     return clientsEnregistres.map((cli, index) => {
       const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim();
+      
+      const matriculeBrut = (cli.matricule || cli.numero || '').toUpperCase();
+      let typeDetecte = (cli.type || cli.typeFacture || '').toLowerCase();
+
+      // Analyse rigoureuse du matricule pour catégoriser la facture si le type n'est pas explicite
+      if (!typeDetecte || typeDetecte === 'locataire') {
+        if (matriculeBrut.startsWith('DIV')) {
+          typeDetecte = 'divers';
+        } else if (matriculeBrut.startsWith('EAU')) {
+          typeDetecte = 'eau';
+        } else if (matriculeBrut.startsWith('ELE') || matriculeBrut.startsWith('ELEC')) {
+          typeDetecte = 'electricite';
+        } else if (matriculeBrut.startsWith('LOY') || matriculeBrut.startsWith('LY') || cli.bail) {
+          typeDetecte = 'locataire';
+        } else {
+          typeDetecte = 'locataire';
+        }
+      }
       
       return {
         id: cli.id || index,
@@ -75,8 +93,9 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         client: nomComplet || cli.client || cli.locataire || 'Client Inconnu',
         locataire: nomComplet || cli.client || cli.locataire || 'Client Inconnu',
         
-        // Normalisation cruciale du type pour que les filtres des onglets (Tous, Locataire, Eau, etc.) reconnaissent la facture
-        type: (cli.type || cli.typeFacture || 'locataire').toLowerCase(),
+        type: typeDetecte,
+        typeFacture: typeDetecte, // Garantit la compatibilité avec tous les filtres enfants
+        
         devise: cli.devise || 'USD',
         montant: parseFloat(cli.montant) || 0,
         dateFacture: cli.dateBail || cli.dateEnregistrement || cli.dateFacture || new Date().toISOString().split('T')[0],
@@ -89,7 +108,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
 
   const supprimerFacture = (id) => {
     console.log("Suppression de la facture ID:", id);
-    // Logique de suppression à relier au parent si nécessaire
   };
 
   return (

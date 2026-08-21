@@ -84,7 +84,6 @@ const SelecteurSaisie = styled.select`
   }
 `;
 
-/* Styles pour le groupe Radio (Devise USD / CDF) */
 const ConteneurRadioGroup = styled.div`
   display: flex;
   align-items: center;
@@ -174,24 +173,31 @@ export default function NouveauClient({
   const postNomRef = useRef(null);
   const prenomRef = useRef(null);
   const typeClientRef = useRef(null);
-  const boutonSoumettreRef = useRef(null);
 
   const gererToucheEntree = (e, elementSuivantRef) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (elementSuivantRef && elementSuivantRef.current) {
-        elementSuivantRef.current.focus();
-      }
+      if (elementSuivantRef?.current) elementSuivantRef.current.focus();
     }
   };
 
+  const gererChangementType = (e) => {
+    const valeur = e.target.value;
+    
+    // Met à jour le type de client
+    changerChamp({ target: { name: 'typeClient', value: valeur } });
+
+    // Met à jour le libellé du type de facture associé
+    let libelleFacture = 'Loyers';
+    if (valeur === 'electricite') libelleFacture = 'Électricité';
+    else if (valeur === 'eau') libelleFacture = 'Eau';
+    else if (valeur === 'divers') libelleFacture = 'Divers';
+    
+    changerChamp({ target: { name: 'typeFacture', value: libelleFacture } });
+  };
+
   return (
-    <CardFormulaire
-      variants={variantesAnimationDouce}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-    >
+    <CardFormulaire variants={variantesAnimationDouce} initial="initial" animate="animate" exit="exit">
       <TitreFormulaire>
         {clientEnEdition ? `Modifier Client (${clientEnEdition.matricule})` : 'Enregistrer un nouveau client'}
       </TitreFormulaire>
@@ -200,53 +206,26 @@ export default function NouveauClient({
         <GrilleChamps>
           <GroupeChamp>
             <Etiquette>Nom</Etiquette>
-            <ChampSaisie 
-              ref={champFocusRef}
-              type="text" 
-              name="nom" 
-              value={formulaire.nom || ''} 
-              onChange={changerChamp}
-              onKeyDown={(e) => gererToucheEntree(e, postNomRef)}
-              required 
-              placeholder="Ex: Kabange"
-            />
+            <ChampSaisie ref={champFocusRef} type="text" name="nom" value={formulaire.nom || ''} onChange={changerChamp} onKeyDown={(e) => gererToucheEntree(e, postNomRef)} required placeholder="Ex: Kabange" />
           </GroupeChamp>
 
           <GroupeChamp>
             <Etiquette>Post-nom</Etiquette>
-            <ChampSaisie 
-              ref={postNomRef}
-              type="text" 
-              name="postNom" 
-              value={formulaire.postNom || ''} 
-              onChange={changerChamp}
-              onKeyDown={(e) => gererToucheEntree(e, prenomRef)}
-              placeholder="Ex: Mukendi"
-            />
+            <ChampSaisie ref={postNomRef} type="text" name="postNom" value={formulaire.postNom || ''} onChange={changerChamp} onKeyDown={(e) => gererToucheEntree(e, prenomRef)} placeholder="Ex: Mukendi" />
           </GroupeChamp>
 
           <GroupeChamp>
             <Etiquette>Prénom</Etiquette>
-            <ChampSaisie 
-              ref={prenomRef}
-              type="text" 
-              name="prenom" 
-              value={formulaire.prenom || ''} 
-              onChange={changerChamp}
-              onKeyDown={(e) => gererToucheEntree(e, typeClientRef)}
-              required 
-              placeholder="Ex: Christian"
-            />
+            <ChampSaisie ref={prenomRef} type="text" name="prenom" value={formulaire.prenom || ''} onChange={changerChamp} onKeyDown={(e) => gererToucheEntree(e, typeClientRef)} required placeholder="Ex: Christian" />
           </GroupeChamp>
 
-          {/* 1. SÉLECTEUR DU TYPE DE CLIENT */}
           <GroupeChamp>
             <Etiquette>Type de Client</Etiquette>
             <SelecteurSaisie
               ref={typeClientRef}
               name="typeClient"
-              value={formulaire.typeClient || 'locataire'}
-              onChange={changerChamp}
+              value={formulaire.typeClient ?? 'locataire'}
+              onChange={gererChangementType}
             >
               <option value="locataire">Locataire</option>
               <option value="electricite">Électricité</option>
@@ -255,29 +234,15 @@ export default function NouveauClient({
             </SelecteurSaisie>
           </GroupeChamp>
 
-          {/* 2. BOUTONS RADIO POUR LA DEVISE (USD / CDF) */}
           <GroupeChamp>
             <Etiquette>Devise de paiement</Etiquette>
             <ConteneurRadioGroup>
               <OptionRadio>
-                <input 
-                  type="radio" 
-                  name="devise" 
-                  value="USD" 
-                  checked={(formulaire.devise || 'USD') === 'USD'} 
-                  onChange={changerChamp}
-                />
+                <input type="radio" name="devise" value="USD" checked={(formulaire.devise || 'USD') === 'USD'} onChange={changerChamp} />
                 USD ($)
               </OptionRadio>
-
               <OptionRadio>
-                <input 
-                  type="radio" 
-                  name="devise" 
-                  value="CDF" 
-                  checked={formulaire.devise === 'CDF'} 
-                  onChange={changerChamp}
-                />
+                <input type="radio" name="devise" value="CDF" checked={formulaire.devise === 'CDF'} onChange={changerChamp} />
                 CDF (FC)
               </OptionRadio>
             </ConteneurRadioGroup>
@@ -285,23 +250,8 @@ export default function NouveauClient({
         </GrilleChamps>
 
         <ZoneActionsFormulaire>
-          <BoutonAction 
-            type="button" 
-            $variante="secondaire" 
-            onClick={reinitialiserFormulaire}
-            whileTap={{ scale: 0.97 }}
-            whileHover={{ scale: 1.02 }}
-          >
-            Annuler
-          </BoutonAction>
-          <BoutonAction 
-            ref={boutonSoumettreRef} 
-            type="submit"
-            whileTap={{ scale: 0.97 }}
-            whileHover={{ scale: 1.02 }}
-          >
-            {clientEnEdition ? 'Mettre à jour' : 'Enregistrer'}
-          </BoutonAction>
+          <BoutonAction type="button" $variante="secondaire" onClick={reinitialiserFormulaire} whileTap={{ scale: 0.97 }}>Annuler</BoutonAction>
+          <BoutonAction type="submit" whileTap={{ scale: 0.97 }}>{clientEnEdition ? 'Mettre à jour' : 'Enregistrer'}</BoutonAction>
         </ZoneActionsFormulaire>
       </form>
     </CardFormulaire>

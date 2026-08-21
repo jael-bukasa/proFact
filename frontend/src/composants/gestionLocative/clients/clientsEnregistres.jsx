@@ -48,7 +48,7 @@ const ConteneurTableau = styled.div`
   background-color: ${THEME.fondCarte};
   border: 1px solid ${THEME.bordure};
   border-radius: 12px;
-  padding-bottom: 8px; /* <-- Espace ajouté ici pour isoler la barre du bas */
+  padding-bottom: 8px;
 
   &::-webkit-scrollbar {
     height: 8px;
@@ -247,57 +247,62 @@ export default function ClientsEnregistres({ clientsEnregistres = [] }) {
                 </tr>
               </EnTeteTableau>
               <tbody>
-                {clientsFiltres.map((cli, index) => (
-                  <LigneTableau key={cli.id || index}>
-                    <CelluleData><BadgeMatricule>{cli.matricule || 'N/A'}</BadgeMatricule></CelluleData>
-                    
-                    <CelluleData style={{ fontWeight: 600 }}>
-                      {cli.nom || ''} {cli.postNom || ''} {cli.prenom || ''}
-                    </CelluleData>
-                    
-                    <CelluleData>
-                      {cli.bail || '-'} <span style={{ color: THEME.texteSecondaire }}>({cli.dateBail || 'N/A'})</span>
-                    </CelluleData>
-                    
-                    <CelluleData>
-                      {cli.logement || '-'} / {cli.adresse || '-'} <span style={{ color: THEME.texteSecondaire }}>({cli.pays || 'RDC'})</span>
-                    </CelluleData>
-                    
-                    <CelluleData>
-                      <BadgeType>{cli.typeFacture || 'Loyers'}</BadgeType> 
-                      <br/><span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire }}>{cli.designation || '-'}</span>
-                    </CelluleData>
-                    
-                    <CelluleData style={{ fontWeight: 700, color: THEME.accentuation }}>
-                      {cli.montant ? `${cli.montant} ${cli.devise || 'USD'}` : '-'}
-                    </CelluleData>
-                    
-                    <CelluleData>
-                      {cli.modePaiement || '-'} 
-                      {cli.reference && <><br/><span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire }}>Réf: {cli.reference}</span></>}
-                    </CelluleData>
-                    
-                    <CelluleData>{cli.moisFacture || 'N/A'}</CelluleData>
-                    
-                    <CelluleData style={{ fontSize: '0.75rem' }}>
-                      {cli.debutContrat || '-'} <br/>au {cli.finContrat || '-'}
-                    </CelluleData>
-                    
-                    <CelluleData>{cli.dateComptable || '-'}</CelluleData>
-                    
-                    <CelluleData style={{ fontSize: '0.75rem' }}>
-                      {cli.compteur ? (
-                        <>
-                          CPT: {cli.compteur} {cli.imputation ? `| Imp: ${cli.imputation}` : ''}<br/>
-                          Der N°: {cli.dernierNumero || 0} | Mt: {cli.dernierMontant || 0}<br/>
-                          <span style={{ color: THEME.texteSecondaire }}>Dt: {cli.derniereDate || '-'}</span>
-                        </>
-                      ) : (
-                        <span style={{ color: THEME.texteSecondaire }}>Aucun</span>
-                      )}
-                    </CelluleData>
-                  </LigneTableau>
-                ))}
+                {clientsFiltres.map((cli, index) => {
+                  // Logique booléenne claire pour l'affichage des compteurs
+                  const possedeCompteur = Boolean(cli.compteur || cli.imputation || cli.dernierNumero);
+
+                  return (
+                    <LigneTableau key={cli.id || index}>
+                      <CelluleData><BadgeMatricule>{cli.matricule || 'N/A'}</BadgeMatricule></CelluleData>
+                      
+                      <CelluleData style={{ fontWeight: 600 }}>
+                        {cli.nom || ''} {cli.postNom || ''} {cli.prenom || ''}
+                      </CelluleData>
+                      
+                      <CelluleData>
+                        {cli.bail || '-'} <span style={{ color: THEME.texteSecondaire }}>({cli.dateBail || 'N/A'})</span>
+                      </CelluleData>
+                      
+                      <CelluleData>
+                        {cli.logement || '-'} / {cli.adresse || '-'} <span style={{ color: THEME.texteSecondaire }}>({cli.pays || 'RDC'})</span>
+                      </CelluleData>
+                      
+                      <CelluleData>
+                        <BadgeType>{cli.typeFacture || 'Loyers'}</BadgeType> 
+                        <br/><span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire }}>{cli.designation || '-'}</span>
+                      </CelluleData>
+                      
+                      <CelluleData style={{ fontWeight: 700, color: THEME.accentuation }}>
+                        {cli.montant ? `${cli.montant} ${cli.devise || 'USD'}` : '-'}
+                      </CelluleData>
+                      
+                      <CelluleData>
+                        {cli.modePaiement || '-'} 
+                        {cli.reference && <><br/><span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire }}>Réf: {cli.reference}</span></>}
+                      </CelluleData>
+                      
+                      <CelluleData>{cli.moisFacture || 'N/A'}</CelluleData>
+                      
+                      <CelluleData style={{ fontSize: '0.75rem' }}>
+                        {cli.debutContrat || '-'} <br/>au {cli.finContrat || '-'}
+                      </CelluleData>
+                      
+                      <CelluleData>{cli.dateComptable || '-'}</CelluleData>
+                      
+                      <CelluleData style={{ fontSize: '0.75rem' }}>
+                        {possedeCompteur === true ? (
+                          <>
+                            {cli.compteur ? `CPT: ${cli.compteur}` : ''} {cli.imputation ? `| Imp: ${cli.imputation}` : ''}<br/>
+                            Der N°: {cli.dernierNumero || 0} | Mt: {cli.dernierMontant || 0}<br/>
+                            <span style={{ color: THEME.texteSecondaire }}>Dt: {cli.derniereDate || '-'}</span>
+                          </>
+                        ) : (
+                          <span style={{ color: THEME.texteSecondaire }}>Aucun</span>
+                        )}
+                      </CelluleData>
+                    </LigneTableau>
+                  );
+                })}
               </tbody>
             </TableElement>
           </ConteneurTableau>

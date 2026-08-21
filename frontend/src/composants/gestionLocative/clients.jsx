@@ -137,7 +137,8 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
     adresse: '', 
     pays: 'RDC',
     designation: '', 
-    typeFacture: 'Loyers', 
+    typeClient: '', 
+    typeFacture: '', 
     devise: 'USD', 
     montant: '', 
     modePaiement: 'Virement',
@@ -160,11 +161,16 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
   const chargerClients = async () => {
     try {
       const resActifs = await axios.get(`${API_URL}/clients`);
+      const resEnregistres = await axios.get(`${API_URL}/clients/enregistres`);
       const resCorbeille = await axios.get(`${API_URL}/clients/corbeille`);
       
       const clientsFormates = Array.isArray(resActifs.data) ? resActifs.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : [];
+      const enregistresFormates = Array.isArray(resEnregistres.data) ? resEnregistres.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : [];
       
       setListeClients(clientsFormates);
+      if (typeof setClientsEnregistres === 'function') {
+        setClientsEnregistres(enregistresFormates);
+      }
       setListeCorbeille(Array.isArray(resCorbeille.data) ? resCorbeille.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : []);
     } catch (erreur) {
       console.error("Erreur de chargement :", erreur);
@@ -193,7 +199,8 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
         adresse: client.adresse || client.adres || '',
         pays: client.pays || 'RDC',
         designation: client.designation || client.designat || '',
-        typeFacture: client.typeFacture || client.type || 'Loyers',
+        typeClient: client.typeClient || '',
+        typeFacture: client.typeFacture || client.type || '',
         devise: client.devise || 'USD',
         montant: client.montant || client.mont || '',
         modePaiement: client.modePaiement || client.mode || 'Virement',
@@ -208,24 +215,48 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
         dernierMontant: client.dernierMontant || client.derMt || '',
         derniereDate: client.derniereDate || client.derDt || ''
       });
+    } else {
+      reinitialiserFormulaire();
     }
   };
 
   const handleChangeFormulaire = (e) => {
     const { name, value } = e.target;
-    setFormulaire(prev => ({ ...prev, [name]: value }));
+    
+    setFormulaire(prev => {
+      let nouveauForm = { ...prev, [name]: value };
+      
+      // Gestion propre et dynamique lorsque l'on sélectionne le type de client
+      if (name === 'typeClient') {
+        let libelleFacture = 'Loyers';
+        let prefixeMatricule = 'LOC';
+
+        if (value === 'electricite') {
+          libelleFacture = 'Électricité';
+          prefixeMatricule = 'ELEC';
+        } else if (value === 'eau') {
+          libelleFacture = 'Eau';
+          prefixeMatricule = 'EAU';
+        } else if (value === 'divers') {
+          libelleFacture = 'Divers';
+          prefixeMatricule = 'DIV';
+        } else if (value === 'locataire') {
+          libelleFacture = 'Loyers';
+          prefixeMatricule = 'LOC';
+        }
+
+        nouveauForm.typeFacture = libelleFacture;
+        
+        // Conserver ou générer le matricule avec le bon préfixe
+        const chiffreActuel = prev.matricule ? prev.matricule.replace(/^[A-Z]+-/, '') : '001';
+        nouveauForm.matricule = `${prefixeMatricule}-${chiffreActuel || '001'}`;
+      }
+
+      return nouveauForm;
+    });
     
     if (erreursChamps[name]) {
       setErreursChamps(prev => ({ ...prev, [name]: null }));
-    }
-    
-    if (name === 'designation') {
-      const valLower = value.toLowerCase();
-      let typeAuto = 'Loyers';
-      if (valLower.includes('eau') || valLower.includes('regideso')) typeAuto = 'Eau';
-      else if (valLower.includes('elect') || valLower.includes('snel') || valLower.includes('courant')) typeAuto = 'Electricite';
-      else if (valLower.includes('loyer') || valLower.includes('locat') || valLower.includes('bail')) typeAuto = 'Loyers';
-      setFormulaire(prev => ({ ...prev, typeFacture: typeAuto }));
     }
   };
 
@@ -234,7 +265,7 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
     setErreursChamps({});
     setFormulaire({
       bail: '', dateBail: '', matricule: '', nom: '', postNom: '', prenom: '',
-      logement: '', adresse: '', pays: 'RDC', designation: '', typeFacture: 'Loyers',
+      logement: '', adresse: '', pays: 'RDC', designation: '', typeClient: '', typeFacture: '',
       devise: 'USD', montant: '', modePaiement: 'Virement', reference: '',
       moisFacture: '', debutContrat: '', finContrat: '', dateComptable: '',
       compteur: '', imputation: '', dernierNumero: '', dernierMontant: '', derniereDate: ''
@@ -251,6 +282,7 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
     if (!formulaire.postNom) nouvellesErreurs.postNom = "Le post-nom est obligatoire.";
     if (!formulaire.prenom) nouvellesErreurs.prenom = "Le prénom est obligatoire.";
     if (!formulaire.logement) nouvellesErreurs.logement = "Le logement est obligatoire.";
+    if (!formulaire.typeClient) nouvellesErreurs.typeClient = "Le type de client est obligatoire.";
     
     if (!formulaire.montant) {
       nouvellesErreurs.montant = "Le montant est obligatoire.";
@@ -269,7 +301,6 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
 
     setErreursChamps({});
 
-    // Fonction utilitaire pour isoler uniquement le format "YYYY-MM-DD"
     const formaterDateAPI = (valeurDate) => {
       if (!valeurDate) return null;
       if (typeof valeurDate === 'string' && valeurDate.includes('T')) {
@@ -278,7 +309,6 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
       return valeurDate;
     };
 
-    // Payload avec les dates nettoyées
     const payloadPropre = {
       ...formulaire,
       dateBail: formaterDateAPI(formulaire.dateBail),
@@ -289,17 +319,7 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
     };
 
     try {
-      const reponse = await axios.post(`${API_URL}/clients`, payloadPropre);
-      
-      const nouveauClientEnregistre = {
-        ...payloadPropre,
-        ...(reponse.data?.client || {}),
-        heure: extraireHeureAuto(new Date())
-      };
-
-      if (typeof setClientsEnregistres === 'function') {
-        setClientsEnregistres(prev => [nouveauClientEnregistre, ...prev]);
-      }
+      await axios.post(`${API_URL}/clients`, payloadPropre);
       
       afficherNotificationProvisoire('Enregistré avec succès dans la base de données !', 'succes', 10000);
       

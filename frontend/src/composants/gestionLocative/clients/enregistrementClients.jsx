@@ -121,6 +121,11 @@ const SelectEntree = styled.select`
     outline: none;
     border-color: ${props => props.$hasError ? '#FF5252' : THEME.accentuation};
   }
+
+  option {
+    background-color: #121212;
+    color: ${THEME.textePrincipal};
+  }
 `;
 
 const MessageErreurInterne = styled.span`
@@ -179,7 +184,6 @@ export default function EnregistrementClients({
 }) {
   const refs = useRef({});
 
-  // Navigation fluide avec la touche Entrée entre les champs
   const gererToucheEntree = (e) => {
     if (e.key === 'Enter') {
       const listeChamps = Object.keys(refs.current).filter(k => k !== 'submitButton');
@@ -193,11 +197,9 @@ export default function EnregistrementClients({
         e.preventDefault();
         refs.current['submitButton']?.focus();
       }
-      // Si on est sur le bouton submit, on laisse l'événement se propager pour soumettre
     }
   };
 
-  // Scroll automatique et focus sur le premier champ en erreur
   useEffect(() => {
     const clesErreurs = Object.keys(erreurs || {}).filter(k => erreurs[k]);
     if (clesErreurs.length > 0) {
@@ -211,8 +213,6 @@ export default function EnregistrementClients({
 
   return (
     <CarteFormulaire onSubmit={onSubmit} noValidate>
-      
-      {/* SECTION 1 : BAIL & IDENTIFICATION */}
       <GroupeSection>
         <TitreSection>Bail & Identification</TitreSection>
         <GrilleChamps>
@@ -227,8 +227,8 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Date Bail * (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.dateBail = el} type="date" min="1900-01-01" max="2100-12-31" name="dateBail" value={formulaire.dateBail ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.dateBail} />
-              {erreurs.dateBail && <MessageErreurInterne>{typeof erreurs.dateBail === 'string' ? erreurs.dateBail : "Invalide"}</MessageErreurInterne>}
+              <EntreeTexte ref={el => refs.current.dateBail = el} type="date" name="dateBail" value={formulaire.dateBail ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.dateBail} />
+              {erreurs.dateBail && <MessageErreurInterne>{typeof erreurs.dateBail === 'string' ? erreurs.dateBail : "Requis"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
 
@@ -287,7 +287,6 @@ export default function EnregistrementClients({
         </GrilleChamps>
       </GroupeSection>
 
-      {/* SECTION 2 : DETAILS FACTURE & PERIODE */}
       <GroupeSection>
         <TitreSection>Détails Facture & Période</TitreSection>
         <GrilleChamps>
@@ -299,15 +298,15 @@ export default function EnregistrementClients({
           </ChampConteneur>
 
           <ChampConteneur>
-            <Etiquette>Type de Facture</Etiquette>
+            <Etiquette>Type de Client / Facture *</Etiquette>
             <ChampInterneWrapper>
-              <SelectEntree ref={el => refs.current.typeFacture = el} name="typeFacture" value={formulaire.typeFacture ?? 'Loyers'} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.typeFacture}>
-                <option value="Loyers">Loyers</option>
-                <option value="Electricite">Electricite</option>
-                <option value="Eau">Eau</option>
-                <option value="Divers">Divers</option>
-              </SelectEntree>
-              {erreurs.typeFacture && <MessageErreurInterne $isSelect={true}>{typeof erreurs.typeFacture === 'string' ? erreurs.typeFacture : "Invalide"}</MessageErreurInterne>}
+              <EntreeTexte 
+                ref={el => refs.current.typeFacture = el} 
+                name="typeFacture" 
+                value={formulaire.typeClient ?? formulaire.typeFacture ?? 'Loyers'} 
+                readOnly 
+                $readOnly={true} 
+              />
             </ChampInterneWrapper>
           </ChampConteneur>
 
@@ -368,7 +367,7 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Début Contrat * (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.debutContrat = el} type="date" min="1900-01-01" max="2100-12-31" name="debutContrat" value={formulaire.debutContrat ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.debutContrat} />
+              <EntreeTexte ref={el => refs.current.debutContrat = el} type="date" name="debutContrat" value={formulaire.debutContrat ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.debutContrat} />
               {erreurs.debutContrat && <MessageErreurInterne>{typeof erreurs.debutContrat === 'string' ? erreurs.debutContrat : "Invalide"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
@@ -376,7 +375,7 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Fin Contrat * (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.finContrat = el} type="date" min="1900-01-01" max="2100-12-31" name="finContrat" value={formulaire.finContrat ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.finContrat} />
+              <EntreeTexte ref={el => refs.current.finContrat = el} type="date" name="finContrat" value={formulaire.finContrat ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.finContrat} />
               {erreurs.finContrat && <MessageErreurInterne>{typeof erreurs.finContrat === 'string' ? erreurs.finContrat : "Invalide"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
@@ -384,14 +383,13 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Date Comptable (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.dateComptable = el} type="date" min="1900-01-01" max="2100-12-31" name="dateComptable" value={formulaire.dateComptable ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.dateComptable} />
+              <EntreeTexte ref={el => refs.current.dateComptable = el} type="date" name="dateComptable" value={formulaire.dateComptable ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.dateComptable} />
               {erreurs.dateComptable && <MessageErreurInterne>{typeof erreurs.dateComptable === 'string' ? erreurs.dateComptable : "Invalide"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
         </GrilleChamps>
       </GroupeSection>
 
-      {/* SECTION 3 : COMPTEURS & SUIVI INDEX */}
       <GroupeSection>
         <TitreSection>Compteurs & Suivi Index</TitreSection>
         <GrilleChamps>
@@ -422,23 +420,17 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Dernière Date (DER Dt) (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.derniereDate = el} type="date" min="1900-01-01" max="2100-12-31" name="derniereDate" value={formulaire.derniereDate ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} />
+              <EntreeTexte ref={el => refs.current.derniereDate = el} type="date" name="derniereDate" value={formulaire.derniereDate ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} />
             </ChampInterneWrapper>
           </ChampConteneur>
         </GrilleChamps>
       </GroupeSection>
 
-      {/* BOUTONS D'ACTION */}
       <BarreBoutons>
         <BoutonReinitialiser type="button" onClick={onReset}>
           Réinitialiser
         </BoutonReinitialiser>
-        
-        <BoutonEnregistrer 
-          type="submit" 
-          name="submitButton" 
-          ref={el => refs.current.submitButton = el}
-        >
+        <BoutonEnregistrer type="submit" name="submitButton" ref={el => refs.current.submitButton = el}>
           Enregistrer les informations
         </BoutonEnregistrer>
       </BarreBoutons>

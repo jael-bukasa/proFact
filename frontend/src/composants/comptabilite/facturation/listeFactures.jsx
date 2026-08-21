@@ -9,7 +9,6 @@ import FactureTous from './listeFactures/factureTous';
 import FactureLocataire from './listeFactures/factureLocataire';
 import FactureEau from './listeFactures/factureEau';
 import FactureElectricite from './listeFactures/factureElectricite';
-// Correction : Importation nommée pour plus de stabilité
 import { FactureDivers } from './listeFactures/factureDivers';
 
 const THEME = {
@@ -77,21 +76,33 @@ export default function ListeFactures({
     { id: 'divers', label: 'Divers', icone: <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg> }
   ];
 
-  // Filtrage global centralisé et sécurisé
+  // Filtrage robuste basé sur le matricule réel de la facture
   const facturesFiltreesGlobal = useMemo(() => {
     return listeFactures.filter(facture => {
+      const matricule = (facture.matricule || facture.numero || '').toUpperCase();
       const typeBrut = (facture.typeFacture || facture.type || '').toLowerCase();
 
-      // 1. Filtrage par onglet (Type de facture assoupli)
-      if (ongletActif === 'locataire' && !typeBrut.includes('loyer') && !typeBrut.includes('locataire')) return false;
-      if (ongletActif === 'eau' && !typeBrut.includes('eau')) return false;
-      if (ongletActif === 'electricite' && !typeBrut.includes('elect')) return false;
-      if (ongletActif === 'divers' && !typeBrut.includes('divers')) return false;
+      // Détermination rigoureuse de la catégorie réelle de la facture
+      let categorieReelle = 'locataire'; // par défaut
+      if (matricule.startsWith('DIV')) {
+        categorieReelle = 'divers';
+      } else if (matricule.startsWith('EAU')) {
+        categorieReelle = 'eau';
+      } else if (matricule.startsWith('ELE') || matricule.startsWith('ELEC')) {
+        categorieReelle = 'electricite';
+      } else if (matricule.startsWith('LOY') || matricule.startsWith('LY') || typeBrut.includes('loyer') || typeBrut.includes('locataire')) {
+        categorieReelle = 'locataire';
+      }
+
+      // 1. Filtrage strict par onglet actif
+      if (ongletActif !== 'tous' && categorieReelle !== ongletActif) {
+        return false;
+      }
 
       // 2. Filtrage par texte de recherche
       if (rechercheFacture) {
         const terme = rechercheFacture.toLowerCase();
-        const num = facture.numero ? facture.numero.toLowerCase() : '';
+        const num = matricule.toLowerCase();
         const client = (facture.locataire || facture.client || facture.nom || '').toLowerCase();
         if (!num.includes(terme) && !client.includes(terme)) return false;
       }

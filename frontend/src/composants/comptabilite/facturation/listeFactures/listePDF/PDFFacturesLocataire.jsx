@@ -43,9 +43,14 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
   const cli = donneesFacture || {};
 
   const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/LOY/2026`;
-  const codeClientVal = cli.matricule || cli.codeClient || cli.numero || '-';
-  
-  // Date du jour générée automatiquement
+
+  // Correction stricte : Ignore tout matricule ou code contenant "DIV" et force un format locataire propre
+  const rawCodeClient = cli.codeLocataire || cli.matriculeLocataire || cli.codeClient || cli.matricule || cli.numero;
+  const codeClientVal = (rawCodeClient && !rawCodeClient.toString().toUpperCase().includes('DIV'))
+    ? rawCodeClient
+    : `LOC-${cli.id || '001'}`;
+
+  // Date du jour générée automatiquement au moment de la génération
   const dateAffichage = new Date().toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',

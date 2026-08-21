@@ -43,7 +43,6 @@ db.connect((err) => {
   }
   console.log('Connecté avec succès à la base de données MySQL : proFactDB');
 
-  // Table mise à jour avec TOUS les champs du formulaire
   const sqlClients = `
     CREATE TABLE IF NOT EXISTS clients (
       id INT PRIMARY KEY,
@@ -75,6 +74,7 @@ db.connect((err) => {
       email VARCHAR(100) DEFAULT '',
       statut VARCHAR(50) DEFAULT 'Actif',
       supprime TINYINT(1) DEFAULT 0,
+      enregistre TINYINT(1) DEFAULT 0,
       creeLe DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `;
@@ -113,7 +113,7 @@ const formaterClient = (cli) => {
 
   const matricule = cli.matricule && cli.matricule !== 'TEMP'
     ? cli.matricule
-    : `LOY-${String(cli.id).padStart(10, '0')}`;
+    : `LOC-${String(cli.id).padStart(10, '0')}`;
 
   return {
     ...cli,
@@ -147,7 +147,19 @@ app.get('/api/clients/corbeille', (req, res) => {
   });
 });
 
-// 2. Récupérer les clients ACTIFS
+// 2. Récupérer les clients ENREGISTRÉS (enregistre = 1)
+app.get('/api/clients/enregistres', (req, res) => {
+  const query = 'SELECT * FROM clients WHERE supprime = 0 AND enregistre = 1 ORDER BY id DESC';
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Erreur SQL clients enregistrés :", err);
+      return res.status(500).json({ erreur: 'Erreur lors de la récupération des clients enregistrés' });
+    }
+    res.json(results.map(formaterClient));
+  });
+});
+
+// 3. Récupérer les clients ACTIFS
 app.get('/api/clients', (req, res) => {
   const query = 'SELECT * FROM clients WHERE supprime = 0 ORDER BY id ASC';
   db.query(query, (err, results) => {
@@ -159,7 +171,7 @@ app.get('/api/clients', (req, res) => {
   });
 });
 
-// 3. AJOUTER UN CLIENT (Tous les champs pris en compte)
+// 4. AJOUTER UN CLIENT (enregistre = 0 par défaut à la création)
 app.post('/api/clients', (req, res) => {
   const { 
     nom, 
@@ -207,11 +219,18 @@ app.post('/api/clients', (req, res) => {
       idDisponible++;
     }
 
-    let prefixe = 'LOY-';
-    if (typeClient === 'electricite') prefixe = 'ELE-';
-    else if (typeClient === 'eau') prefixe = 'EAU-';
-    else if (typeClient === 'divers') prefixe = 'DIV-';
-    else if (typeClient === 'locataire' && devise === 'CDF') prefixe = 'LY-';
+    // CORRECTION : Détermination cohérente du préfixe selon le type de facture ou type client
+    const typeFiltre = (typeFacture || typeClient || '').toLowerCase();
+    let prefixe = 'LOC-';
+    if (typeFiltre.includes('elect') || typeFiltre.includes('snel') || typeFiltre.includes('elec')) {
+      prefixe = 'ELEC-';
+    } else if (typeFiltre.includes('eau') || typeFiltre.includes('regideso')) {
+      prefixe = 'EAU-';
+    } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
+      prefixe = 'DIV-';
+    } else if (typeFiltre.includes('loyer') || typeFiltre.includes('locat')) {
+      prefixe = 'LOC-';
+    }
 
     const matricule = `${prefixe}${String(idDisponible).padStart(10, '0')}`;
     const dateEntree = new Date().toISOString().split('T')[0];
@@ -219,10 +238,11 @@ app.post('/api/clients', (req, res) => {
     const now = new Date();
     const creeLe = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
+    // CORRECTION : enregistre mis à 0 par défaut pour un client nouvellement créé
     const queryInsert = `
       INSERT INTO clients 
-      (id, matricule, nom, postNom, prenom, bail, dateBail, logement, adresse, pays, designation, typeClient, typeFacture, devise, montant, modePaiement, moisFacture, debutContrat, finContrat, dateComptable, compteur, imputation, dernierNumero, dernierMontant, derniereDate, telephone, email, dateEntree, statut, supprime, creeLe) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Actif', 0, ?)
+      (id, matricule, nom, postNom, prenom, bail, dateBail, logement, adresse, pays, designation, typeClient, typeFacture, devise, montant, modePaiement, moisFacture, debutContrat, finContrat, dateComptable, compteur, imputation, dernierNumero, dernierMontant, derniereDate, telephone, email, dateEntree, statut, supprime, enregistre, creeLe) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Actif', 0, 0, ?)
     `;
 
     const valeurs = [
@@ -266,6 +286,7 @@ app.post('/api/clients', (req, res) => {
         dateEntree,
         statut: 'Actif',
         supprime: 0,
+        enregistre: 0,
         creeLe
       });
 
@@ -274,7 +295,21 @@ app.post('/api/clients', (req, res) => {
   });
 });
 
-// 4. Modifier un client (PUT)
+// 5. VALIDEE / ENREGISTRER UN CLIENT (passe enregistre à 1)
+app.patch('/api/clients/:id/valider', (req, res) => {
+  const { id } = req.params;
+  const query = 'UPDATE clients SET enregistre = 1 WHERE id = ?';
+
+  db.query(query, [id], (err) => {
+    if (err) {
+      console.error("Erreur SQL lors de la validation du client :", err);
+      return res.status(500).json({ erreur: "Erreur lors de l'enregistrement du client" });
+    }
+    res.json({ message: "Client enregistré avec succès" });
+  });
+});
+
+// 6. Modifier un client (PUT)
 app.put('/api/clients/:id', (req, res) => {
   const { id } = req.params;
   const { 
@@ -306,7 +341,7 @@ app.put('/api/clients/:id', (req, res) => {
   });
 });
 
-// 5. RESTAURER un client (PATCH)
+// 7. RESTAURER un client (PATCH)
 app.patch('/api/clients/:id/restaurer', (req, res) => {
   const { id } = req.params;
   const restoreQuery = 'UPDATE clients SET supprime = 0 WHERE id = ?';
@@ -320,7 +355,7 @@ app.patch('/api/clients/:id/restaurer', (req, res) => {
   });
 });
 
-// 6. VIDER LA CORBEILLE
+// 8. VIDER LA CORBEILLE
 app.delete('/api/clients/corbeille/vider', (req, res) => {
   const query = 'DELETE FROM clients WHERE supprime = 1';
 
@@ -333,7 +368,7 @@ app.delete('/api/clients/corbeille/vider', (req, res) => {
   });
 });
 
-// 7. SUPPRESSION DÉFINITIVE D'UN CLIENT
+// 9. SUPPRESSION DÉFINITIVE D'UN CLIENT
 app.delete('/api/clients/:id/definitif', (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM clients WHERE id = ?';
@@ -347,7 +382,7 @@ app.delete('/api/clients/:id/definitif', (req, res) => {
   });
 });
 
-// 8. ENVOYER EN CORBEILLE (Soft Delete)
+// 10. ENVOYER EN CORBEILLE (Soft Delete)
 app.delete('/api/clients/:id', (req, res) => {
   const { id } = req.params;
   const query = 'UPDATE clients SET supprime = 1 WHERE id = ?';
