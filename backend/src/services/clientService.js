@@ -41,6 +41,7 @@ export const ajouterClientApi = async (nouveauClient) => {
       ...nouveauClient,
       typeClient: nouveauClient.typeClient || 'locataire',
       devise: nouveauClient.devise || 'USD',
+      enregistre: true, // Force le statut à enregistré (1) pour l'affichage dans les clients enregistrés
     };
 
     const reponse = await axios.post(API_URL, payload);

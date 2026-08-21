@@ -190,7 +190,7 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
     if (client) {
       setFormulaire({
         bail: client.bail || '',
-        dateBail: client.dateBail || '',
+        dateBail: client.dateBail ? client.dateBail.split('T')[0] : '',
         matricule: client.matricule || client.client || '',
         nom: client.nom || '',
         postNom: client.postNom || client.postnom || '',
@@ -206,14 +206,14 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
         modePaiement: client.modePaiement || client.mode || 'Virement',
         reference: client.reference || '',
         moisFacture: client.moisFacture || client.moisF || '',
-        debutContrat: client.debutContrat || client.debCt || '',
-        finContrat: client.finContrat || client.finCt || '',
-        dateComptable: client.dateComptable || client.dateC || '',
+        debutContrat: client.debutContrat ? client.debutContrat.split('T')[0] : '',
+        finContrat: client.finContrat ? client.finContrat.split('T')[0] : '',
+        dateComptable: client.dateComptable ? client.dateComptable.split('T')[0] : '',
         compteur: client.compteur || client.cpt || '',
         imputation: client.imputation || client.imp || '',
         dernierNumero: client.dernierNumero || client.derN || '',
         dernierMontant: client.dernierMontant || client.derMt || '',
-        derniereDate: client.derniereDate || client.derDt || ''
+        derniereDate: client.derniereDate ? client.derniereDate.split('T')[0] : ''
       });
     } else {
       reinitialiserFormulaire();
@@ -226,7 +226,6 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
     setFormulaire(prev => {
       let nouveauForm = { ...prev, [name]: value };
       
-      // Gestion propre et dynamique lorsque l'on sélectionne le type de client
       if (name === 'typeClient') {
         let libelleFacture = 'Loyers';
         let prefixeMatricule = 'LOC';
@@ -247,7 +246,6 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
 
         nouveauForm.typeFacture = libelleFacture;
         
-        // Conserver ou générer le matricule avec le bon préfixe
         const chiffreActuel = prev.matricule ? prev.matricule.replace(/^[A-Z]+-/, '') : '001';
         nouveauForm.matricule = `${prefixeMatricule}-${chiffreActuel || '001'}`;
       }
@@ -316,6 +314,7 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
       finContrat: formaterDateAPI(formulaire.finContrat),
       dateComptable: formaterDateAPI(formulaire.dateComptable),
       derniereDate: formaterDateAPI(formulaire.derniereDate),
+      enregistre: true,
     };
 
     try {
@@ -326,7 +325,7 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
       await chargerClients();
       
       reinitialiserFormulaire();
-      setOngletActif('actifs');
+      setOngletActif('enregistres');
     } catch (erreur) {
       console.error("Détail complet de l'erreur :", erreur.response?.data || erreur.message);
       const messageServeur = erreur.response?.data?.message || erreur.message;
@@ -395,7 +394,10 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
           </AnimatePresence>
         </div>
       ) : ongletActif === 'enregistres' ? (
-        <ClientsEnregistres clientsEnregistres={clientsEnregistres} />
+        <ClientsEnregistres 
+          clientsEnregistres={clientsEnregistres} 
+          onSelectClient={allerAEnregistrementClient} 
+        />
       ) : (
         <ClientsSupprimes listeCorbeille={listeCorbeille} chargerClients={chargerClients} />
       )}

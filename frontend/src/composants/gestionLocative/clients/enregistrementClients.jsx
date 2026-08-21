@@ -303,7 +303,7 @@ export default function EnregistrementClients({
               <EntreeTexte 
                 ref={el => refs.current.typeFacture = el} 
                 name="typeFacture" 
-                value={formulaire.typeClient ?? formulaire.typeFacture ?? 'Loyers'} 
+                value={formulaire.typeFacture ?? formulaire.typeClient ?? 'Loyers'} 
                 readOnly 
                 $readOnly={true} 
               />
@@ -431,7 +431,7 @@ export default function EnregistrementClients({
           Réinitialiser
         </BoutonReinitialiser>
         <BoutonEnregistrer type="submit" name="submitButton" ref={el => refs.current.submitButton = el}>
-          Enregistrer les informations
+          {formulaire.id ? "Modifier les informations" : "Enregistrer les informations"}
         </BoutonEnregistrer>
       </BarreBoutons>
     </CarteFormulaire>

@@ -72,6 +72,7 @@ db.connect((err) => {
       derniereDate DATE NULL,
       telephone VARCHAR(50) DEFAULT '',
       email VARCHAR(100) DEFAULT '',
+      dateEntree DATE NULL,
       statut VARCHAR(50) DEFAULT 'Actif',
       supprime TINYINT(1) DEFAULT 0,
       enregistre TINYINT(1) DEFAULT 0,
@@ -171,10 +172,10 @@ app.get('/api/clients', (req, res) => {
   });
 });
 
-// 4. AJOUTER UN CLIENT (enregistre = 0 par défaut à la création)
+// 4. AJOUTER UN CLIENT
 app.post('/api/clients', (req, res) => {
   const { 
-    nom, 
+    nom = '', 
     postNom = '', 
     prenom = '', 
     bail = '',
@@ -198,12 +199,12 @@ app.post('/api/clients', (req, res) => {
     dernierMontant = 0,
     derniereDate = null,
     telephone = '',
-    email = ''
+    email = '',
+    enregistre = false // Récupération dynamique de la valeur envoyée par le frontend
   } = req.body;
 
-  if (!nom || !prenom) {
-    return res.status(400).json({ erreur: "Le nom et le prénom sont obligatoires." });
-  }
+  const nomClient = nom.trim() !== '' ? nom : (designation || 'Client');
+  const prenomClient = prenom.trim() !== '' ? prenom : '-';
 
   const queryAllIds = 'SELECT id FROM clients ORDER BY id ASC';
 
@@ -219,7 +220,6 @@ app.post('/api/clients', (req, res) => {
       idDisponible++;
     }
 
-    // CORRECTION : Détermination cohérente du préfixe selon le type de facture ou type client
     const typeFiltre = (typeFacture || typeClient || '').toLowerCase();
     let prefixe = 'LOC-';
     if (typeFiltre.includes('elect') || typeFiltre.includes('snel') || typeFiltre.includes('elec')) {
@@ -238,29 +238,61 @@ app.post('/api/clients', (req, res) => {
     const now = new Date();
     const creeLe = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-    // CORRECTION : enregistre mis à 0 par défaut pour un client nouvellement créé
     const queryInsert = `
       INSERT INTO clients 
       (id, matricule, nom, postNom, prenom, bail, dateBail, logement, adresse, pays, designation, typeClient, typeFacture, devise, montant, modePaiement, moisFacture, debutContrat, finContrat, dateComptable, compteur, imputation, dernierNumero, dernierMontant, derniereDate, telephone, email, dateEntree, statut, supprime, enregistre, creeLe) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Actif', 0, 0, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
+    const valeurEnregistre = enregistre ? 1 : 0; // Conversion du booléen en 1 ou 0 pour MySQL
+
     const valeurs = [
-      idDisponible, matricule, nom, postNom, prenom, bail, dateBail || null, logement, adresse, pays, designation, typeClient, typeFacture, devise, montant || 0, modePaiement, moisFacture, debutContrat || null, finContrat || null, dateComptable || null, compteur, imputation, dernierNumero, dernierMontant || 0, derniereDate || null, telephone, email, dateEntree, creeLe
+      idDisponible, 
+      matricule, 
+      nomClient, 
+      postNom, 
+      prenomClient, 
+      bail, 
+      dateBail || null, 
+      logement, 
+      adresse, 
+      pays, 
+      designation, 
+      typeClient, 
+      typeFacture, 
+      devise, 
+      Number(montant) || 0, 
+      modePaiement, 
+      moisFacture, 
+      debutContrat || null, 
+      finContrat || null, 
+      dateComptable || null, 
+      compteur, 
+      imputation, 
+      dernierNumero, 
+      Number(dernierMontant) || 0, 
+      derniereDate || null, 
+      telephone, 
+      email, 
+      dateEntree, 
+      'Actif', 
+      0,      // supprime
+      valeurEnregistre, // Utilisation de la valeur dynamique
+      creeLe   
     ];
 
     db.query(queryInsert, valeurs, (insertErr) => {
       if (insertErr) {
         console.error("Erreur SQL lors de l'insertion :", insertErr);
-        return res.status(500).json({ erreur: "Erreur lors de l'enregistrement dans MySQL" });
+        return res.status(500).json({ erreur: "Erreur lors de l'enregistrement dans MySQL : " + insertErr.message });
       }
 
       const clientCree = formaterClient({
         id: idDisponible,
         matricule,
-        nom,
+        nom: nomClient,
         postNom,
-        prenom,
+        prenom: prenomClient,
         bail,
         dateBail,
         logement,
@@ -286,7 +318,7 @@ app.post('/api/clients', (req, res) => {
         dateEntree,
         statut: 'Actif',
         supprime: 0,
-        enregistre: 0,
+        enregistre: valeurEnregistre,
         creeLe
       });
 
@@ -295,7 +327,7 @@ app.post('/api/clients', (req, res) => {
   });
 });
 
-// 5. VALIDEE / ENREGISTRER UN CLIENT (passe enregistre à 1)
+// 5. VALIDER / ENREGISTRER UN CLIENT (passe enregistre à 1)
 app.patch('/api/clients/:id/valider', (req, res) => {
   const { id } = req.params;
   const query = 'UPDATE clients SET enregistre = 1 WHERE id = ?';

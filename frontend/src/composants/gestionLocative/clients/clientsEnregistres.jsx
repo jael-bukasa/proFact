@@ -94,6 +94,7 @@ const CelluleData = styled.td`
 
 const LigneTableau = styled.tr`
   transition: background-color 0.15s ease;
+  cursor: pointer;
 
   &:hover {
     background-color: ${THEME.survol};
@@ -137,7 +138,7 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
-export default function ClientsEnregistres({ clientsEnregistres = [] }) {
+export default function ClientsEnregistres({ clientsEnregistres = [], onSelectClient }) {
   const [rechercheTexte, setRechercheTexte] = useState('');
   const [filtreJour, setFiltreJour] = useState('');
   const [filtreMois, setFiltreMois] = useState('');
@@ -248,11 +249,13 @@ export default function ClientsEnregistres({ clientsEnregistres = [] }) {
               </EnTeteTableau>
               <tbody>
                 {clientsFiltres.map((cli, index) => {
-                  // Logique booléenne claire pour l'affichage des compteurs
                   const possedeCompteur = Boolean(cli.compteur || cli.imputation || cli.dernierNumero);
 
                   return (
-                    <LigneTableau key={cli.id || index}>
+                    <LigneTableau 
+                      key={cli.id || index}
+                      onClick={() => onSelectClient && onSelectClient(cli)}
+                    >
                       <CelluleData><BadgeMatricule>{cli.matricule || 'N/A'}</BadgeMatricule></CelluleData>
                       
                       <CelluleData style={{ fontWeight: 600 }}>
