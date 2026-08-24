@@ -112,9 +112,29 @@ const formaterClient = (cli) => {
     }
   }
 
-  const matricule = cli.matricule && cli.matricule !== 'TEMP'
-    ? cli.matricule
-    : `LOC-${String(cli.id).padStart(10, '0')}`;
+  let matricule = cli.matricule;
+  if (!matricule || matricule === 'TEMP' || matricule.startsWith('LOC-') || matricule.startsWith('LOY-') || matricule.startsWith('LY-') || matricule.startsWith('ELE-') || matricule.startsWith('ELEC-') || matricule.startsWith('EAU-') || matricule.startsWith('DIV-')) {
+    
+    // Normalisation pour ignorer les accents et la casse
+    const typeFiltre = ((cli.typeFacture || '') + ' ' + (cli.typeClient || ''))
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+    let prefixe = 'LOY-';
+
+    if (typeFiltre.includes('elect') || typeFiltre.includes('snel')) {
+      prefixe = 'ELE-';
+    } else if (typeFiltre.includes('eau') || typeFiltre.includes('regideso')) {
+      prefixe = 'EAU-';
+    } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
+      prefixe = 'DIV-';
+    } else if (typeFiltre.includes('locat') || typeFiltre.includes('loyer')) {
+      prefixe = (cli.devise === 'CDF') ? 'LY-' : 'LOY-';
+    }
+
+    matricule = `${prefixe}${String(cli.id || 1).padStart(10, '0')}`;
+  }
 
   return {
     ...cli,
@@ -200,7 +220,7 @@ app.post('/api/clients', (req, res) => {
     derniereDate = null,
     telephone = '',
     email = '',
-    enregistre = false // Récupération dynamique de la valeur envoyée par le frontend
+    enregistre = false 
   } = req.body;
 
   const nomClient = nom.trim() !== '' ? nom : (designation || 'Client');
@@ -220,16 +240,22 @@ app.post('/api/clients', (req, res) => {
       idDisponible++;
     }
 
-    const typeFiltre = (typeFacture || typeClient || '').toLowerCase();
-    let prefixe = 'LOC-';
-    if (typeFiltre.includes('elect') || typeFiltre.includes('snel') || typeFiltre.includes('elec')) {
-      prefixe = 'ELEC-';
+    // Normalisation pour détecter l'électricité malgré l'accent (Électricité -> electricite)
+    const typeFiltre = ((typeFacture || '') + ' ' + (typeClient || ''))
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+    let prefixe = 'LOY-';
+
+    if (typeFiltre.includes('elect') || typeFiltre.includes('snel')) {
+      prefixe = 'ELE-';
     } else if (typeFiltre.includes('eau') || typeFiltre.includes('regideso')) {
       prefixe = 'EAU-';
     } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
       prefixe = 'DIV-';
-    } else if (typeFiltre.includes('loyer') || typeFiltre.includes('locat')) {
-      prefixe = 'LOC-';
+    } else if (typeFiltre.includes('locat') || typeFiltre.includes('loyer')) {
+      prefixe = (devise === 'CDF') ? 'LY-' : 'LOY-';
     }
 
     const matricule = `${prefixe}${String(idDisponible).padStart(10, '0')}`;
@@ -244,7 +270,7 @@ app.post('/api/clients', (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const valeurEnregistre = enregistre ? 1 : 0; // Conversion du booléen en 1 ou 0 pour MySQL
+    const valeurEnregistre = enregistre ? 1 : 0;
 
     const valeurs = [
       idDisponible, 
@@ -276,9 +302,9 @@ app.post('/api/clients', (req, res) => {
       email, 
       dateEntree, 
       'Actif', 
-      0,      // supprime
-      valeurEnregistre, // Utilisation de la valeur dynamique
-      creeLe   
+      0, 
+      valeurEnregistre, 
+      creeLe  
     ];
 
     db.query(queryInsert, valeurs, (insertErr) => {
