@@ -1,83 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { motion } from 'framer-motion';
 
 const THEME = {
   fondCarte: '#1E1E1E',
-  accentuation: '#AEEA00',
+  accentuation: '#AEEA00', // Loyers / Vert citron
   textePrincipal: '#FFFFFF',
   texteSecondaire: '#888888',
   bordure: '#2A2A2A',
-  fondChamp: '#121212',
-  rouge: '#FF5252',
-  vert: '#4CAF50',
-  orange: '#FF9800',
-  bleu: '#2196F3'
+  survol: '#262626',
+  orange: '#FF9800',       // Électricité
+  bleu: '#2196F3',         // Eau
+  vert: '#22c55e',         // Dossiers Soldés / Succès
+  violet: '#a855f7'        // Divers
 };
 
-// --- EN-TÊTE ---
-const ConteneurEnTete = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-`;
-
-const SectionTitre = styled.div`
+const ConteneurSection = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 2rem;
+  width: 100%;
 `;
 
-const TitrePage = styled.h1`
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin-bottom: 0.2rem;
+const ConteneurEnTete = styled(motion.header)`
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 `;
 
-const SousTitrePage = styled.p`
-  color: ${THEME.texteSecondaire};
-  font-size: 0.8rem;
-`;
-
-const SelecteurMois = styled.button`
+const SelecteurMois = styled(motion.div)`
   background-color: ${THEME.fondCarte};
   color: ${THEME.textePrincipal};
   border: 1px solid ${THEME.bordure};
-  padding: 0.45rem 0.9rem;
+  padding: 0.6rem 1.2rem;
   border-radius: 8px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.2s;
+  font-size: 0.9rem;
   text-transform: capitalize;
-
-  &:hover {
-    border-color: ${THEME.accentuation};
-  }
+  cursor: pointer;
 `;
 
-// --- METRIQUES ---
 const GrilleMetriques = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
   width: 100%;
-  margin-bottom: 1rem;
 `;
 
-const CarteMetrique = styled.div`
+const CarteMetrique = styled(motion.div)`
   background-color: ${THEME.fondCarte};
-  border-radius: 10px;
-  padding: 0.9rem;
+  border-radius: 12px;
+  padding: 1.2rem;
   border: 1px solid ${THEME.bordure};
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.8rem;
   position: relative;
   overflow: hidden;
 
@@ -86,7 +69,7 @@ const CarteMetrique = styled.div`
     position: absolute;
     top: 0;
     left: 0;
-    width: 3px;
+    width: 4px;
     height: 100%;
     background-color: ${props => props.$couleurBordure || THEME.accentuation};
   }
@@ -103,232 +86,232 @@ const TitreCarte = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const SelecteurDevise = styled(motion.button)`
+  background-color: rgba(255, 255, 255, 0.08);
+  color: ${THEME.textePrincipal};
+  border: 1px solid ${THEME.bordure};
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
 `;
 
 const IconeWrapper = styled.div`
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   background-color: ${props => props.$bg || 'rgba(174, 234, 0, 0.1)'};
   color: ${props => props.$couleur || THEME.accentuation};
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: 1rem;
 `;
 
 const ValeurCarte = styled.h2`
-  font-size: 1.4rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: ${THEME.textePrincipal};
-  margin: 0.2rem 0;
-`;
-
-const PiedCarte = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-`;
-
-const BadgeTendance = styled.span`
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  background-color: ${props => props.$positif ? 'rgba(76, 175, 80, 0.15)' : 'rgba(255, 82, 82, 0.15)'};
-  color: ${props => props.$positif ? THEME.vert : THEME.rouge};
+  margin: 0;
 `;
 
 const SousTexteCarte = styled.span`
   color: ${THEME.texteSecondaire};
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 `;
 
-// --- ROUE DES ACTIVITÉS ---
-const BlocContent = styled.div`
-  background-color: ${THEME.fondCarte};
-  border-radius: 10px;
-  padding: 0.9rem;
-  border: 1px solid ${THEME.bordure};
-  margin-bottom: 1rem;
-`;
-
-const TitreBloc = styled.h3`
-  font-size: 0.85rem;
-  font-weight: 700;
-  margin-bottom: 0.8rem;
-  color: ${THEME.textePrincipal};
+const ConteneurGraphiqueCirculaire = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-`;
-
-const ConteneurRoue = styled.div`
-  display: grid;
-  grid-template-columns: 180px 1fr;
   gap: 1.5rem;
-  align-items: center;
+  margin: 0.5rem 0;
 
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-    justify-items: center;
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
 `;
 
-const RoueGraphique = styled.div`
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: ${props => props.$gradient || `conic-gradient(${THEME.vert} 0% 100%)`};
-  display: flex;
-  align-items: center;
-  justify-content: center;
+const WrapperSvg = styled.div`
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
 `;
 
-const CentreRoue = styled.div`
-  width: 92px;
-  height: 92px;
-  background-color: ${THEME.fondCarte};
-  border-radius: 50%;
+const TexteCentreSvg = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
+  
+  span.total-chiffre {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: ${THEME.textePrincipal};
+    line-height: 1;
+  }
+  span.total-label {
+    font-size: 0.65rem;
+    color: ${THEME.texteSecondaire};
+    text-transform: uppercase;
+  }
 `;
 
-const ValeurCentre = styled.span`
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: ${THEME.textePrincipal};
-`;
-
-const LibelleCentre = styled.span`
-  font-size: 0.6rem;
-  color: ${THEME.texteSecondaire};
-  text-transform: uppercase;
-`;
-
-const LegendeGrille = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 0.6rem;
+const LegendeCirculaire = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
   width: 100%;
 `;
 
-const ArticleLegende = styled.div`
+const ElementLegende = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
   gap: 0.5rem;
-  background-color: ${THEME.fondChamp};
-  padding: 0.45rem 0.6rem;
-  border-radius: 6px;
-  border: 1px solid ${THEME.bordure};
+
+  .gauche {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: ${THEME.textePrincipal};
+  }
+
+  .droite {
+    font-weight: 600;
+    color: ${THEME.texteSecondaire};
+  }
 `;
 
-const PuceCouleur = styled.span`
-  width: 8px;
-  height: 8px;
+const PastilleCouleur = styled.span`
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background-color: ${props => props.$couleur};
   flex-shrink: 0;
 `;
 
-const NomLegende = styled.span`
-  font-size: 0.68rem;
-  color: ${THEME.texteSecondaire};
-  display: block;
+const SectionCategories = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
-const ValeurLegende = styled.span`
-  font-size: 0.78rem;
-  font-weight: 700;
+const TitreSection = styled.h3`
+  font-size: 1.1rem;
+  font-weight: 600;
   color: ${THEME.textePrincipal};
 `;
 
-// --- GRILLE PRINCIPALE (TABLEAU & ACTIONS) ---
-const GrillePrincipale = styled.div`
+/* CORRECTION : Forcé à 2 colonnes par ligne sur les grands écrans */
+const GrilleCategories = styled.div`
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 0.8rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.2rem;
 
-  @media (max-width: 900px) {
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const TableauCompact = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.78rem;
-
-  th, td {
-    padding: 0.65rem 0.5rem;
-  }
-
-  th:nth-child(1), td:nth-child(1) { text-align: left; }
-  th:nth-child(2), td:nth-child(2) { text-align: left; }
-  th:nth-child(3), td:nth-child(3) { text-align: right; }
-  th:nth-child(4), td:nth-child(4) { text-align: center; }
-
-  th {
-    color: ${THEME.texteSecondaire};
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.68rem;
-    border-bottom: 1px solid ${THEME.bordure};
-  }
-
-  td {
-    color: ${THEME.textePrincipal};
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  }
-
-  tr:last-child td {
-    border-bottom: none;
-  }
-`;
-
-const BadgeStatut = styled.span`
-  font-size: 0.68rem;
-  padding: 0.2rem 0.5rem;
+const CarteCategorie = styled(motion.div)`
+  background-color: ${THEME.fondCarte};
+  border: 1px solid ${THEME.bordure};
   border-radius: 12px;
-  font-weight: 600;
-  background-color: ${props => {
-    const s = (props.$statut || '').toLowerCase();
-    if (s.includes('payé') || s.includes('payée') || s.includes('virement') || s.includes('cash')) return 'rgba(76, 175, 80, 0.15)';
-    if (s.includes('retard') || s.includes('impayé')) return 'rgba(255, 82, 82, 0.15)';
-    return 'rgba(255, 152, 0, 0.15)';
-  }};
-  color: ${props => {
-    const s = (props.$statut || '').toLowerCase();
-    if (s.includes('payé') || s.includes('payée') || s.includes('virement') || s.includes('cash')) return THEME.vert;
-    if (s.includes('retard') || s.includes('impayé')) return THEME.rouge;
-    return THEME.orange;
-  }};
-`;
-
-const ListeActions = styled.div`
+  padding: 1.2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const BoutonActionRapide = styled.button`
-  background-color: ${THEME.fondChamp};
-  border: 1px solid ${THEME.bordure};
-  color: ${THEME.textePrincipal};
-  padding: 0.6rem 0.8rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  font-size: 0.78rem;
-  transition: all 0.2s;
+  gap: 0.9rem;
+  transition: border-color 0.2s;
 
   &:hover {
-    border-color: ${THEME.accentuation};
-    color: ${THEME.accentuation};
+    border-color: ${props => props.$couleur || THEME.accentuation};
+  }
+`;
+
+const LigneCategorieEnTete = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const NomCategorie = styled.span`
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: ${THEME.textePrincipal};
+`;
+
+const BadgeNombre = styled.span`
+  background-color: rgba(255, 255, 255, 0.08);
+  color: ${THEME.textePrincipal};
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 20px;
+`;
+
+const BarreProgressionConteneur = styled.div`
+  width: 100%;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+`;
+
+const BarreProgressionRemplissage = styled(motion.div)`
+  height: 100%;
+  background-color: ${props => props.$couleur || THEME.accentuation};
+  border-radius: 3px;
+`;
+
+const BlocVolumeCategorie = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 0.2rem;
+
+  .label-volume {
+    font-size: 0.75rem;
+    color: ${THEME.texteSecondaire};
+    text-transform: uppercase;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .pourcentage-volume {
+    font-size: 0.75rem;
+    color: ${THEME.texteSecondaire};
+    text-align: right;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+
+  .montant-volume {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: ${THEME.textePrincipal};
+    margin-top: 0.1rem;
+    letter-spacing: -0.5px;
   }
 `;
 
@@ -338,212 +321,320 @@ const obtenirMoisCourant = () => {
   return moisAnnee.charAt(0).toUpperCase() + moisAnnee.slice(1);
 };
 
-export default function TableauDeBord({ listeFactures = [] }) {
+export default function TableauDeBord({ clientsEnregistres = [] }) {
   const [moisSelectionne] = useState(obtenirMoisCourant());
+  const [devise, setDevise] = useState('USD');
+  const tauxChangeCDF = 2800;
 
-  const totalFactures = listeFactures.length;
-
-  // Filtrage robuste basé sur l'état ou le mode de paiement
-  const facturesPayees = listeFactures.filter(f => {
-    const statut = (f.statut || f.modePaiement || '').toLowerCase();
-    return statut.includes('payé') || statut.includes('payée') || statut.includes('virement') || statut.includes('cash') || statut.includes('réglé');
-  });
-
-  const facturesRetard = listeFactures.filter(f => {
-    const statut = (f.statut || '').toLowerCase();
-    return statut.includes('retard') || statut.includes('impayé') || statut.includes('échu');
-  });
-
-  const facturesAttente = listeFactures.filter(f => {
-    const statut = (f.statut || '').toLowerCase();
-    const estPaye = statut.includes('payé') || statut.includes('payée') || statut.includes('virement') || statut.includes('cash') || statut.includes('réglé');
-    const estRetard = statut.includes('retard') || statut.includes('impayé') || statut.includes('échu');
-    return !estPaye && !estRetard;
-  });
-
-  // Sommes financières
-  const sommePercue = facturesPayees.reduce((acc, f) => acc + (Number(f.montant) || 0), 0);
-  const sommeRetards = facturesRetard.reduce((acc, f) => acc + (Number(f.montant) || 0), 0);
-
-  // Pourcentages pour la roue des activités
-  const pPayes = totalFactures > 0 ? (facturesPayees.length / totalFactures) * 100 : 0;
-  const pAttente = totalFactures > 0 ? (facturesAttente.length / totalFactures) * 100 : 0;
-  const pRetard = totalFactures > 0 ? (facturesRetard.length / totalFactures) * 100 : 0;
-
-  const fin1 = pPayes;
-  const fin2 = fin1 + pAttente;
-  const fin3 = fin2 + pRetard;
-
-  const gradientRoue = totalFactures > 0 
-    ? `conic-gradient(${THEME.vert} 0% ${fin1}%, ${THEME.orange} ${fin1}% ${fin2}%, ${THEME.rouge} ${fin2}% ${fin3}%, ${THEME.bleu} ${fin3}% 100%)`
-    : `conic-gradient(${THEME.bordure} 0% 100%)`;
-
-  // Dernières transactions formatées correctement
-  const dernieresTransactions = [...listeFactures].reverse().slice(0, 4).map(f => ({
-    locataire: `${f.nom || ''} ${f.prenom || f.client || f.locataire || ''}`.trim() || 'Locataire Inconnu',
-    local: f.logement || f.adresse || f.local || 'N/A',
-    montant: f.montant !== undefined ? `${Number(f.montant).toLocaleString()} ${f.devise || 'USD'}` : '0 USD',
-    statut: f.statut || 'En attente'
-  }));
-
-  const exporterPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text('ProFact - Rapport de Gestion Locative', 14, 20);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text(`Période : ${moisSelectionne}`, 14, 28);
-
-    autoTable(doc, {
-      startY: 40,
-      head: [['Locataire', 'Local', 'Montant', 'Statut']],
-      body: dernieresTransactions.map(item => [item.locataire, item.local, item.montant, item.statut]),
-      headStyles: { fillColor: [30, 30, 30] }
-    });
-
-    doc.save(`Rapport_ProFact_${moisSelectionne.replace(/\s+/g, '_')}.pdf`);
+  const basculerDevise = () => {
+    setDevise(prev => (prev === 'USD' ? 'CDF' : 'USD'));
   };
 
+  const statistiques = useMemo(() => {
+    const totalDossiers = clientsEnregistres.length;
+    let montantTotalGlobalUSD = 0;
+    let totalRegle = 0;
+
+    const statsTypes = {
+      Loyers: { count: 0, montantUSD: 0, couleur: THEME.accentuation, icon: '🏠', label: 'Loyers' },
+      Eau: { count: 0, montantUSD: 0, couleur: THEME.bleu, icon: '💧', label: 'Eau' },
+      Électricité: { count: 0, montantUSD: 0, couleur: THEME.orange, icon: '⚡', label: 'Électricité' },
+      Divers: { count: 0, montantUSD: 0, couleur: THEME.violet, icon: '📦', label: 'Divers' }
+    };
+
+    clientsEnregistres.forEach((cli) => {
+      let montantBrut = parseFloat(cli.montant) || 0;
+      let montantEnUSD = montantBrut;
+      if (cli.devise && cli.devise.toUpperCase() === 'CDF') {
+        montantEnUSD = montantBrut / tauxChangeCDF;
+      }
+
+      montantTotalGlobalUSD += montantEnUSD;
+
+      const estPaye = Boolean(cli.modePaiement && cli.modePaiement !== '-' && cli.modePaiement !== '');
+      if (estPaye) totalRegle++;
+
+      const matriculeBrut = (cli.matricule || cli.numero || '').toUpperCase();
+      let typeDetecte = (cli.type || cli.typeFacture || '').toLowerCase();
+
+      if (!typeDetecte || typeDetecte === 'locataire') {
+        if (matriculeBrut.startsWith('DIV')) typeDetecte = 'Divers';
+        else if (matriculeBrut.startsWith('EAU')) typeDetecte = 'Eau';
+        else if (matriculeBrut.startsWith('ELE') || matriculeBrut.startsWith('ELEC')) typeDetecte = 'Électricité';
+        else typeDetecte = 'Loyers';
+      } else {
+        if (typeDetecte.includes('eau')) typeDetecte = 'Eau';
+        else if (typeDetecte.includes('elect')) typeDetecte = 'Électricité';
+        else if (typeDetecte.includes('diver')) typeDetecte = 'Divers';
+        else typeDetecte = 'Loyers';
+      }
+
+      if (statsTypes[typeDetecte]) {
+        statsTypes[typeDetecte].count += 1;
+        statsTypes[typeDetecte].montantUSD += montantEnUSD;
+      } else {
+        statsTypes.Loyers.count += 1;
+        statsTypes.Loyers.montantUSD += montantEnUSD;
+      }
+    });
+
+    return {
+      totalDossiers,
+      montantTotalGlobalUSD,
+      totalRegle,
+      statsTypes
+    };
+  }, [clientsEnregistres, tauxChangeCDF]);
+
+  const donneesDonut = useMemo(() => {
+    const total = statistiques.totalDossiers;
+    if (total === 0) return [];
+
+    let angleCumule = 0;
+    const rayon = 40;
+    const circonference = 2 * Math.PI * rayon;
+
+    return Object.entries(statistiques.statsTypes).map(([nom, data]) => {
+      const pourcentage = (data.count / total);
+      const longueurTrait = pourcentage * circonference;
+      const decalage = -angleCumule;
+      angleCumule += longueurTrait;
+
+      return {
+        nom,
+        ...data,
+        pourcentageArrondi: Math.round(pourcentage * 100),
+        strokeDasharray: `${longueurTrait} ${circonference - longueurTrait}`,
+        strokeDashoffset: decalage
+      };
+    });
+  }, [statistiques]);
+
+  const volumeFinancierAffiche = devise === 'USD' 
+    ? statistiques.montantTotalGlobalUSD 
+    : statistiques.montantTotalGlobalUSD * tauxChangeCDF;
+
   return (
-    <>
-      <ConteneurEnTete>
-        <SelecteurMois>
-          📅 {moisSelectionne} <span>▼</span>
+    <ConteneurSection>
+      
+      {/* En-tête */}
+      <ConteneurEnTete
+        initial={{ opacity: 0, y: -20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.2 }}
+        transition={{ duration: 0.4 }}
+      >
+        <SelecteurMois
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          📅 Période : {moisSelectionne}
         </SelecteurMois>
       </ConteneurEnTete>
 
+      {/* Cartes de Synthèse Principales */}
       <GrilleMetriques>
-        <CarteMetrique $couleurBordure={THEME.accentuation}>
+        
+        {/* Total Enregistrements (Donut Chart animé) */}
+        <CarteMetrique 
+          $couleurBordure={THEME.accentuation}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          whileHover={{ scale: 1.02, y: -4 }}
+          whileTap={{ scale: 0.98 }}
+        >
           <EnTeteCarte>
-            <TitreCarte>Loyers Perçus</TitreCarte>
-            <IconeWrapper $bg="rgba(174, 234, 0, 0.15)" $couleur={THEME.accentuation}>💰</IconeWrapper>
+            <TitreCarte>Total Enregistrements</TitreCarte>
+            <IconeWrapper $bg="rgba(174, 234, 0, 0.15)" $couleur={THEME.accentuation}>📊</IconeWrapper>
           </EnTeteCarte>
-          <ValeurCarte>{sommePercue.toLocaleString()} USD</ValeurCarte>
-          <PiedCarte>
-            <BadgeTendance $positif={true}>+{facturesPayees.length}</BadgeTendance>
-            <SousTexteCarte>factures réglées</SousTexteCarte>
-          </PiedCarte>
+
+          <ConteneurGraphiqueCirculaire>
+            <WrapperSvg>
+              <motion.svg 
+                width="110" 
+                height="110" 
+                viewBox="0 0 100 100" 
+                style={{ transformOrigin: 'center' }}
+                animate={{ rotate: [0, 360] }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  repeatDelay: 2
+                }}
+              >
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="transparent"
+                  stroke="rgba(255, 255, 255, 0.05)"
+                  strokeWidth="14"
+                />
+                {donneesDonut.map((item, idx) => (
+                  <motion.circle
+                    key={item.nom}
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="transparent"
+                    stroke={item.couleur}
+                    strokeWidth="14"
+                    strokeDasharray={item.strokeDasharray}
+                    initial={{ strokeDashoffset: 251.32 }}
+                    whileInView={{ strokeDashoffset: item.strokeDashoffset }}
+                    viewport={{ once: false }}
+                    transition={{ duration: 0.8, delay: idx * 0.15, ease: "easeOut" }}
+                  />
+                ))}
+              </motion.svg>
+              <TexteCentreSvg>
+                <span className="total-chiffre">{statistiques.totalDossiers}</span>
+                <span className="total-label">Total</span>
+              </TexteCentreSvg>
+            </WrapperSvg>
+
+            <LegendeCirculaire>
+              {Object.entries(statistiques.statsTypes).map(([nom, data]) => {
+                const pourcentage = statistiques.totalDossiers > 0 
+                  ? Math.round((data.count / statistiques.totalDossiers) * 100) 
+                  : 0;
+
+                return (
+                  <ElementLegende key={nom}>
+                    <div className="gauche">
+                      <PastilleCouleur $couleur={data.couleur} />
+                      <span>{data.icon} {nom}</span>
+                    </div>
+                    <div className="droite">
+                      {data.count} ({pourcentage}%)
+                    </div>
+                  </ElementLegende>
+                );
+              })}
+            </LegendeCirculaire>
+          </ConteneurGraphiqueCirculaire>
+
+          <SousTexteCarte>Ventilation par type de prestation</SousTexteCarte>
         </CarteMetrique>
 
-        <CarteMetrique $couleurBordure={THEME.orange}>
+        {/* Volume Financier Global avec sélecteur de devise interactif */}
+        <CarteMetrique 
+          $couleurBordure={THEME.orange}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          whileHover={{ scale: 1.02, y: -4 }}
+          whileTap={{ scale: 0.98 }}
+        >
           <EnTeteCarte>
-            <TitreCarte>Quittances / Total</TitreCarte>
-            <IconeWrapper $bg="rgba(255, 152, 0, 0.15)" $couleur={THEME.orange}>📄</IconeWrapper>
+            <TitreCarte>Volume Financier Global</TitreCarte>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <SelecteurDevise 
+                onClick={basculerDevise}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="Cliquer pour changer de devise"
+              >
+                💱 {devise}
+              </SelecteurDevise>
+              <IconeWrapper $bg="rgba(255, 152, 0, 0.15)" $couleur={THEME.orange}>💰</IconeWrapper>
+            </div>
           </EnTeteCarte>
-          <ValeurCarte>{totalFactures}</ValeurCarte>
-          <PiedCarte>
-            <SousTexteCarte>Total enregistrées</SousTexteCarte>
-          </PiedCarte>
+          <ValeurCarte>
+            {volumeFinancierAffiche.toLocaleString(undefined, { maximumFractionDigits: 2 })} {devise}
+          </ValeurCarte>
+          <SousTexteCarte>
+            {devise === 'CDF' ? 'Converti en Franc Congolais' : 'Somme totale des montants'}
+          </SousTexteCarte>
         </CarteMetrique>
 
-        <CarteMetrique $couleurBordure={THEME.rouge}>
+        {/* Dossiers Soldés */}
+        <CarteMetrique 
+          $couleurBordure={THEME.vert}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          whileHover={{ scale: 1.02, y: -4 }}
+          whileTap={{ scale: 0.98 }}
+        >
           <EnTeteCarte>
-            <TitreCarte>Impayés / Retards</TitreCarte>
-            <IconeWrapper $bg="rgba(255, 82, 82, 0.15)" $couleur={THEME.rouge}>⚠️</IconeWrapper>
+            <TitreCarte>Dossiers Soldés</TitreCarte>
+            <IconeWrapper $bg="rgba(34, 197, 94, 0.15)" $couleur={THEME.vert}>✅</IconeWrapper>
           </EnTeteCarte>
-          <ValeurCarte style={{ color: THEME.rouge }}>{sommeRetards.toLocaleString()} USD</ValeurCarte>
-          <PiedCarte>
-            <BadgeTendance $positif={false}>{facturesRetard.length} locataires</BadgeTendance>
-            <SousTexteCarte>en retard</SousTexteCarte>
-          </PiedCarte>
+          <ValeurCarte>{statistiques.totalRegle} / {statistiques.totalDossiers}</ValeurCarte>
+          <SousTexteCarte>Paiements validés</SousTexteCarte>
         </CarteMetrique>
       </GrilleMetriques>
 
-      {/* ROUE DU DÉROULEMENT DES ACTIVITÉS */}
-      <BlocContent>
-        <TitreBloc>Déroulement des Activités</TitreBloc>
-        <ConteneurRoue>
-          <RoueGraphique $gradient={gradientRoue}>
-            <CentreRoue>
-              <ValeurCentre>{totalFactures > 0 ? '100%' : '0%'}</ValeurCentre>
-              <LibelleCentre>{totalFactures} Opérations</LibelleCentre>
-            </CentreRoue>
-          </RoueGraphique>
+      {/* Répartition par Catégorie (Disposition fixe de 2 cartes par ligne) */}
+      <SectionCategories
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <TitreSection>Répartition par Type de Prestation</TitreSection>
+        <GrilleCategories>
+          {Object.entries(statistiques.statsTypes).map(([nom, data], index) => {
+            const pourcentage = statistiques.totalDossiers > 0 
+              ? Math.round((data.count / statistiques.totalDossiers) * 100) 
+              : 0;
+            
+            const montantCategorieAffiche = devise === 'USD' 
+              ? data.montantUSD 
+              : data.montantUSD * tauxChangeCDF;
 
-          <LegendeGrille>
-            <ArticleLegende>
-              <PuceCouleur $couleur={THEME.vert} />
-              <div>
-                <NomLegende>Encaissements</NomLegende>
-                <ValeurLegende>{Math.round(pPayes)}% ({facturesPayees.length})</ValeurLegende>
-              </div>
-            </ArticleLegende>
+            return (
+              <CarteCategorie 
+                key={nom} 
+                $couleur={data.couleur}
+                initial={{ opacity: 0, y: 25 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false, amount: 0.2 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                whileHover={{ scale: 1.02, y: -3 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <LigneCategorieEnTete>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.2rem' }}>{data.icon}</span>
+                    <NomCategorie>{nom}</NomCategorie>
+                  </div>
+                  <BadgeNombre>{data.count} client{data.count > 1 ? 's' : ''}</BadgeNombre>
+                </LigneCategorieEnTete>
 
-            <ArticleLegende>
-              <PuceCouleur $couleur={THEME.orange} />
-              <div>
-                <NomLegende>En attente</NomLegende>
-                <ValeurLegende>{Math.round(pAttente)}% ({facturesAttente.length})</ValeurLegende>
-              </div>
-            </ArticleLegende>
+                <BarreProgressionConteneur>
+                  <BarreProgressionRemplissage 
+                    $couleur={data.couleur}
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${pourcentage}%` }}
+                    viewport={{ once: false }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                  />
+                </BarreProgressionConteneur>
 
-            <ArticleLegende>
-              <PuceCouleur $couleur={THEME.rouge} />
-              <div>
-                <NomLegende>Retards</NomLegende>
-                <ValeurLegende>{Math.round(pRetard)}% ({facturesRetard.length})</ValeurLegende>
-              </div>
-            </ArticleLegende>
+                <BlocVolumeCategorie>
+                  <div>
+                    <div className="label-volume">Volume :</div>
+                    <div className="montant-volume">
+                      {montantCategorieAffiche.toLocaleString(undefined, { maximumFractionDigits: 0 })} {devise}
+                    </div>
+                  </div>
+                  <div className="pourcentage-volume">
+                    {pourcentage}% du<br />total
+                  </div>
+                </BlocVolumeCategorie>
+              </CarteCategorie>
+            );
+          })}
+        </GrilleCategories>
+      </SectionCategories>
 
-            <ArticleLegende>
-              <PuceCouleur $couleur={THEME.bleu} />
-              <div>
-                <NomLegende>Total Global</NomLegende>
-                <ValeurLegende>100% ({totalFactures})</ValeurLegende>
-              </div>
-            </ArticleLegende>
-          </LegendeGrille>
-        </ConteneurRoue>
-      </BlocContent>
-
-      <GrillePrincipale>
-        <BlocContent style={{ marginBottom: 0 }}>
-          <TitreBloc>
-            Dernières Transactions
-            <span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire, fontWeight: 'normal' }}>
-              Affichage des derniers enregistrements
-            </span>
-          </TitreBloc>
-          <TableauCompact>
-            <thead>
-              <tr>
-                <th>Locataire</th>
-                <th>Local</th>
-                <th>Montant</th>
-                <th>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dernieresTransactions.length > 0 ? (
-                dernieresTransactions.map((t, i) => (
-                  <tr key={i}>
-                    <td>{t.locataire}</td>
-                    <td>{t.local}</td>
-                    <td>{t.montant}</td>
-                    <td><BadgeStatut $statut={t.statut}>{t.statut}</BadgeStatut></td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" style={{ textAlign: 'center', color: THEME.texteSecondaire, padding: '1rem' }}>
-                    Aucune transaction récente.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </TableauCompact>
-        </BlocContent>
-
-        <BlocContent style={{ marginBottom: 0 }}>
-          <TitreBloc>Actions Rapides</TitreBloc>
-          <ListeActions>
-            <BoutonActionRapide onClick={exporterPDF}>
-              <span>📥 Exporter (PDF)</span>
-              <span>➔</span>
-            </BoutonActionRapide>
-          </ListeActions>
-        </BlocContent>
-      </GrillePrincipale>
-    </>
+    </ConteneurSection>
   );
 }

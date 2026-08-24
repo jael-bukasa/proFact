@@ -144,7 +144,8 @@ export default function App() {
       case 'Tableau de bord':
         return (
           <TableauDeBord 
-            listeFactures={clientsEnregistres} 
+            clientsEnregistres={clientsEnregistres} 
+            onSelectClient={allerAFacturation}
             onNouvelleFacture={() => { setClientSelectionne(null); setOngletActif('Facturation'); }} 
           />
         );
@@ -178,7 +179,8 @@ export default function App() {
       default:
         return (
           <TableauDeBord 
-            listeFactures={clientsEnregistres} 
+            clientsEnregistres={clientsEnregistres} 
+            onSelectClient={allerAFacturation}
             onNouvelleFacture={() => { setClientSelectionne(null); setOngletActif('Facturation'); }} 
           />
         );
