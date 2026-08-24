@@ -338,12 +338,6 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
 
   return (
     <ConteneurPage>
-      <EnTete>
-        <SectionTitre>
-          <TitrePage>Gestion des Clients</TitrePage>
-          <SousTitrePage>Registre synchronisé avec la base de données MySQL</SousTitrePage>
-        </SectionTitre>
-      </EnTete>
 
       <BarreOnglets>
         <Onglet $actif={ongletActif === 'actifs'} onClick={() => setOngletActif('actifs')}>

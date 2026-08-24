@@ -143,11 +143,9 @@ const Libelle = styled.span`
 const obtenirIconeNav = (element) => {
   switch (element) {
     case 'Tableau de bord': return '📊';
-    case 'Clients': return '👥'; // 👈 Mis à jour
-    case 'Logements': return '🏠';
+    case 'Clients': return '👥';
     case 'Facturation': return '📄';
     case 'Paiements': return '💳';
-    case 'Rapports': return '📈';
     default: return '📁';
   }
 };
@@ -156,11 +154,11 @@ export default function BarreLaterale({ ongletActif, auChangementOnglet }) {
   const configurationMenu = [
     { 
       titre: 'GESTION LOCATIVE', 
-      elements: ['Tableau de bord', 'Clients', 'Logements'] // 👈 Mis à jour
+      elements: ['Tableau de bord', 'Clients'] 
     },
     { 
       titre: 'COMPTABILITÉ', 
-      elements: ['Facturation', 'Paiements', 'Rapports'] 
+      elements: ['Facturation', 'Paiements'] 
     }
   ];
 

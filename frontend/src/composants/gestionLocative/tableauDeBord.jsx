@@ -407,10 +407,6 @@ export default function TableauDeBord({ listeFactures = [] }) {
   return (
     <>
       <ConteneurEnTete>
-        <SectionTitre>
-          <TitrePage>Tableau de bord</TitrePage>
-          <SousTitrePage>Aperçu général des loyers perçus et des échéances</SousTitrePage>
-        </SectionTitre>
         <SelecteurMois>
           📅 {moisSelectionne} <span>▼</span>
         </SelecteurMois>
@@ -542,7 +538,7 @@ export default function TableauDeBord({ listeFactures = [] }) {
           <TitreBloc>Actions Rapides</TitreBloc>
           <ListeActions>
             <BoutonActionRapide onClick={exporterPDF}>
-              <span>📥 Exporter le rapport (PDF)</span>
+              <span>📥 Exporter (PDF)</span>
               <span>➔</span>
             </BoutonActionRapide>
           </ListeActions>

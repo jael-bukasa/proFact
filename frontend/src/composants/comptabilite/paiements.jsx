@@ -49,28 +49,6 @@ const SousTitrePage = styled.p`
   font-size: 0.8rem;
 `;
 
-const BoutonAction = styled.button`
-  background-color: ${props => props.$variante === 'secondaire' ? 'transparent' : THEME.accentuation};
-  color: ${props => props.$variante === 'secondaire' ? THEME.textePrincipal : '#000000'};
-  border: ${props => props.$variante === 'secondaire' ? `1px solid ${THEME.bordure}` : 'none'};
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-
-  &:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  @media (max-width: 768px) {
-    width: 100%;
-  }
-`;
-
 const GrilleStatistiques = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -101,32 +79,27 @@ const ValeurStat = styled.span`
   color: ${props => props.$couleur || THEME.textePrincipal};
 `;
 
-const CardFormulaire = styled(motion.div)`
+const PanneauFiltres = styled(motion.div)`
   background-color: ${THEME.fondCarte};
   border: 1px solid ${THEME.bordure};
   border-radius: 10px;
-  padding: 1rem;
+  padding: 0.8rem 1rem;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.8rem;
+  align-items: flex-end;
 `;
 
-const TitreFormulaire = styled.h2`
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: ${THEME.accentuation};
-`;
-
-const GrilleChamps = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.8rem;
-`;
-
-const GroupeChamp = styled.div`
+const GroupeFiltre = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  flex: 1;
+  min-width: 150px;
+
+  @media (max-width: 768px) {
+    min-width: 100%;
+  }
 `;
 
 const Etiquette = styled.label`
@@ -161,40 +134,6 @@ const Selecteur = styled.select`
 
   &:focus {
     border-color: ${THEME.accentuation};
-  }
-`;
-
-const ZoneActionsFormulaire = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.6rem;
-  margin-top: 0.5rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column-reverse;
-  }
-`;
-
-const PanneauFiltres = styled(motion.div)`
-  background-color: ${THEME.fondCarte};
-  border: 1px solid ${THEME.bordure};
-  border-radius: 10px;
-  padding: 0.8rem 1rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  align-items: flex-end;
-`;
-
-const GroupeFiltre = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  flex: 1;
-  min-width: 150px;
-
-  @media (max-width: 768px) {
-    min-width: 100%;
   }
 `;
 
@@ -309,17 +248,8 @@ const variantesAnimationScroll = {
 
 export default function Paiements({ listeFactures = [], onMettreAJourPaiement }) {
   const [elementsPaiements, setElementsPaiements] = useState(listeFactures);
-  const [afficherFormulaire, setAfficherFormulaire] = useState(false);
-  
   const [recherche, setRecherche] = useState('');
   const [filtreStatut, setFiltreStatut] = useState('tous');
-
-  const [formulaire, setFormulaire] = useState({
-    factureId: '',
-    montant: '',
-    mode: 'Virement',
-    datePaiement: new Date().toISOString().split('T')[0]
-  });
 
   // Synchronisation automatique si les props de facturation changent
   React.useEffect(() => {
@@ -362,13 +292,14 @@ export default function Paiements({ listeFactures = [], onMettreAJourPaiement })
   }, [elementsPaiements, recherche, filtreStatut]);
 
   const validerPaiementSysteme = (id) => {
+    const dateActuelle = new Date().toISOString().split('T')[0];
     const nouvelleListe = elementsPaiements.map(item => {
       if (item.id === id || String(item.id) === String(id)) {
         return {
           ...item,
           statut: 'paye',
-          datePaiement: formulaire.datePaiement || new Date().toISOString().split('T')[0],
-          mode: formulaire.mode || 'Espèces'
+          datePaiement: dateActuelle,
+          mode: 'Espèces'
         };
       }
       return item;
@@ -380,27 +311,8 @@ export default function Paiements({ listeFactures = [], onMettreAJourPaiement })
     }
   };
 
-  const soumettreFormulaire = (e) => {
-    e.preventDefault();
-    if (!formulaire.factureId) return;
-    validerPaiementSysteme(formulaire.factureId);
-    setAfficherFormulaire(false);
-    setFormulaire({ factureId: '', montant: '', mode: 'Virement', datePaiement: new Date().toISOString().split('T')[0] });
-  };
-
   return (
     <ConteneurPage>
-      <ConteneurEnTete>
-        <div>
-          <TitrePage>Paiements & Loyers</TitrePage>
-          <SousTitrePage>Suivi du statut financier synchronisé depuis la facturation</SousTitrePage>
-        </div>
-        {!afficherFormulaire && (
-          <BoutonAction onClick={() => setAfficherFormulaire(true)}>
-            + Enregistrer un paiement
-          </BoutonAction>
-        )}
-      </ConteneurEnTete>
 
       <GrilleStatistiques>
         <CarteStat
@@ -443,85 +355,6 @@ export default function Paiements({ listeFactures = [], onMettreAJourPaiement })
           <ValeurStat $couleur={THEME.avertissement}>{stats.enAttente}</ValeurStat>
         </CarteStat>
       </GrilleStatistiques>
-
-      {afficherFormulaire && (
-        <CardFormulaire
-          initial="cache"
-          whileInView="visible"
-          viewport={{ once: false, amount: 0.15 }}
-          variants={variantesAnimationScroll}
-        >
-          <TitreFormulaire>Enregistrer un règlement</TitreFormulaire>
-          <form onSubmit={soumettreFormulaire}>
-            <GrilleChamps>
-              <GroupeChamp>
-                <Etiquette>Facture / Client</Etiquette>
-                <Selecteur 
-                  value={formulaire.factureId} 
-                  onChange={(e) => {
-                    const fac = elementsPaiements.find(p => String(p.id) === String(e.target.value));
-                    setFormulaire({ 
-                      ...formulaire, 
-                      factureId: e.target.value,
-                      montant: fac ? fac.montant : ''
-                    });
-                  }}
-                  required
-                >
-                  <option value="">-- Sélectionner --</option>
-                  {elementsPaiements.filter(p => p.statut !== 'paye' && p.statut !== 'Payé').map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.client || p.locataire} ({p.numero || p.matricule} - {p.montant} $)
-                    </option>
-                  ))}
-                </Selecteur>
-              </GroupeChamp>
-
-              <GroupeChamp>
-                <Etiquette>Montant ($)</Etiquette>
-                <ChampSaisie 
-                  type="number" 
-                  value={formulaire.montant} 
-                  onChange={(e) => setFormulaire({ ...formulaire, montant: e.target.value })}
-                  required
-                />
-              </GroupeChamp>
-
-              <GroupeChamp>
-                <Etiquette>Mode</Etiquette>
-                <Selecteur 
-                  value={formulaire.mode} 
-                  onChange={(e) => setFormulaire({ ...formulaire, mode: e.target.value })}
-                >
-                  <option value="Virement">Virement bancaire</option>
-                  <option value="Espèces">Espèces</option>
-                  <option value="Mobile Money">Mobile Money</option>
-                  <option value="Chèque">Chèque</option>
-                </Selecteur>
-              </GroupeChamp>
-
-              <GroupeChamp>
-                <Etiquette>Date</Etiquette>
-                <ChampSaisie 
-                  type="date" 
-                  value={formulaire.datePaiement} 
-                  onChange={(e) => setFormulaire({ ...formulaire, datePaiement: e.target.value })}
-                  required
-                />
-              </GroupeChamp>
-            </GrilleChamps>
-
-            <ZoneActionsFormulaire>
-              <BoutonAction type="button" $variante="secondaire" onClick={() => setAfficherFormulaire(false)}>
-                Annuler
-              </BoutonAction>
-              <BoutonAction type="submit">
-                Confirmer
-              </BoutonAction>
-            </ZoneActionsFormulaire>
-          </form>
-        </CardFormulaire>
-      )}
 
       <PanneauFiltres
         initial="cache"

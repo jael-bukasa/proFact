@@ -6,7 +6,6 @@ import axios from 'axios';
 import BarreLaterale from './composants/barreLaterale';
 import TableauDeBord from './composants/gestionLocative/tableauDeBord';
 import Clients from './composants/gestionLocative/clients';
-import Logements from './composants/gestionLocative/logements';
 import Facturation from './composants/comptabilite/facturation';
 import Paiements from './composants/comptabilite/paiements';
 import Rapports from './composants/comptabilite/rapports';
@@ -157,8 +156,6 @@ export default function App() {
             setClientsEnregistres={setClientsEnregistres}
           />
         );
-      case 'Logements':
-        return <Logements />;
       case 'Facturation':
         return (
           <Facturation 
@@ -206,7 +203,7 @@ export default function App() {
         </ConteneurContenuPrincipal>
         <BadgeStatutApi>
           <VoyantSignal $connecte={backendConnecte} />
-          <span>{backendConnecte ? 'Connectée' : 'Hors ligne'}</span>
+          <span>{backendConnecte ? 'Connecté' : 'Hors ligne'}</span>
         </BadgeStatutApi>
       </ConteneurApp>
     </>
