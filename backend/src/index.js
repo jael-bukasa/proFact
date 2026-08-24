@@ -2,6 +2,9 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 
+// Importation du service de gestion des banques
+const banqueService = require('./services/banqueService');
+
 const app = express();
 const PORT = 5000;
 
@@ -43,6 +46,7 @@ db.connect((err) => {
   }
   console.log('Connecté avec succès à la base de données MySQL : proFactDB');
 
+  // Table clients
   const sqlClients = `
     CREATE TABLE IF NOT EXISTS clients (
       id INT PRIMARY KEY,
@@ -84,6 +88,41 @@ db.connect((err) => {
     if (errCli) console.error("Erreur lors de la création de la table clients :", errCli);
     else console.log("Table clients vérifiée/créée avec succès.");
   });
+
+  // Table banques
+  const sqlBanques = `
+    CREATE TABLE IF NOT EXISTS banques (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      nomBanque VARCHAR(100) NOT NULL,
+      numeroCompte VARCHAR(100) NOT NULL,
+      devise VARCHAR(10) NOT NULL
+    );
+  `;
+
+  db.query(sqlBanques, (errBq) => {
+    if (errBq) {
+      console.error("Erreur lors de la création de la table banques :", errBq);
+    } else {
+      console.log("Table banques vérifiée/créée avec succès.");
+      // Insertion des comptes initiaux si la table est vide
+      db.query('SELECT COUNT(*) as count FROM banques', (errCount, resCount) => {
+        if (!errCount && resCount[0].count === 0) {
+          const banquesInitiales = [
+            ['BCDC', 'N° 00011-00130-00000856147-03', 'CDF'],
+            ['BCDC', 'N° 00011-00130-00000856151-88', 'USD'],
+            ['RAWBANK', 'N° 00016-05130-01002107502-77', 'CDF'],
+            ['RAWBANK', 'N° 00016-05130-01002107501-80', 'USD'],
+            ['TMB', 'N° 00017-25000-00015000000-87', 'CDF'],
+            ['TMB', 'N° 00017-25000-00187750001-35', 'USD']
+          ];
+          db.query('INSERT INTO banques (nomBanque, numeroCompte, devise) VALUES ?', [banquesInitiales], (errIns) => {
+            if (errIns) console.error("Erreur insertion banques par défaut :", errIns);
+            else console.log("Banques initiales insérées avec succès.");
+          });
+        }
+      });
+    }
+  });
 });
 
 // ==========================================
@@ -115,7 +154,6 @@ const formaterClient = (cli) => {
   let matricule = cli.matricule;
   if (!matricule || matricule === 'TEMP' || matricule.startsWith('LOC-') || matricule.startsWith('LOY-') || matricule.startsWith('LY-') || matricule.startsWith('ELE-') || matricule.startsWith('ELEC-') || matricule.startsWith('EAU-') || matricule.startsWith('DIV-')) {
     
-    // Normalisation pour ignorer les accents et la casse
     const typeFiltre = ((cli.typeFacture || '') + ' ' + (cli.typeClient || ''))
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -145,7 +183,7 @@ const formaterClient = (cli) => {
 };
 
 // ==========================================
-// ROUTES API
+// ROUTES API - CLIENTS
 // ==========================================
 
 app.get('/', (req, res) => {
@@ -168,7 +206,7 @@ app.get('/api/clients/corbeille', (req, res) => {
   });
 });
 
-// 2. Récupérer les clients ENREGISTRÉS (enregistre = 1)
+// 2. Récupérer les clients ENREGISTRÉS
 app.get('/api/clients/enregistres', (req, res) => {
   const query = 'SELECT * FROM clients WHERE supprime = 0 AND enregistre = 1 ORDER BY id DESC';
   db.query(query, (err, results) => {
@@ -195,32 +233,13 @@ app.get('/api/clients', (req, res) => {
 // 4. AJOUTER UN CLIENT
 app.post('/api/clients', (req, res) => {
   const { 
-    nom = '', 
-    postNom = '', 
-    prenom = '', 
-    bail = '',
-    dateBail = null,
-    logement = '',
-    adresse = '',
-    pays = 'RDC',
-    designation = '',
-    typeClient = 'locataire',
-    typeFacture = 'Loyers',
-    devise = 'USD',
-    montant = 0,
-    modePaiement = 'Virement',
-    moisFacture = '',
-    debutContrat = null,
-    finContrat = null,
-    dateComptable = null,
-    compteur = '',
-    imputation = '',
-    dernierNumero = '',
-    dernierMontant = 0,
-    derniereDate = null,
-    telephone = '',
-    email = '',
-    enregistre = false 
+    nom = '', postNom = '', prenom = '', bail = '', dateBail = null,
+    logement = '', adresse = '', pays = 'RDC', designation = '',
+    typeClient = 'locataire', typeFacture = 'Loyers', devise = 'USD',
+    montant = 0, modePaiement = 'Virement', moisFacture = '',
+    debutContrat = null, finContrat = null, dateComptable = null,
+    compteur = '', imputation = '', dernierNumero = '', dernierMontant = 0,
+    derniereDate = null, telephone = '', email = '', enregistre = false 
   } = req.body;
 
   const nomClient = nom.trim() !== '' ? nom : (designation || 'Client');
@@ -240,7 +259,6 @@ app.post('/api/clients', (req, res) => {
       idDisponible++;
     }
 
-    // Normalisation pour détecter l'électricité malgré l'accent (Électricité -> electricite)
     const typeFiltre = ((typeFacture || '') + ' ' + (typeClient || ''))
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -273,38 +291,12 @@ app.post('/api/clients', (req, res) => {
     const valeurEnregistre = enregistre ? 1 : 0;
 
     const valeurs = [
-      idDisponible, 
-      matricule, 
-      nomClient, 
-      postNom, 
-      prenomClient, 
-      bail, 
-      dateBail || null, 
-      logement, 
-      adresse, 
-      pays, 
-      designation, 
-      typeClient, 
-      typeFacture, 
-      devise, 
-      Number(montant) || 0, 
-      modePaiement, 
-      moisFacture, 
-      debutContrat || null, 
-      finContrat || null, 
-      dateComptable || null, 
-      compteur, 
-      imputation, 
-      dernierNumero, 
-      Number(dernierMontant) || 0, 
-      derniereDate || null, 
-      telephone, 
-      email, 
-      dateEntree, 
-      'Actif', 
-      0, 
-      valeurEnregistre, 
-      creeLe  
+      idDisponible, matricule, nomClient, postNom, prenomClient, bail, dateBail || null,
+      logement, adresse, pays, designation, typeClient, typeFacture, devise,
+      Number(montant) || 0, modePaiement, moisFacture, debutContrat || null,
+      finContrat || null, dateComptable || null, compteur, imputation,
+      dernierNumero, Number(dernierMontant) || 0, derniereDate || null,
+      telephone, email, dateEntree, 'Actif', 0, valeurEnregistre, creeLe  
     ];
 
     db.query(queryInsert, valeurs, (insertErr) => {
@@ -314,38 +306,12 @@ app.post('/api/clients', (req, res) => {
       }
 
       const clientCree = formaterClient({
-        id: idDisponible,
-        matricule,
-        nom: nomClient,
-        postNom,
-        prenom: prenomClient,
-        bail,
-        dateBail,
-        logement,
-        adresse,
-        pays,
-        designation,
-        typeClient,
-        typeFacture,
-        devise,
-        montant,
-        modePaiement,
-        moisFacture,
-        debutContrat,
-        finContrat,
-        dateComptable,
-        compteur,
-        imputation,
-        dernierNumero,
-        dernierMontant,
-        derniereDate,
-        telephone,
-        email,
-        dateEntree,
-        statut: 'Actif',
-        supprime: 0,
-        enregistre: valeurEnregistre,
-        creeLe
+        id: idDisponible, matricule, nom: nomClient, postNom, prenom: prenomClient,
+        bail, dateBail, logement, adresse, pays, designation, typeClient,
+        typeFacture, devise, montant, modePaiement, moisFacture, debutContrat,
+        finContrat, dateComptable, compteur, imputation, dernierNumero,
+        dernierMontant, derniereDate, telephone, email, dateEntree,
+        statut: 'Actif', supprime: 0, enregistre: valeurEnregistre, creeLe
       });
 
       res.status(201).json(clientCree);
@@ -353,16 +319,13 @@ app.post('/api/clients', (req, res) => {
   });
 });
 
-// 5. VALIDER / ENREGISTRER UN CLIENT (passe enregistre à 1)
+// 5. VALIDER / ENREGISTRER UN CLIENT
 app.patch('/api/clients/:id/valider', (req, res) => {
   const { id } = req.params;
   const query = 'UPDATE clients SET enregistre = 1 WHERE id = ?';
 
   db.query(query, [id], (err) => {
-    if (err) {
-      console.error("Erreur SQL lors de la validation du client :", err);
-      return res.status(500).json({ erreur: "Erreur lors de l'enregistrement du client" });
-    }
+    if (err) return res.status(500).json({ erreur: "Erreur lors de l'enregistrement du client" });
     res.json({ message: "Client enregistré avec succès" });
   });
 });
@@ -391,37 +354,24 @@ app.put('/api/clients/:id', (req, res) => {
   ];
 
   db.query(query, valeurs, (err) => {
-    if (err) {
-      console.error("Erreur SQL lors de la modification :", err);
-      return res.status(500).json({ erreur: "Erreur lors de la modification" });
-    }
+    if (err) return res.status(500).json({ erreur: "Erreur lors de la modification" });
     res.json({ message: "Client modifié avec succès" });
   });
 });
 
-// 7. RESTAURER un client (PATCH)
+// 7. RESTAURER un client
 app.patch('/api/clients/:id/restaurer', (req, res) => {
   const { id } = req.params;
-  const restoreQuery = 'UPDATE clients SET supprime = 0 WHERE id = ?';
-
-  db.query(restoreQuery, [id], (errRestore) => {
-    if (errRestore) {
-      console.error("Erreur lors de la restauration :", errRestore);
-      return res.status(500).json({ erreur: "Erreur lors de la restauration" });
-    }
+  db.query('UPDATE clients SET supprime = 0 WHERE id = ?', [id], (err) => {
+    if (err) return res.status(500).json({ erreur: "Erreur lors de la restauration" });
     res.json({ message: "Client restauré avec succès" });
   });
 });
 
 // 8. VIDER LA CORBEILLE
 app.delete('/api/clients/corbeille/vider', (req, res) => {
-  const query = 'DELETE FROM clients WHERE supprime = 1';
-
-  db.query(query, (err) => {
-    if (err) {
-      console.error("Erreur SQL lors du vidage de la corbeille :", err);
-      return res.status(500).json({ erreur: "Erreur lors du vidage de la corbeille" });
-    }
+  db.query('DELETE FROM clients WHERE supprime = 1', (err) => {
+    if (err) return res.status(500).json({ erreur: "Erreur lors du vidage de la corbeille" });
     res.json({ message: "Corbeille vidée avec succès" });
   });
 });
@@ -429,28 +379,64 @@ app.delete('/api/clients/corbeille/vider', (req, res) => {
 // 9. SUPPRESSION DÉFINITIVE D'UN CLIENT
 app.delete('/api/clients/:id/definitif', (req, res) => {
   const { id } = req.params;
-  const query = 'DELETE FROM clients WHERE id = ?';
-
-  db.query(query, [id], (err) => {
-    if (err) {
-      console.error("Erreur SQL lors de la suppression définitive :", err);
-      return res.status(500).json({ erreur: "Erreur lors de la suppression définitive" });
-    }
-    res.json({ message: "Client supprimé définitivement de la base de données" });
+  db.query('DELETE FROM clients WHERE id = ?', [id], (err) => {
+    if (err) return res.status(500).json({ erreur: "Erreur lors de la suppression définitive" });
+    res.json({ message: "Client supprimé définitivement" });
   });
 });
 
-// 10. ENVOYER EN CORBEILLE (Soft Delete)
+// 10. ENVOYER EN CORBEILLE
 app.delete('/api/clients/:id', (req, res) => {
   const { id } = req.params;
-  const query = 'UPDATE clients SET supprime = 1 WHERE id = ?';
-
-  db.query(query, [id], (err) => {
-    if (err) {
-      console.error("Erreur SQL lors du déplacement en corbeille :", err);
-      return res.status(500).json({ erreur: "Erreur lors de la mise en corbeille" });
-    }
+  db.query('UPDATE clients SET supprime = 1 WHERE id = ?', [id], (err) => {
+    if (err) return res.status(500).json({ erreur: "Erreur lors de la mise en corbeille" });
     res.json({ message: "Client placé dans la corbeille" });
+  });
+});
+
+
+// ==========================================
+// ROUTES API - BANQUES (Via banqueService)
+// ==========================================
+
+// Récupérer toutes les banques
+app.get('/api/banques', (req, res) => {
+  banqueService.obtenirToutes((err, results) => {
+    if (err) {
+      console.error("Erreur récupération banques :", err);
+      return res.status(500).json({ erreur: "Erreur lors de la récupération des banques" });
+    }
+    res.json(results);
+  });
+});
+
+// Ajouter une banque
+app.post('/api/banques', (req, res) => {
+  const { nomBanque, numeroCompte, devise } = req.body;
+
+  if (!nomBanque || !numeroCompte || !devise) {
+    return res.status(400).json({ erreur: "Tous les champs sont obligatoires" });
+  }
+
+  banqueService.ajouter(nomBanque, numeroCompte, devise, (err, result) => {
+    if (err) {
+      console.error("Erreur ajout banque :", err);
+      return res.status(500).json({ erreur: "Erreur lors de l'ajout de la banque" });
+    }
+    res.status(201).json({ id: result.insertId, nomBanque, numeroCompte, devise });
+  });
+});
+
+// Supprimer une banque
+app.delete('/api/banques/:id', (req, res) => {
+  const { id } = req.params;
+
+  banqueService.supprimer(id, (err) => {
+    if (err) {
+      console.error("Erreur suppression banque :", err);
+      return res.status(500).json({ erreur: "Erreur lors de la suppression de la banque" });
+    }
+    res.json({ message: "Banque supprimée avec succès" });
   });
 });
 

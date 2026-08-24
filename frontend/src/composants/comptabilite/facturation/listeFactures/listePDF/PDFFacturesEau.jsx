@@ -2,7 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect } f
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
+const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
   const elementRef = useRef(null);
   const [donneesFacture, setDonneesFacture] = useState(null);
 
@@ -19,29 +19,22 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
 
   useEffect(() => {
     fetch('http://localhost:5000/api/banques')
-      .then(res => {
-        if (!res.ok) throw new Error("Erreur réseau");
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setBanques(data);
         }
       })
-      .catch(() => {
-        // Utilisation silencieuse des banques par défaut si le serveur ne répond pas
-        setBanques(banquesParDefaut);
-      });
+      .catch(err => console.error("Erreur chargement banques :", err));
   }, []);
 
   useImperativeHandle(ref, () => ({
-    genererPDF: async (cli, options = { autoDownload: true }) => {
+    genererPDF: async (cli) => {
       setDonneesFacture(cli);
-      // Délai augmenté pour garantir que le DOM virtuel a fini de peindre les données du client
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       const element = elementRef.current;
-      if (!element) return null;
+      if (!element) return;
 
       try {
         element.style.display = 'block';
@@ -61,35 +54,55 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
-        
-        const nomFichier = `Facture_Locataire_${cli.matricule || cli.numero || cli.id || 'Client'}.pdf`;
-
-        // Si l'option autoDownload est désactivée (utile pour les téléchargements multiples en chaîne), 
-        // on retourne le blob/output au lieu de forcer pdf.save() directement pour éviter le blocage du navigateur.
-        if (options.autoDownload === false) {
-          return pdf.output('blob');
-        }
-
-        pdf.save(nomFichier);
-        return true;
+        pdf.save(`Facture_Eau_${cli.matricule || cli.numero || cli.id || 'Client'}.pdf`);
       } catch (error) {
-        console.error("Erreur génération PDF locataire :", error);
+        console.error("Erreur génération PDF eau :", error);
         element.style.display = 'none';
-        return null;
       }
+    },
+
+    telechargerTout: async (listeFactures) => {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+
+      for (let i = 0; i < listeFactures.length; i++) {
+        setDonneesFacture(listeFactures[i]);
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        const element = elementRef.current;
+        if (!element) continue;
+
+        element.style.display = 'block';
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+        element.style.display = 'none';
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+      }
+
+      pdf.save('Toutes_les_Factures_Eau.pdf');
     }
   }));
 
   const cli = donneesFacture || {};
-  const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/LOY/2026`;
-  const codeClientVal = cli.matricule || cli.numero || `LOY-0000000009`;
+  const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/EAU/2026`;
+  const codeClientVal = cli.matricule || cli.numero || `EAU-0000000009`;
   const dateAffichage = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const nomClient = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
   const adresseClient = `${cli.adresse || 'B.P 98'} - ${cli.pays || 'Congo'}`;
   const moisAffichage = cli.moisFacture ? `POUR LE MOIS DE ${cli.moisFacture.toUpperCase()}` : 'POUR LE MOIS DE JUILLET 2026';
-  const objetAffichage = cli.designation || `LOCATION IMMEUBLE SNCC A ILEBO`;
+  const objetAffichage = cli.designation || `CONSOMMATION EAU ET ENTRETIEN COMPTEUR`;
   const bailAffichage = cli.bail || cli.numeroBail || 'N/A';
-  
+  const compteurInfo = cli.compteur ? `COMPTEUR N° : ${cli.compteur} (Index: ${cli.dernierNumero || cli.indexActuel || 0})` : 'COMPTEUR EAU STANDARD';
+
   const montantVal = cli.montant !== undefined ? cli.montant : 0;
   const deviseVal = cli.devise || 'USD';
   const montantFormate = Number(montantVal).toLocaleString('fr-FR', { minimumFractionDigits: 2 });
@@ -119,7 +132,7 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
     >
       {/* Titre de l'en-tête */}
       <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px', letterSpacing: '1px', color: '#1f2937' }}>
-        FACTURE LOCATAIRE
+        FACTURE CONSOMMATION EAU
       </div>
 
       {/* Tableau principal */}
@@ -170,7 +183,7 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '10px', textAlign: 'center', verticalAlign: 'top', height: '45px' }}>1</td>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '10px', textAlign: 'center', verticalAlign: 'top' }}>
               <span style={{ fontWeight: '600', fontSize: '10.5px' }}>{objetAffichage}</span><br/>
-              <span style={{ fontSize: '9px', color: '#4b5563' }}>NUMERO DE BAIL : {bailAffichage}</span>
+              <span style={{ fontSize: '9px', color: '#4b5563' }}>NUMERO DE BAIL : {bailAffichage} | {compteurInfo}</span>
             </td>
             <td style={{ borderBottom: bordureInterne, padding: '10px', textAlign: 'right', verticalAlign: 'top', fontWeight: '600' }}>
               {montantFormate}
@@ -200,7 +213,7 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
             <td colSpan="3" style={{ padding: '12px 10px', borderBottom: bordureInterne, fontSize: '8.5px', color: '#374151', lineHeight: '1.4' }}>
               <div style={{ background: '#f3f4f6', padding: '10px 12px', borderRadius: '4px', marginBottom: '10px', border: '1px solid #d1d5db' }}>
                 <div style={{ marginBottom: '6px' }}>
-                  <strong>Conditions de paiement :</strong> Nos factures sont payables anticipativement suivant les clauses du contrat de bail. Tout retard entraînera l'application des pénalités prévues et le paiement d'intérêts sur le cours bancaire du jour, soit en Dollars US.
+                  <strong>Conditions de paiement :</strong> Nos factures sont payables suivant les clauses du contrat. Tout retard entraînera l'application des pénalités prévues et le paiement d'intérêts sur le cours bancaire du jour, soit en Dollars US.
                 </div>
                 <div>
                   <strong>Modalité de paiement :</strong> Le montant est à verser exclusivement dans l'un de nos comptes bancaires officiels ci-dessous ou directement au bureau des recettes agréé muni de la pièce contre bordereau.
@@ -266,4 +279,4 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
   );
 });
 
-export default PDFFacturesLocataire;
+export default PDFFacturesEau;

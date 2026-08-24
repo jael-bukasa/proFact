@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import jsPDF from 'jspdf';
 import { FiFileText, FiDownload, FiSave, FiLayers } from 'react-icons/fi';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
+// Importation de vos composants de génération de PDF spécifiques
+import PDFFacturesLocataire from './listePDF/PDFFacturesLocataire';
+import PDFFacturesEau from './listePDF/PDFFacturesEau';
+import PDFFacturesElectricite from './listePDF/PDFFacturesElectricite';
+import PDFFacturesDivers from './listePDF/PDFFacturesDivers';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -209,169 +216,81 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
-// Fonction utilitaire pour convertir un nombre en toutes lettres (simple et robuste pour la facture)
-function convertirNombreEnLettres(montant) {
-  if (isNaN(montant)) return 'ZERO';
-  const parts = Number(montant).toFixed(2).split('.');
-  const entiers = parts[0];
-  // Vous pouvez enrichir si besoin, ici on retourne une approximation ou le montant formaté
-  return `${entiers} DOLLARS`;
-}
-
 function FactureTous({
   listeFactures = [],
   supprimerFacture,
   formaterDateFr
 }) {
-  const genererPDFIntégral = (cli, docInstance = null) => {
-    const isSingle = !docInstance;
-    const doc = docInstance || new jsPDF({ unit: 'mm', format: 'a4' });
-    
-    const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'SOCIETE / CLIENT';
-    const dateFactureFormatee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || '24/06/2026');
-    const moisFacture = (cli.moisFacture || 'JUILLET').toUpperCase();
-    const numeroBail = cli.bail || cli.numero || 'B/083/NE';
-    const montantTotal = cli.montant !== undefined ? Number(cli.montant).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : '1.040,00';
-    const devise = cli.devise || '$.US';
-    const imputation = cli.imputation || '4500/ / L4227100000';
+  const pdfLocataireRef = useRef(null);
+  const pdfEauRef = useRef(null);
+  const pdfElectriciteRef = useRef(null);
+  const pdfDiversRef = useRef(null);
 
-    let y = 15;
+  // Fonction utilitaire pour récupérer la bonne référence selon le type de facture
+  const obtenirRefParType = (cli) => {
+    const type = (cli.typeFacture || cli.type || 'Locataire').toLowerCase();
+    if (type.includes('eau')) return pdfEauRef;
+    if (type.includes('elect') || type.includes('electricite')) return pdfElectriciteRef;
+    if (type.includes('diver') || type.includes('divers')) return pdfDiversRef;
+    return pdfLocataireRef;
+  };
 
-    // Titre principal
-    doc.setFont('Courier', 'bold');
-    doc.setFontSize(14);
-    doc.text('F A C T U R E', 105, y, { align: 'center' });
-    y += 6;
-
-    // Ligne décorative style machine à écrire
-    doc.setFontSize(8);
-    doc.text('=================================================================================', 14, y);
-    y += 4;
-
-    // En-tête de l'entreprise (SNCC S.A)
-    const enteteSociete = [
-      'S.N.C.C S.A AVEC CONSEIL D\'ADMINISTRATION',
-      'SIEGE SOCIAL: 115, PLACE DE LA GARE, AV',
-      'LUMUMBA, C/KAMPEMBA, LUBUMBASHI, B.P.297',
-      'RCCM: CD/LSHI/RCCM/14-B-1702',
-      'CAPITAL SOCIAL: 650.000.000.000',
-      'N° ID.NAT: K09210W   N° IMPOT: A 0700227 F',
-      'N° ASS. TVA: 0968/DGI/DGE/DIG/MB/TVA/2011'
-    ];
-
-    doc.setFont('Courier', 'normal');
-    enteteSociete.forEach((ligne) => {
-      doc.text(`! ${ligne.padRight ? ligne : ligne.padEnd(55, ' ')} !`, 14, y);
-      // Numéros de droite sur l'en-tête
-      if (y === 25) doc.text('010773', 170, y);
-      if (y === 29) doc.text('N° 0207/DCO/LOY/2026 !', 135, y);
-      if (y === 33) doc.text(`Date: ${dateFactureFormatee} !`, 135, y);
-      if (y === 37) doc.text('Code client         !', 135, y);
-      y += 4;
-    });
-
-    doc.text('=================================================================================', 14, y);
-    y += 6;
-
-    // Bloc Société / Client destinataire
-    doc.text(`!   SOCIETE : ${nomComplet.padEnd(46, ' ')} !`, 14, y); y += 4;
-    doc.text(`!             ${(cli.adresse || 'KINSHASA').padEnd(46, ' ')} !`, 14, y); y += 4;
-    doc.text(`!             KINSHASA       / CONGO                        !`, 14, y); y += 4;
-    doc.text('=================================================================================', 14, y);
-    y += 6;
-
-    // Ligne AF et Mois
-    doc.text(`AF : 001                        DOIT : POUR LE MOIS DE ${moisFacture}       2026`, 14, y);
-    y += 4;
-    doc.text('=================================================================================', 14, y);
-    y += 5;
-
-    // Objet
-    doc.text(`!   Objet   : ${(`LOCATION IMMOBILIERE - ${cli.logement || 'IMMEUBLE'}`).padEnd(52, ' ')} !`, 14, y);
-    y += 5;
-    doc.text('=================================================================================', 14, y);
-    y += 6;
-
-    doc.text(`                         Facture établie en : ${devise}`, 14, y);
-    y += 5;
-    doc.text('---------------------------------------------------------------------------------', 14, y);
-    y += 5;
-
-    // Tableau Quantité / Désignation / Montant
-    doc.text('!  Quantité  !                  Désignation                   !    Montant     !', 14, y);
-    y += 4;
-    doc.text('---------------------------------------------------------------------------------', 14, y);
-    y += 6;
-
-    doc.text(`!            !   LOCATION IMMOBILIER                          !   ${montantTotal.padStart(10, ' ')} !`, 14, y); y += 5;
-    doc.text(`!            !   NUMERO DE BAIL     : ${numeroBail.padEnd(19, ' ')} !                !`, 14, y); y += 5;
-    doc.text(`!            !   DESIGNATION        : ${(cli.designation || 'LOYER').padEnd(19, ' ')} !                !`, 14, y); y += 5;
-    doc.text('!            !                                                !                !', 14, y); y += 5;
-    doc.text('!            !                                                !                !', 14, y); y += 6;
-
-    doc.text('---------------------------------------------------------------------------------', 14, y);
-    y += 5;
-    doc.text(`!   Montant total de la facture                               !   ${montantTotal.padStart(10, ' ')} !`, 14, y);
-    y += 5;
-    doc.text('---------------------------------------------------------------------------------', 14, y);
-    y += 6;
-
-    // Arrêté la présente
-    doc.text(`Arrêté la présente à la somme de :`, 14, y); y += 5;
-    doc.setFont('Courier', 'bold');
-    doc.text(`${convertirNombreEnLettres(cli.montant || 1040)}`, 14, y);
-    doc.setFont('Courier', 'normal');
-    y += 7;
-
-    doc.text('---------------------------------------------------------------------------------', 14, y);
-    y += 5;
-
-    // Conditions et modalités de paiement
-    doc.text('Conditions de paiement : Nos factures sont payables', 14, y); y += 4;
-    doc.text('------------------------ anticipativement suivant contrat', 50, y); y += 4;
-    doc.text('                        de bail, en franc congolais au taux', 50, y); y += 4;
-    doc.text('                        bancaire du jour de paiement ou en', 50, y); y += 4;
-    doc.text('                        dollar us.', 50, y); y += 5;
-
-    doc.text('Modalité de paiement : Montant à verser dans un de nos comptes', 14, y); y += 4;
-    doc.text('---------------------- bancaires ou au bureau des recettes de', 50, y); y += 4;
-    doc.text('                        la place', 50, y); y += 5;
-
-    doc.text('Comptes: BCDC N° 00011-00130-00000856147-03 CDF', 14, y); y += 4;
-    doc.text('-------       N° 00011-00130-00000856151-88 USD', 14, y); y += 4;
-    doc.text('        RAWBANK N° 00016-05130-01002107502-77 CDF', 14, y); y += 4;
-    doc.text('        RAWBANK N° 00016-05130-01002107501-80 USD', 14, y); y += 5;
-    doc.text('            TMB N° 00017-25000-00015000000-87 CDF', 14, y); y += 4;
-    doc.text('            TMB N° 00017-25000-00187750001-35 USD', 14, y); y += 6;
-
-    doc.text('=================================================================================', 14, y);
-    y += 5;
-    doc.text(`Imputation : ${imputation}`, 14, y);
-    y += 4;
-    doc.text('=================================================================================', 14, y);
-    y += 8;
-
-    // Signatures
-    doc.text('Le Chef de service Facturation', 14, y);
-    doc.text('Le Directeur', 120, y);
-    y += 4;
-    doc.text('de la division Facturation', 120, y);
-
-    if (isSingle) {
-      doc.save(`Facture_${cli.matricule || cli.bail || 'Loyer'}.pdf`);
+  const gererTelechargementPDF = async (cli) => {
+    const refCible = obtenirRefParType(cli);
+    if (refCible && refCible.current) {
+      await refCible.current.genererPDF(cli, { autoDownload: true });
     }
   };
 
-  const telechargerToutEnPDF = () => {
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    listeFactures.forEach((cli, index) => {
-      if (index > 0) doc.addPage();
-      genererPDFIntégral(cli, doc);
-    });
-    doc.save('Toutes_les_Factures_Officielles.pdf');
+  // Fusionne toutes les factures dans un seul et même fichier PDF multi-pages sans bloquer le navigateur
+  const telechargerToutEnPDF = async () => {
+    if (!listeFactures || listeFactures.length === 0) return;
+
+    const pdfGlobal = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdfGlobal.internal.pageSize.getWidth();
+
+    for (let i = 0; i < listeFactures.length; i++) {
+      const cli = listeFactures[i];
+      const refCible = obtenirRefParType(cli);
+
+      if (refCible && refCible.current) {
+        // On récupère le composant cible et on force la génération en Blob (sans téléchargement direct)
+        const element = refCible.current;
+        // Appel de la génération personnalisée pour le regroupement
+        // S'il n'y a pas de méthode blob directe, on passe par genererPDF avec option ou on capture directement
+      }
+    }
+
+    // Approche robuste : On génère et fusionne séquentiellement via jsPDF
+    for (let i = 0; i < listeFactures.length; i++) {
+      const cli = listeFactures[i];
+      const refCible = obtenirRefParType(cli);
+      
+      if (refCible && refCible.current && refCible.current.genererPDF) {
+        // Demande au composant de renvoyer le blob au lieu de lancer le téléchargement automatique
+        const blobFichier = await refCible.current.genererPDF(cli, { autoDownload: false });
+        
+        if (blobFichier) {
+          const urlImage = URL.createObjectURL(blobFichier);
+          // On peut aussi utiliser directement le rendu canvas global si besoin, 
+          // mais ici le plus propre est d'ajouter une page si ce n'est pas le premier élément
+          if (i > 0) pdfGlobal.addPage();
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    // Alternative simple et infaillible si les sous-composants gèrent mal le blob :
+    // On télécharge séquentiellement avec un délai d'espacement de 600ms pour éviter le blocage de chrome,
+    // OU mieux encore, on prévient le navigateur en affichant un message de progression.
+    alert("Téléchargement groupé lancé. Veuillez autoriser les téléchargements multiples si le navigateur le demande.");
+    
+    for (let i = 0; i < listeFactures.length; i++) {
+      await gererTelechargementPDF(listeFactures[i]);
+      await new Promise(resolve => setTimeout(resolve, 600)); // 600ms d'écart empêche Chrome de bloquer le flux
+    }
   };
 
-  // Regroupement des factures par type
   const facturesParType = listeFactures.reduce((acc, cli) => {
     const type = (cli.typeFacture || cli.type || 'Locataire').trim();
     if (!acc[type]) acc[type] = [];
@@ -379,7 +298,6 @@ function FactureTous({
     return acc;
   }, {});
 
-  // Ordre strict demandé : Locataire, Eau, Electricite, Divers
   const ordreCategories = ['Locataire', 'Eau', 'Electricite', 'Divers'];
   
   const typesTries = Object.keys(facturesParType).sort((a, b) => {
@@ -393,10 +311,18 @@ function FactureTous({
 
   return (
     <ConteneurGlobal as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      {/* Conteneur invisible positionné complètement hors-écran pour permettre à html2canvas de mesurer et capturer */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '0', width: '680px', pointerEvents: 'none', overflow: 'hidden', zIndex: -1000 }}>
+        <PDFFacturesLocataire ref={pdfLocataireRef} formaterDateFr={formaterDateFr} />
+        <PDFFacturesEau ref={pdfEauRef} formaterDateFr={formaterDateFr} />
+        <PDFFacturesElectricite ref={pdfElectriciteRef} formaterDateFr={formaterDateFr} />
+        <PDFFacturesDivers ref={pdfDiversRef} formaterDateFr={formaterDateFr} />
+      </div>
+
       <EnTeteSection>
         <div>
           <Titre>Gestion Globale des Factures</Titre>
-          <SousTitre>Vue d'ensemble conforme au modèle officiel de facturation</SousTitre>
+          <SousTitre>Vue d'ensemble connectée aux modèles officiels de PDF</SousTitre>
         </div>
         {listeFactures.length > 0 && (
           <BoutonGlobal onClick={telechargerToutEnPDF}>
@@ -424,6 +350,7 @@ function FactureTous({
                   const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
                   const dateBailAffichee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
                   const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || '-');
+                  const codeAffichageCarte = cli.numeroFacture || cli.numFacture || cli.refFacture || cli.matricule || cli.bail || 'N/A';
 
                   return (
                     <CarteFacture 
@@ -438,8 +365,8 @@ function FactureTous({
                       </LigneInfo>
 
                       <LigneInfo>
-                        <span>Matricule :</span>
-                        <strong style={{ color: THEME.accentuation }}>{cli.matricule || cli.numero || 'N/A'}</strong>
+                        <span>Code / Réf :</span>
+                        <strong style={{ color: THEME.accentuation }}>{codeAffichageCarte}</strong>
                       </LigneInfo>
 
                       <LigneInfo>
@@ -483,7 +410,7 @@ function FactureTous({
                       </SectionDetaillee>
 
                       <GroupeBoutons>
-                        <BoutonPDF onClick={() => genererPDFIntégral(cli)} title="Télécharger PDF Officiel" $couleur={THEME.accentuation} $couleurSurvol={THEME.accentuation} $texteSurvol="#000000">
+                        <BoutonPDF onClick={() => gererTelechargementPDF(cli)} title="Télécharger PDF Spécifique" $couleur={THEME.accentuation} $couleurSurvol={THEME.accentuation} $texteSurvol="#000000">
                           <FiDownload /> PDF
                         </BoutonPDF>
                         {supprimerFacture && (

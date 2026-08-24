@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { FiFileText, FiDownload, FiSave } from 'react-icons/fi';
+import PDFFacturesEau from './listePDF/PDFFacturesEau';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -141,7 +140,7 @@ const BoutonPDF = styled.button`
   flex: 1;
   background-color: #121212;
   border: 1px solid ${THEME.bordure};
-  color: ${props => props.$couleur || THEME.accentuation};
+  color: ${THEME.accentuation};
   padding: 0.4rem;
   border-radius: 6px;
   font-size: 0.73rem;
@@ -154,9 +153,8 @@ const BoutonPDF = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${props => props.$couleurSurvol || THEME.accentuation};
-    color: ${props => props.$texteSurvol || '#000000'};
-    border-color: ${props => props.$couleurSurvol || THEME.accentuation};
+    background-color: ${THEME.accentuation};
+    color: #000000;
   }
 `;
 
@@ -192,76 +190,32 @@ function FactureEau({
   supprimerFacture,
   formaterDateFr
 }) {
-  const genererPDFIntégral = (cli, docInstance = null) => {
-    const isSingle = !docInstance;
-    const doc = docInstance || new jsPDF();
-    
-    const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
-    const dateBailFormatee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
-    const dateComptableFormatee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || 'N/A');
+  const pdfRef = useRef(null);
 
-    doc.setFontSize(16);
-    doc.setTextColor(30, 30, 30);
-    doc.text('PROFACT - FACTURE D\'EAU & FICHE DÉTAILLÉE', 14, 18);
-
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Date d'impression : ${new Date().toLocaleDateString('fr-FR')}`, 14, 24);
-
-    autoTable(doc, {
-      startY: 30,
-      head: [['Champs / Informations', 'Détails Enregistrés']],
-      body: [
-        ['ID Unique', cli.id || 'N/A'],
-        ['Matricule / Numéro', cli.matricule || cli.numero || 'N/A'],
-        ['Nom Complet', nomComplet],
-        ['N° de Bail', cli.bail || cli.numero || 'N/A'],
-        ['Date du Bail / Facture', dateBailFormatee],
-        ['Logement', cli.logement || 'N/A'],
-        ['Adresse', cli.adresse || 'N/A'],
-        ['Pays', cli.pays || 'RDC'],
-        ['Type de Facture', cli.typeFacture || cli.type || 'Eau'],
-        ['Désignation', cli.designation || 'N/A'],
-        ['Montant', `${cli.montant !== undefined ? cli.montant : 0} ${cli.devise || 'USD'}`],
-        ['Mode de Paiement / Statut', cli.modePaiement || cli.statut || 'N/A'],
-        ['Référence de Paiement', cli.reference || 'Aucune'],
-        ['Mois Facturé', cli.moisFacture || 'N/A'],
-        ['Début du Contrat', cli.debutContrat || 'N/A'],
-        ['Fin du Contrat', cli.finContrat || 'N/A'],
-        ['Date Comptable / Enregistrement', dateComptableFormatee],
-        ['Compteur', cli.compteur || 'Aucun'],
-        ['Imputation', cli.imputation || 'N/A'],
-        ['Dernier Numéro (Index)', cli.dernierNumero || 0],
-        ['Dernier Montant', cli.dernierMontant || 0],
-        ['Dernière Date', cli.derniereDate || 'N/A']
-      ],
-      headStyles: { fillColor: [30, 30, 30], fontSize: 9 },
-      bodyStyles: { textColor: [50, 50, 50], fontSize: 8.5 }
-    });
-
-    if (isSingle) {
-      doc.save(`FactureEau_${cli.matricule || cli.bail || 'Client'}.pdf`);
+  const handleToutTelecharger = () => {
+    if (pdfRef.current && typeof pdfRef.current.telechargerTout === 'function') {
+      pdfRef.current.telechargerTout(listeFactures, formaterDateFr);
     }
   };
 
-  const telechargerToutEnPDF = () => {
-    const doc = new jsPDF();
-    listeFactures.forEach((cli, index) => {
-      if (index > 0) doc.addPage();
-      genererPDFIntégral(cli, doc);
-    });
-    doc.save('Toutes_les_Factures_Eau.pdf');
+  const handleTelechargerUnitaire = (cli) => {
+    if (pdfRef.current && typeof pdfRef.current.genererPDF === 'function') {
+      pdfRef.current.genererPDF(cli, formaterDateFr);
+    }
   };
 
   return (
     <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      {/* Composant PDF invisible pour gérer la génération */}
+      <PDFFacturesEau ref={pdfRef} />
+
       <EnTeteSection>
         <div>
           <Titre>Gestion des Factures d'Eau</Titre>
           <SousTitre>Suivi détaillé des quittances et compteurs d'eau</SousTitre>
         </div>
         {listeFactures.length > 0 && (
-          <BoutonGlobal onClick={telechargerToutEnPDF}>
+          <BoutonGlobal onClick={handleToutTelecharger}>
             <FiSave /> Tout Télécharger (PDF)
           </BoutonGlobal>
         )}
@@ -337,7 +291,7 @@ function FactureEau({
                 </SectionDetaillee>
 
                 <GroupeBoutons>
-                  <BoutonPDF onClick={() => genererPDFIntégral(cli)} title="Télécharger PDF">
+                  <BoutonPDF onClick={() => handleTelechargerUnitaire(cli)} title="Télécharger PDF">
                     <FiDownload /> PDF
                   </BoutonPDF>
                   {supprimerFacture && (
