@@ -20,36 +20,38 @@ const vibrationEtClignotement = keyframes`
 
 const CarteFormulaire = styled.form`
   background-color: ${THEME.fondCarte};
-  padding: 1.8rem;
-  border-radius: 16px;
+  padding: 1.2rem;
+  border-radius: 12px;
   border: 1px solid ${THEME.bordure};
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  max-width: 950px;
+  margin: 0 auto;
 `;
 
 const GroupeSection = styled.fieldset`
   border: 1px solid ${THEME.bordure};
-  border-radius: 12px;
-  padding: 1.2rem;
+  border-radius: 10px;
+  padding: 0.9rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 `;
 
 const TitreSection = styled.legend`
   color: ${THEME.accentuation};
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  padding: 0 0.5rem;
+  padding: 0 0.4rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
 
 const GrilleChamps = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
   align-items: stretch;
 `;
 
@@ -58,15 +60,31 @@ const ChampConteneur = styled.div`
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  gap: 0.3rem;
+  gap: 0.2rem;
+  
+  ${props => props.$pleinLargeur && css`
+    grid-column: 1 / -1;
+  `}
+`;
+
+const EnteteEtiquette = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const Etiquette = styled.label`
   color: ${THEME.texteSecondaire};
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  line-height: 1.2;
+  line-height: 1.1;
+`;
+
+const CompteurCaracteres = styled.span`
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: ${props => props.$limiteAtteinte ? '#FF5252' : THEME.texteSecondaire};
 `;
 
 const ChampInterneWrapper = styled.div`
@@ -80,10 +98,10 @@ const EntreeTexte = styled.input`
   width: 100%;
   background-color: ${props => props.$readOnly ? '#181818' : THEME.fondChamp};
   border: 1px solid ${props => props.$hasError ? '#FF5252' : THEME.bordure};
-  border-radius: 8px;
-  padding: 0.65rem ${props => props.$hasError ? '6.5rem' : '0.8rem'} 0.65rem 0.8rem;
+  border-radius: 6px;
+  padding: 0.45rem ${props => props.$hasError ? '6.5rem' : '0.6rem'} 0.45rem 0.6rem;
   color: ${props => props.$readOnly ? '#AAAAAA' : THEME.textePrincipal};
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: ${props => props.$readOnly ? 'not-allowed' : 'text'};
   opacity: ${props => props.$readOnly ? '0.8' : '1'};
 
@@ -102,20 +120,50 @@ const EntreeTexte = styled.input`
   }
 `;
 
+const ZoneTexte = styled.textarea`
+  width: 100%;
+  background-color: ${THEME.fondChamp};
+  border: 1px solid ${props => props.$hasError ? '#FF5252' : THEME.bordure};
+  border-radius: 6px;
+  padding: 0.5rem;
+  color: ${THEME.textePrincipal};
+  font-size: 0.8rem;
+  font-family: inherit;
+  min-height: 56px;
+  max-height: 110px;
+  resize: vertical;
+  word-break: break-word;
+  overflow-wrap: break-word;
+
+  ${props => props.$hasError && css`
+    animation: ${vibrationEtClignotement} 0.5s ease-in-out;
+  `}
+
+  &::placeholder {
+    color: ${props => props.$hasError ? '#FF5252' : '#666666'};
+    opacity: 1;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${props => props.$hasError ? '#FF5252' : THEME.accentuation};
+  }
+`;
+
 const SelectEntree = styled.select`
   width: 100%;
   background-color: ${THEME.fondChamp};
   border: 1px solid ${props => props.$hasError ? '#FF5252' : THEME.bordure};
-  border-radius: 8px;
-  padding: 0.65rem ${props => props.$hasError ? '6.5rem' : '2.5rem'} 0.65rem 0.8rem;
+  border-radius: 6px;
+  padding: 0.45rem ${props => props.$hasError ? '6.5rem' : '2.2rem'} 0.45rem 0.6rem;
   color: ${THEME.textePrincipal};
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: right 0.8rem center;
-  background-size: 1rem;
+  background-position: right 0.6rem center;
+  background-size: 0.9rem;
 
   &:focus {
     outline: none;
@@ -130,9 +178,9 @@ const SelectEntree = styled.select`
 
 const MessageErreurInterne = styled.span`
   position: absolute;
-  right: ${props => props.$isSelect ? '2.2rem' : '0.8rem'};
+  right: ${props => props.$isSelect ? '2rem' : '0.6rem'};
   color: #FF5252;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
   pointer-events: none;
   white-space: nowrap;
@@ -140,26 +188,26 @@ const MessageErreurInterne = styled.span`
   text-overflow: ellipsis;
   max-width: 50%;
   background-color: rgba(18, 18, 18, 0.85);
-  padding: 0.1rem 0.3rem;
-  border-radius: 4px;
+  padding: 0.1rem 0.2rem;
+  border-radius: 3px;
 `;
 
 const BarreBoutons = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 `;
 
 const BoutonEnregistrer = styled.button`
   background-color: ${THEME.accentuation};
   color: #000000;
   border: none;
-  padding: 0.75rem 1.8rem;
-  border-radius: 10px;
+  padding: 0.55rem 1.4rem;
+  border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   &:hover { opacity: 0.9; }
 `;
 
@@ -167,11 +215,11 @@ const BoutonReinitialiser = styled.button`
   background-color: transparent;
   color: ${THEME.texteSecondaire};
   border: 1px solid ${THEME.bordure};
-  padding: 0.75rem 1.8rem;
-  border-radius: 10px;
+  padding: 0.55rem 1.4rem;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   &:hover { color: ${THEME.textePrincipal}; border-color: #555; }
 `;
 
@@ -183,8 +231,13 @@ export default function EnregistrementClients({
   onSubmit 
 }) {
   const refs = useRef({});
+  const MAX_CARACTERES_DESIGNATION = 500;
+  const longueurDesignation = (formulaire.designation ?? '').length;
+  const limiteAtteinte = longueurDesignation >= MAX_CARACTERES_DESIGNATION;
 
   const gererToucheEntree = (e) => {
+    if (e.target.tagName === 'TEXTAREA') return;
+
     if (e.key === 'Enter') {
       const listeChamps = Object.keys(refs.current).filter(k => k !== 'submitButton');
       const nomChampActuel = e.target.name;
@@ -232,6 +285,14 @@ export default function EnregistrementClients({
             </ChampInterneWrapper>
           </ChampConteneur>
 
+                    <ChampConteneur>
+            <Etiquette>Logement (LOC) *</Etiquette>
+            <ChampInterneWrapper>
+              <EntreeTexte ref={el => refs.current.logement = el} name="logement" value={formulaire.logement ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} placeholder="Ex: A12" $hasError={!!erreurs.logement} />
+              {erreurs.logement && <MessageErreurInterne>{typeof erreurs.logement === 'string' ? erreurs.logement : "Requis"}</MessageErreurInterne>}
+            </ChampInterneWrapper>
+          </ChampConteneur>
+
           <ChampConteneur>
             <Etiquette>Matricule *</Etiquette>
             <ChampInterneWrapper>
@@ -264,14 +325,6 @@ export default function EnregistrementClients({
           </ChampConteneur>
 
           <ChampConteneur>
-            <Etiquette>Logement (LOC) *</Etiquette>
-            <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.logement = el} name="logement" value={formulaire.logement ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} placeholder="Ex: A12" $hasError={!!erreurs.logement} />
-              {erreurs.logement && <MessageErreurInterne>{typeof erreurs.logement === 'string' ? erreurs.logement : "Requis"}</MessageErreurInterne>}
-            </ChampInterneWrapper>
-          </ChampConteneur>
-
-          <ChampConteneur>
             <Etiquette>Adresse</Etiquette>
             <ChampInterneWrapper>
               <EntreeTexte ref={el => refs.current.adresse = el} name="adresse" value={formulaire.adresse ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} />
@@ -290,11 +343,22 @@ export default function EnregistrementClients({
       <GroupeSection>
         <TitreSection>Détails Facture & Période</TitreSection>
         <GrilleChamps>
-          <ChampConteneur>
-            <Etiquette>Désignation</Etiquette>
-            <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.designation = el} name="designation" value={formulaire.designation ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} />
-            </ChampInterneWrapper>
+          <ChampConteneur $pleinLargeur={true}>
+            <EnteteEtiquette>
+              <Etiquette>Désignation</Etiquette>
+              <CompteurCaracteres $limiteAtteinte={limiteAtteinte}>
+                {limiteAtteinte ? "⚠️ Limite atteinte (500 max)" : `${longueurDesignation} / ${MAX_CARACTERES_DESIGNATION}`}
+              </CompteurCaracteres>
+            </EnteteEtiquette>
+            <ZoneTexte 
+              ref={el => refs.current.designation = el} 
+              name="designation" 
+              value={formulaire.designation ?? ''} 
+              onChange={handleChange} 
+              maxLength={MAX_CARACTERES_DESIGNATION}
+              placeholder="Détails de la désignation..."
+              $hasError={!!erreurs.designation} 
+            />
           </ChampConteneur>
 
           <ChampConteneur>
@@ -325,7 +389,7 @@ export default function EnregistrementClients({
             <Etiquette>Montant *</Etiquette>
             <ChampInterneWrapper>
               <EntreeTexte ref={el => refs.current.montant = el} type="number" name="montant" value={formulaire.montant ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} placeholder="0.00" $hasError={!!erreurs.montant} />
-              {erreurs.montant && <MessageErreurInterne>{typeof erreurs.montant === 'string' ? erreurs.montant : "Invalide"}</MessageErreurInterne>}
+              {erreurs.montant && <MessageErreurInterne>{typeof erreurs.montant === 'string' ? erreurs.montant : "Requis"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
 
@@ -346,7 +410,7 @@ export default function EnregistrementClients({
             <Etiquette>Mois Facturé</Etiquette>
             <ChampInterneWrapper>
               <SelectEntree ref={el => refs.current.moisFacture = el} name="moisFacture" value={formulaire.moisFacture ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.moisFacture}>
-                <option value="">-- Sélectionner un mois --</option>
+                <option value="">-- Choisir --</option>
                 <option value="Janvier">Janvier</option>
                 <option value="Février">Février</option>
                 <option value="Mars">Mars</option>
@@ -431,7 +495,7 @@ export default function EnregistrementClients({
           Réinitialiser
         </BoutonReinitialiser>
         <BoutonEnregistrer type="submit" name="submitButton" ref={el => refs.current.submitButton = el}>
-          {formulaire.id ? "Modifier les informations" : "Enregistrer les informations"}
+          {formulaire.id ? "Modifier" : "Enregistrer"}
         </BoutonEnregistrer>
       </BarreBoutons>
     </CarteFormulaire>

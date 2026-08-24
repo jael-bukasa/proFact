@@ -269,18 +269,18 @@ const BadgeStatut = styled.span`
   text-transform: uppercase;
   white-space: nowrap;
   background-color: ${props => {
-    if (props.$statut === 'paye') return 'rgba(34, 197, 94, 0.12)';
-    if (props.$statut === 'retard') return 'rgba(239, 68, 68, 0.12)';
+    if (props.$statut === 'paye' || props.$statut === 'Payé') return 'rgba(34, 197, 94, 0.12)';
+    if (props.$statut === 'retard' || props.$statut === 'Retard') return 'rgba(239, 68, 68, 0.12)';
     return 'rgba(234, 179, 8, 0.12)';
   }};
   color: ${props => {
-    if (props.$statut === 'paye') return THEME.succes;
-    if (props.$statut === 'retard') return THEME.danger;
+    if (props.$statut === 'paye' || props.$statut === 'Payé') return THEME.succes;
+    if (props.$statut === 'retard' || props.$statut === 'Retard') return THEME.danger;
     return THEME.avertissement;
   }};
   border: 1px solid ${props => {
-    if (props.$statut === 'paye') return 'rgba(34, 197, 94, 0.25)';
-    if (props.$statut === 'retard') return 'rgba(239, 68, 68, 0.25)';
+    if (props.$statut === 'paye' || props.$statut === 'Payé') return 'rgba(34, 197, 94, 0.25)';
+    if (props.$statut === 'retard' || props.$statut === 'Retard') return 'rgba(239, 68, 68, 0.25)';
     return 'rgba(234, 179, 8, 0.25)';
   }};
 `;
@@ -302,57 +302,68 @@ const BoutonLigne = styled.button`
   }
 `;
 
-const DONNEES_PAIEMENTS = [
-  { id: 1, matricule: 'LOC-2026-001', nom: 'Kabange Mukendi', logement: 'Appartement A1', loyer: 250, mois: 'Août 2026', statut: 'paye', datePaiement: '2026-08-02', mode: 'Espèces' },
-  { id: 2, matricule: 'LOC-2026-002', nom: 'Ilunga Tshilombo', logement: 'Studio B3', loyer: 180, mois: 'Août 2026', statut: 'paye', datePaiement: '2026-08-05', mode: 'Virement' },
-  { id: 3, matricule: 'LOC-2026-003', nom: 'Mbuyi Kalonji', logement: 'Appartement C2', loyer: 300, mois: 'Août 2026', statut: 'retard', datePaiement: '-', mode: '-' },
-  { id: 4, matricule: 'LOC-2026-004', nom: 'Kasongo Mwamba', logement: 'Maison M01', loyer: 450, mois: 'Août 2026', statut: 'en_attente', datePaiement: '-', mode: '-' },
-  { id: 5, matricule: 'LOC-2026-005', nom: 'Ngalula Kamba', logement: 'Studio B1', loyer: 180, mois: 'Août 2026', statut: 'paye', datePaiement: '2026-08-01', mode: 'Mobile Money' },
-  { id: 6, matricule: 'LOC-2026-006', nom: 'Banza Kipopo', logement: 'Appartement A2', loyer: 250, mois: 'Août 2026', statut: 'retard', datePaiement: '-', mode: '-' }
-];
-
 const variantesAnimationScroll = {
   cache: { opacity: 0, y: 15 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } }
 };
 
-export default function Paiements() {
-  const [listePaiements, setListePaiements] = useState(DONNEES_PAIEMENTS);
+export default function Paiements({ listeFactures = [], onMettreAJourPaiement }) {
+  const [elementsPaiements, setElementsPaiements] = useState(listeFactures);
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   
   const [recherche, setRecherche] = useState('');
   const [filtreStatut, setFiltreStatut] = useState('tous');
 
   const [formulaire, setFormulaire] = useState({
-    locataireId: '',
+    factureId: '',
     montant: '',
     mode: 'Virement',
     datePaiement: new Date().toISOString().split('T')[0]
   });
 
+  // Synchronisation automatique si les props de facturation changent
+  React.useEffect(() => {
+    setElementsPaiements(listeFactures);
+  }, [listeFactures]);
+
   const stats = useMemo(() => {
-    const totalEncaisse = listePaiements.filter(p => p.statut === 'paye').reduce((sum, p) => sum + p.loyer, 0);
-    const enOrdre = listePaiements.filter(p => p.statut === 'paye').length;
-    const enRetard = listePaiements.filter(p => p.statut === 'retard').length;
-    const enAttente = listePaiements.filter(p => p.statut === 'en_attente').length;
+    const totalEncaisse = elementsPaiements
+      .filter(p => p.statut === 'paye' || p.statut === 'Payé')
+      .reduce((sum, p) => sum + (parseFloat(p.montant) || 0), 0);
+      
+    const enOrdre = elementsPaiements.filter(p => p.statut === 'paye' || p.statut === 'Payé').length;
+    const enRetard = elementsPaiements.filter(p => p.statut === 'retard' || p.statut === 'Retard').length;
+    const enAttente = elementsPaiements.filter(p => !['paye', 'Payé', 'retard', 'Retard'].includes(p.statut)).length;
+    
     return { totalEncaisse, enOrdre, enRetard, enAttente };
-  }, [listePaiements]);
+  }, [elementsPaiements]);
 
   const paiementsFiltres = useMemo(() => {
-    return listePaiements.filter(item => {
-      const correspondRecherche = item.nom.toLowerCase().includes(recherche.toLowerCase()) || 
-                                   item.matricule.toLowerCase().includes(recherche.toLowerCase()) ||
-                                   item.logement.toLowerCase().includes(recherche.toLowerCase());
+    return elementsPaiements.filter(item => {
+      const nomClient = item.client || item.locataire || '';
+      const numMatricule = item.numero || item.matricule || '';
+      const typeF = item.type || item.typeFacture || '';
+
+      const correspondRecherche = nomClient.toLowerCase().includes(recherche.toLowerCase()) || 
+                                 numMatricule.toLowerCase().includes(recherche.toLowerCase()) ||
+                                 typeF.toLowerCase().includes(recherche.toLowerCase());
       
-      const correspondStatut = filtreStatut === 'tous' || item.statut === filtreStatut;
+      const estPaye = item.statut === 'paye' || item.statut === 'Payé';
+      const estRetard = item.statut === 'retard' || item.statut === 'Retard';
+      const estAttente = !estPaye && !estRetard;
+
+      let correspondStatut = true;
+      if (filtreStatut === 'paye') correspondStatut = estPaye;
+      if (filtreStatut === 'retard') correspondStatut = estRetard;
+      if (filtreStatut === 'en_attente') correspondStatut = estAttente;
 
       return correspondRecherche && correspondStatut;
     });
-  }, [listePaiements, recherche, filtreStatut]);
+  }, [elementsPaiements, recherche, filtreStatut]);
 
   const validerPaiementSysteme = (id) => {
-    setListePaiements(prev => prev.map(item => {
-      if (item.id === Number(id) || item.id === id) {
+    const nouvelleListe = elementsPaiements.map(item => {
+      if (item.id === id || String(item.id) === String(id)) {
         return {
           ...item,
           statut: 'paye',
@@ -361,15 +372,20 @@ export default function Paiements() {
         };
       }
       return item;
-    }));
+    });
+
+    setElementsPaiements(nouvelleListe);
+    if (onMettreAJourPaiement) {
+      onMettreAJourPaiement(nouvelleListe);
+    }
   };
 
   const soumettreFormulaire = (e) => {
     e.preventDefault();
-    if (!formulaire.locataireId) return;
-    validerPaiementSysteme(formulaire.locataireId);
+    if (!formulaire.factureId) return;
+    validerPaiementSysteme(formulaire.factureId);
     setAfficherFormulaire(false);
-    setFormulaire({ locataireId: '', montant: '', mode: 'Virement', datePaiement: new Date().toISOString().split('T')[0] });
+    setFormulaire({ factureId: '', montant: '', mode: 'Virement', datePaiement: new Date().toISOString().split('T')[0] });
   };
 
   return (
@@ -377,7 +393,7 @@ export default function Paiements() {
       <ConteneurEnTete>
         <div>
           <TitrePage>Paiements & Loyers</TitrePage>
-          <SousTitrePage>Suivi du statut financier des locataires inscrits</SousTitrePage>
+          <SousTitrePage>Suivi du statut financier synchronisé depuis la facturation</SousTitrePage>
         </div>
         {!afficherFormulaire && (
           <BoutonAction onClick={() => setAfficherFormulaire(true)}>
@@ -403,8 +419,8 @@ export default function Paiements() {
           viewport={{ once: false, amount: 0.2 }}
           variants={variantesAnimationScroll}
         >
-          <LabelStat>Locataires en Règle</LabelStat>
-          <ValeurStat $couleur={THEME.succes}>{stats.enOrdre} / {listePaiements.length}</ValeurStat>
+          <LabelStat>En Règle</LabelStat>
+          <ValeurStat $couleur={THEME.succes}>{stats.enOrdre} / {elementsPaiements.length}</ValeurStat>
         </CarteStat>
 
         <CarteStat
@@ -439,23 +455,23 @@ export default function Paiements() {
           <form onSubmit={soumettreFormulaire}>
             <GrilleChamps>
               <GroupeChamp>
-                <Etiquette>Locataire</Etiquette>
+                <Etiquette>Facture / Client</Etiquette>
                 <Selecteur 
-                  value={formulaire.locataireId} 
+                  value={formulaire.factureId} 
                   onChange={(e) => {
-                    const loc = listePaiements.find(p => p.id === Number(e.target.value));
+                    const fac = elementsPaiements.find(p => String(p.id) === String(e.target.value));
                     setFormulaire({ 
                       ...formulaire, 
-                      locataireId: e.target.value,
-                      montant: loc ? loc.loyer : ''
+                      factureId: e.target.value,
+                      montant: fac ? fac.montant : ''
                     });
                   }}
                   required
                 >
                   <option value="">-- Sélectionner --</option>
-                  {listePaiements.filter(p => p.statut !== 'paye').map(p => (
+                  {elementsPaiements.filter(p => p.statut !== 'paye' && p.statut !== 'Payé').map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.nom} ({p.logement})
+                      {p.client || p.locataire} ({p.numero || p.matricule} - {p.montant} $)
                     </option>
                   ))}
                 </Selecteur>
@@ -517,7 +533,7 @@ export default function Paiements() {
           <Etiquette>Rechercher</Etiquette>
           <ChampSaisie 
             type="text" 
-            placeholder="Nom, matricule, logement..." 
+            placeholder="Nom, matricule, type..." 
             value={recherche} 
             onChange={(e) => setRecherche(e.target.value)} 
           />
@@ -544,9 +560,9 @@ export default function Paiements() {
           <EnTeteTableau>
             <tr>
               <CelluleEnTete>Matricule</CelluleEnTete>
-              <CelluleEnTete>Nom</CelluleEnTete>
-              <CelluleEnTete>Logement</CelluleEnTete>
-              <CelluleEnTete>Loyer</CelluleEnTete>
+              <CelluleEnTete>Client / Locataire</CelluleEnTete>
+              <CelluleEnTete>Type</CelluleEnTete>
+              <CelluleEnTete>Montant</CelluleEnTete>
               <CelluleEnTete>Statut</CelluleEnTete>
               <CelluleEnTete>Date Règlement</CelluleEnTete>
               <CelluleEnTete>Mode</CelluleEnTete>
@@ -555,42 +571,43 @@ export default function Paiements() {
           </EnTeteTableau>
           <tbody>
             {paiementsFiltres.length > 0 ? (
-              paiementsFiltres.map((item) => (
-                <LigneTableau
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: false, amount: 0.2 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                >
-                  <Cellule><BadgeMatricule>{item.matricule}</BadgeMatricule></Cellule>
-                  <Cellule style={{ fontWeight: 600 }}>{item.nom}</Cellule>
-                  <Cellule>{item.logement}</Cellule>
-                  <Cellule style={{ fontWeight: 600, color: THEME.accentuation }}>{item.loyer} $</Cellule>
-                  <Cellule>
-                    <BadgeStatut $statut={item.statut}>
-                      {item.statut === 'paye' && 'En ordre'}
-                      {item.statut === 'retard' && 'En retard'}
-                      {item.statut === 'en_attente' && 'En attente'}
-                    </BadgeStatut>
-                  </Cellule>
-                  <Cellule style={{ color: THEME.texteSecondaire }}>{item.datePaiement}</Cellule>
-                  <Cellule>{item.mode}</Cellule>
-                  <Cellule style={{ textAlign: 'right' }}>
-                    {item.statut !== 'paye' ? (
-                      <BoutonLigne onClick={() => validerPaiementSysteme(item.id)}>
-                        Marquer Payé
-                      </BoutonLigne>
-                    ) : (
-                      <span style={{ fontSize: '0.68rem', color: THEME.succes, fontWeight: 600 }}>✓ En ordre</span>
-                    )}
-                  </Cellule>
-                </LigneTableau>
-              ))
+              paiementsFiltres.map((item) => {
+                const estPaye = item.statut === 'paye' || item.statut === 'Payé';
+                return (
+                  <LigneTableau
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: false, amount: 0.2 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                  >
+                    <Cellule><BadgeMatricule>{item.numero || item.matricule}</BadgeMatricule></Cellule>
+                    <Cellule style={{ fontWeight: 600 }}>{item.client || item.locataire}</Cellule>
+                    <Cellule style={{ textTransform: 'capitalize' }}>{item.type || item.typeFacture}</Cellule>
+                    <Cellule style={{ fontWeight: 600, color: THEME.accentuation }}>{item.montant} {item.devise || '$'}</Cellule>
+                    <Cellule>
+                      <BadgeStatut $statut={item.statut}>
+                        {estPaye ? 'En ordre' : (item.statut === 'retard' || item.statut === 'Retard' ? 'En retard' : 'En attente')}
+                      </BadgeStatut>
+                    </Cellule>
+                    <Cellule style={{ color: THEME.texteSecondaire }}>{item.datePaiement || '-'}</Cellule>
+                    <Cellule>{item.mode || '-'}</Cellule>
+                    <Cellule style={{ textAlign: 'right' }}>
+                      {!estPaye ? (
+                        <BoutonLigne onClick={() => validerPaiementSysteme(item.id)}>
+                          Marquer Payé
+                        </BoutonLigne>
+                      ) : (
+                        <span style={{ fontSize: '0.68rem', color: THEME.succes, fontWeight: 600 }}>✓ En ordre</span>
+                      )}
+                    </Cellule>
+                  </LigneTableau>
+                );
+              })
             ) : (
               <tr>
                 <Cellule colSpan="8" style={{ textAlign: 'center', color: THEME.texteSecondaire, padding: '1.5rem' }}>
-                  Aucun locataire trouvé.
+                  Aucune facture ou paiement trouvé.
                 </Cellule>
               </tr>
             )}

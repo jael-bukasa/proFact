@@ -143,7 +143,12 @@ export default function App() {
   const afficherPageCourante = () => {
     switch (ongletActif) {
       case 'Tableau de bord':
-        return <TableauDeBord onNouvelleFacture={() => { setClientSelectionne(null); setOngletActif('Facturation'); }} />;
+        return (
+          <TableauDeBord 
+            listeFactures={clientsEnregistres} 
+            onNouvelleFacture={() => { setClientSelectionne(null); setOngletActif('Facturation'); }} 
+          />
+        );
       case 'Clients':
         return (
           <Clients 
@@ -165,11 +170,21 @@ export default function App() {
           />
         );
       case 'Paiements':
-        return <Paiements />;
+        return (
+          <Paiements 
+            listeFactures={clientsEnregistres} 
+            onMettreAJourPaiement={setClientsEnregistres} 
+          />
+        );
       case 'Rapports':
         return <Rapports />;
       default:
-        return <TableauDeBord />;
+        return (
+          <TableauDeBord 
+            listeFactures={clientsEnregistres} 
+            onNouvelleFacture={() => { setClientSelectionne(null); setOngletActif('Facturation'); }} 
+          />
+        );
     }
   };
 

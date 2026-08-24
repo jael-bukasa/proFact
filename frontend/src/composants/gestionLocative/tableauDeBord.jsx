@@ -295,14 +295,14 @@ const BadgeStatut = styled.span`
   font-weight: 600;
   background-color: ${props => {
     const s = (props.$statut || '').toLowerCase();
-    if (s.includes('payé') || s.includes('payée')) return 'rgba(76, 175, 80, 0.15)';
-    if (s.includes('retard')) return 'rgba(255, 82, 82, 0.15)';
+    if (s.includes('payé') || s.includes('payée') || s.includes('virement') || s.includes('cash')) return 'rgba(76, 175, 80, 0.15)';
+    if (s.includes('retard') || s.includes('impayé')) return 'rgba(255, 82, 82, 0.15)';
     return 'rgba(255, 152, 0, 0.15)';
   }};
   color: ${props => {
     const s = (props.$statut || '').toLowerCase();
-    if (s.includes('payé') || s.includes('payée')) return THEME.vert;
-    if (s.includes('retard')) return THEME.rouge;
+    if (s.includes('payé') || s.includes('payée') || s.includes('virement') || s.includes('cash')) return THEME.vert;
+    if (s.includes('retard') || s.includes('impayé')) return THEME.rouge;
     return THEME.orange;
   }};
 `;
@@ -338,28 +338,30 @@ const obtenirMoisCourant = () => {
   return moisAnnee.charAt(0).toUpperCase() + moisAnnee.slice(1);
 };
 
-export default function TableauDeBord({ listeFactures = [], onNouvelleFacture }) {
+export default function TableauDeBord({ listeFactures = [] }) {
   const [moisSelectionne] = useState(obtenirMoisCourant());
 
-  // Calculs dynamiques basés sur la liste des factures synchronisée
   const totalFactures = listeFactures.length;
 
+  // Filtrage robuste basé sur l'état ou le mode de paiement
   const facturesPayees = listeFactures.filter(f => {
     const statut = (f.statut || f.modePaiement || '').toLowerCase();
-    return statut.includes('payé') || statut.includes('payée') || statut.includes('virement') || statut.includes('cash');
+    return statut.includes('payé') || statut.includes('payée') || statut.includes('virement') || statut.includes('cash') || statut.includes('réglé');
   });
 
   const facturesRetard = listeFactures.filter(f => {
     const statut = (f.statut || '').toLowerCase();
-    return statut.includes('retard');
+    return statut.includes('retard') || statut.includes('impayé') || statut.includes('échu');
   });
 
   const facturesAttente = listeFactures.filter(f => {
     const statut = (f.statut || '').toLowerCase();
-    return !statut.includes('payé') && !statut.includes('retard');
+    const estPaye = statut.includes('payé') || statut.includes('payée') || statut.includes('virement') || statut.includes('cash') || statut.includes('réglé');
+    const estRetard = statut.includes('retard') || statut.includes('impayé') || statut.includes('échu');
+    return !estPaye && !estRetard;
   });
 
-  // Somme totale des loyers perçus
+  // Sommes financières
   const sommePercue = facturesPayees.reduce((acc, f) => acc + (Number(f.montant) || 0), 0);
   const sommeRetards = facturesRetard.reduce((acc, f) => acc + (Number(f.montant) || 0), 0);
 
@@ -376,11 +378,11 @@ export default function TableauDeBord({ listeFactures = [], onNouvelleFacture })
     ? `conic-gradient(${THEME.vert} 0% ${fin1}%, ${THEME.orange} ${fin1}% ${fin2}%, ${THEME.rouge} ${fin2}% ${fin3}%, ${THEME.bleu} ${fin3}% 100%)`
     : `conic-gradient(${THEME.bordure} 0% 100%)`;
 
-  // Dernières transactions (4 dernières de la liste)
+  // Dernières transactions formatées correctement
   const dernieresTransactions = [...listeFactures].reverse().slice(0, 4).map(f => ({
-    locataire: `${f.nom || ''} ${f.prenom || f.client || f.locataire || 'Inconnu'}`.trim(),
-    local: f.logement || f.adresse || 'N/A',
-    montant: f.montant !== undefined ? `${f.montant} ${f.devise || 'USD'}` : '0 USD',
+    locataire: `${f.nom || ''} ${f.prenom || f.client || f.locataire || ''}`.trim() || 'Locataire Inconnu',
+    local: f.logement || f.adresse || f.local || 'N/A',
+    montant: f.montant !== undefined ? `${Number(f.montant).toLocaleString()} ${f.devise || 'USD'}` : '0 USD',
     statut: f.statut || 'En attente'
   }));
 
@@ -429,7 +431,7 @@ export default function TableauDeBord({ listeFactures = [], onNouvelleFacture })
 
         <CarteMetrique $couleurBordure={THEME.orange}>
           <EnTeteCarte>
-            <TitreCarte>Quittances à Émettre</TitreCarte>
+            <TitreCarte>Quittances / Total</TitreCarte>
             <IconeWrapper $bg="rgba(255, 152, 0, 0.15)" $couleur={THEME.orange}>📄</IconeWrapper>
           </EnTeteCarte>
           <ValeurCarte>{totalFactures}</ValeurCarte>
@@ -539,10 +541,6 @@ export default function TableauDeBord({ listeFactures = [], onNouvelleFacture })
         <BlocContent style={{ marginBottom: 0 }}>
           <TitreBloc>Actions Rapides</TitreBloc>
           <ListeActions>
-            <BoutonActionRapide onClick={onNouvelleFacture}>
-              <span>➕ Nouvelle Facture</span>
-              <span>➔</span>
-            </BoutonActionRapide>
             <BoutonActionRapide onClick={exporterPDF}>
               <span>📥 Exporter le rapport (PDF)</span>
               <span>➔</span>
