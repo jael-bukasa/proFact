@@ -37,14 +37,14 @@ const StyleGlobal = createGlobalStyle`
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body, #root {
     width: 100%; height: 100%; overflow: hidden;
-    background: linear-gradient(135deg, #070a13 0%, #0d1527 100%);
+    background: #000000; /* Fond noir unifié identique à la barre latérale */
     color: #FFFFFF;
     font-family: 'Inter', system-ui, sans-serif;
   }
 `;
 
 const THEME = {
-  fondApplication: 'transparent',
+  fondApplication: '#000000',
   accentuation: '#AEEA00',
   bordure: 'rgba(255, 255, 255, 0.08)'
 };
@@ -61,8 +61,7 @@ const ConteneurContenuPrincipal = styled.main`
   min-width: 0;
   padding: 2.5rem;
   overflow-y: auto;
-  background: radial-gradient(circle at 80% 10%, rgba(174, 234, 0, 0.03) 0%, rgba(13, 21, 39, 0.3) 60%, rgba(7, 10, 19, 0.5) 100%);
-  backdrop-filter: blur(8px);
+  background-color: #000000; /* Fond noir unifié pour tout le contenu principal */
 `;
 
 const ZoneAnimee = styled.div`
@@ -75,7 +74,7 @@ const BadgeStatutApi = styled.div`
   right: 1.5rem;
   padding: 0.5rem 1rem;
   border-radius: 30px;
-  background-color: rgba(13, 21, 39, 0.6);
+  background-color: #1E1E1E;
   border: 1px solid ${THEME.bordure};
   backdrop-filter: blur(12px);
   color: #FFFFFF;
@@ -84,7 +83,7 @@ const BadgeStatutApi = styled.div`
   align-items: center;
   gap: 0.6rem;
   z-index: 100;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 `;
 
 const VoyantSignal = styled.span`
@@ -96,17 +95,23 @@ const VoyantSignal = styled.span`
 `;
 
 export default function App() {
-  const [etatAuth, setEtatAuth] = useState('connecte');
-  const [ongletActif, setOngletActif] = useState('Tableau de bord');
+  // L'application commence sur le formulaire de connexion
+  const [etatAuth, setEtatAuth] = useState('connexion');
+  
+  // Utilisateur connecté de manière dynamique
+  const [utilisateurActuel, setUtilisateurActuel] = useState({
+    prenom: 'Jaël',
+    nom: 'Bukasa',
+    role: 'Facturier',
+    email: 'jaelbuk08@gmail.com'
+  });
+
+  const estAdmin = utilisateurActuel.role.toLowerCase().includes('admin');
+
+  // L'onglet actif s'adapte automatiquement selon le rôle
+  const [ongletActif, setOngletActif] = useState(estAdmin ? 'Tableau de bord' : 'Clients');
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [backendConnecte, setBackendConnecte] = useState(false);
-
-  const utilisateurActuel = {
-    prenom: 'Bukasa',
-    nom: 'Mulaji',
-    role: 'Administrateur',
-    email: 'bukasa@profact.com'
-  };
 
   const [clientsEnregistres, setClientsEnregistres] = useState(() => {
     try {
@@ -117,7 +122,6 @@ export default function App() {
     }
   });
 
-  // Gestion des comptes : Rôle défini à 'Admin' pour que le compte apparaisse dans les Administrateurs
   const [facturiers, setFacturiers] = useState(() => {
     try {
       const sauvegarde = localStorage.getItem('proFact_facturiers');
@@ -195,7 +199,14 @@ export default function App() {
       <>
         <StyleGlobal />
         <Connexion 
-          surConnexionReussie={() => setEtatAuth('connecte')} 
+          surConnexionReussie={(donneesUtilisateur) => {
+            if (donneesUtilisateur) {
+              setUtilisateurActuel(donneesUtilisateur);
+              const isAdminConnexion = donneesUtilisateur.role?.toLowerCase().includes('admin');
+              setOngletActif(isAdminConnexion ? 'Tableau de bord' : 'Clients');
+            }
+            setEtatAuth('connecte');
+          }} 
           allerVersInscription={() => setEtatAuth('inscription')} 
         />
       </>
@@ -207,7 +218,14 @@ export default function App() {
       <>
         <StyleGlobal />
         <CreerCompte 
-          surInscriptionReussie={() => setEtatAuth('connecte')} 
+          surInscriptionReussie={(donneesUtilisateur) => {
+            if (donneesUtilisateur) {
+              setUtilisateurActuel(donneesUtilisateur);
+              const isAdminInscription = donneesUtilisateur.role?.toLowerCase().includes('admin');
+              setOngletActif(isAdminInscription ? 'Tableau de bord' : 'Clients');
+            }
+            setEtatAuth('connecte');
+          }} 
           allerVersConnexion={() => setEtatAuth('connexion')} 
         />
       </>
@@ -217,6 +235,15 @@ export default function App() {
   const afficherPageCourante = () => {
     switch (ongletActif) {
       case 'Tableau de bord':
+        if (!estAdmin) {
+          return (
+            <Clients 
+              onNaviguerVersFacturation={allerAFacturation} 
+              clientsEnregistres={clientsEnregistres}
+              setClientsEnregistres={setClientsEnregistres}
+            />
+          );
+        }
         return (
           <TableauDeBord 
             clientsEnregistres={clientsEnregistres} 
@@ -239,7 +266,7 @@ export default function App() {
             clientsEnregistres={clientsEnregistres}
             setClientsEnregistres={setClientsEnregistres}
             formaterDateFr={formaterDateFr}
-            onRetour={() => setOngletActif('Tableau de bord')} 
+            onRetour={() => setOngletActif(estAdmin ? 'Tableau de bord' : 'Clients')} 
           />
         );
       case 'Paiements':
@@ -279,10 +306,10 @@ export default function App() {
         );
       default:
         return (
-          <TableauDeBord 
-            clientsEnregistres={clientsEnregistres} 
-            onSelectClient={allerAFacturation}
-            onNouvelleFacture={() => { setClientSelectionne(null); setOngletActif('Facturation'); }} 
+          <Clients 
+            onNaviguerVersFacturation={allerAFacturation} 
+            clientsEnregistres={clientsEnregistres}
+            setClientsEnregistres={setClientsEnregistres}
           />
         );
     }
@@ -299,6 +326,7 @@ export default function App() {
             setOngletActif(element);
           }} 
           surDeconnexionEffective={() => setEtatAuth('connexion')}
+          utilisateurConnecte={utilisateurActuel}
         />
         <ConteneurContenuPrincipal>
           <ZoneAnimee key={ongletActif}>

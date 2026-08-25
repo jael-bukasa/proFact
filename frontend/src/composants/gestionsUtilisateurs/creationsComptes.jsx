@@ -189,6 +189,11 @@ const BoutonSoumettre = styled.button`
     opacity: 0.9;
     transform: translateY(-1px);
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const MessageSucces = styled.div`
@@ -263,6 +268,7 @@ export default function CreationsComptes({ surAjoutFacturier }) {
   const [champActif, setChampActif] = useState('general');
   const [succes, setSucces] = useState(false);
   const [erreur, setErreur] = useState('');
+  const [chargement, setChargement] = useState(false);
   const [champsInvalides, setChampsInvalides] = useState([]);
 
   const [voirMotDePasse, setVoirMotDePasse] = useState(false);
@@ -352,7 +358,7 @@ export default function CreationsComptes({ surAjoutFacturier }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErreur('');
     setChampsInvalides([]);
@@ -367,35 +373,65 @@ export default function CreationsComptes({ surAjoutFacturier }) {
       return;
     }
 
-    const nouveauCompte = {
-      id: Date.now(),
-      prenom: formData.prenom,
-      nom: formData.nom,
-      email: formData.email,
-      role: formData.role
-    };
+    setChargement(true);
 
-    if (surAjoutFacturier) {
-      surAjoutFacturier(nouveauCompte);
+    try {
+      // Détermination de l'URL selon le rôle choisi
+      // Si c'est Admin -> /api/admin/inscription
+      // Si c'est Facturier -> /api/facturiers
+      const estAdmin = formData.role.toLowerCase() === 'admin';
+      const urlEndpoint = estAdmin ? 'http://localhost:5000/api/admin/inscription' : 'http://localhost:5000/api/facturiers';
+
+      // Pour l'admin, les clés attendues par ton back sont { nom, email, motDePasse, role }
+      // Pour le facturier, les clés attendues sont { prenom, nom, email, motDePasse, role }
+      const corpsRequete = estAdmin 
+        ? { nom: `${formData.prenom} ${formData.nom}`, email: formData.email, motDePasse: formData.motDePasse, role: formData.role }
+        : { prenom: formData.prenom, nom: formData.nom, email: formData.email, motDePasse: formData.motDePasse, role: formData.role };
+
+      const reponse = await fetch(urlEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(corpsRequete),
+      });
+
+      const resultat = await reponse.json();
+
+      if (!reponse.ok) {
+        throw new Error(resultat.erreur || "Erreur lors de la création du compte.");
+      }
+
+      setSucces(true);
+
+      // Si une fonction parente est fournie, on la prévient
+      if (surAjoutFacturier && !estAdmin) {
+        surAjoutFacturier(resultat.data || resultat.facturier);
+      }
+
+      // Réinitialisation du formulaire
+      setFormData({
+        prenom: '',
+        nom: '',
+        email: '',
+        role: 'Facturier',
+        motDePasse: '',
+        confirmationMotDePasse: ''
+      });
+
+      if (referenceErreur.current) {
+        referenceErreur.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      setTimeout(() => {
+        setSucces(false);
+      }, 4000);
+
+    } catch (err) {
+      declencherErreur(err.message || "Impossible de joindre le serveur backend.");
+    } finally {
+      setChargement(false);
     }
-
-    setSucces(true);
-    setFormData({
-      prenom: '',
-      nom: '',
-      email: '',
-      role: 'Facturier',
-      motDePasse: '',
-      confirmationMotDePasse: ''
-    });
-
-    if (referenceErreur.current) {
-      referenceErreur.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    setTimeout(() => {
-      setSucces(false);
-    }, 4000);
   };
 
   return (
@@ -408,7 +444,7 @@ export default function CreationsComptes({ surAjoutFacturier }) {
 
         {succes && (
           <MessageSucces>
-            🎉 Compte créé avec succès ! Le collaborateur peut désormais se connecter.
+            🎉 Compte créé avec succès dans la base de données ! Le collaborateur peut désormais se connecter.
           </MessageSucces>
         )}
 
@@ -527,8 +563,8 @@ export default function CreationsComptes({ surAjoutFacturier }) {
             </GroupeChamp>
           </GrilleChamps>
 
-          <BoutonSoumettre type="submit">
-            Créer le compte utilisateur
+          <BoutonSoumettre type="submit" disabled={chargement}>
+            {chargement ? "Enregistrement en cours..." : "Créer le compte utilisateur"}
           </BoutonSoumettre>
         </form>
       </ColonneFormulaire>

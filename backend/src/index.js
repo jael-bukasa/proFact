@@ -150,7 +150,7 @@ db.connect((err) => {
       prenom VARCHAR(100) NOT NULL,
       nom VARCHAR(100) NOT NULL,
       email VARCHAR(150) NOT NULL UNIQUE,
-      motDePasse VARCHAR(255) NOT NULL,
+      mot_de_passe VARCHAR(255) NOT NULL,
       role VARCHAR(50) DEFAULT 'Facturier',
       creeLe DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -506,39 +506,74 @@ app.post('/api/admin/inscription', (req, res) => {
   });
 });
 
+// Route de connexion unifiée (Administrateur & Facturier)
 app.post('/api/admin/connexion', (req, res) => {
-  const { email, motDePasse } = req.body;
+  const { email, motDePasse, role } = req.body;
 
   if (!email || !motDePasse) {
     return res.status(400).json({ erreur: "L'email et le mot de passe sont requis." });
   }
 
-  db.query('SELECT * FROM admin WHERE email = ?', [email], (err, results) => {
-    if (err) {
-      console.error("Erreur SQL connexion :", err);
-      return res.status(500).json({ erreur: "Erreur serveur lors de la connexion." });
-    }
+  const emailPropre = email.trim();
+  const roleNormalise = role ? role.trim().toLowerCase() : '';
 
-    if (results.length === 0) {
-      return res.status(404).json({ erreur: "Administrateur introuvable avec cet email." });
-    }
-
-    const admin = results[0];
-
-    if (admin.motDePasse !== motDePasse) {
-      return res.status(401).json({ erreur: "Mot de passe incorrect." });
-    }
-
-    res.json({
-      message: "Connexion réussie",
-      admin: {
-        id: admin.id,
-        nom: admin.nom,
-        email: admin.email,
-        role: admin.role
+  if (roleNormalise === 'facturier') {
+    db.query('SELECT * FROM facturiers WHERE email = ?', [emailPropre], (err, results) => {
+      if (err) {
+        console.error("Erreur SQL connexion facturier :", err);
+        return res.status(500).json({ erreur: "Erreur serveur lors de la connexion." });
       }
+
+      if (results.length === 0) {
+        return res.status(404).json({ erreur: "Facturier introuvable avec cet email." });
+      }
+
+      const facturier = results[0];
+
+      if (facturier.mot_de_passe !== motDePasse) {
+        return res.status(401).json({ erreur: "Mot de passe incorrect." });
+      }
+
+      res.json({
+        message: "Connexion réussie",
+        admin: {
+          id: facturier.id,
+          nom: facturier.nom,
+          prenom: facturier.prenom || '',
+          email: facturier.email,
+          role: facturier.role || 'Facturier'
+        }
+      });
     });
-  });
+  } 
+  else {
+    db.query('SELECT * FROM admin WHERE email = ?', [emailPropre], (err, results) => {
+      if (err) {
+        console.error("Erreur SQL connexion admin :", err);
+        return res.status(500).json({ erreur: "Erreur serveur lors de la connexion." });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({ erreur: "Administrateur introuvable avec cet email." });
+      }
+
+      const admin = results[0];
+
+      if (admin.motDePasse !== motDePasse) {
+        return res.status(401).json({ erreur: "Mot de passe incorrect." });
+      }
+
+      res.json({
+        message: "Connexion réussie",
+        admin: {
+          id: admin.id,
+          nom: admin.nom,
+          email: admin.email,
+          role: admin.role || 'Administrateur'
+        }
+      });
+    });
+  }
 });
 
 // ==========================================
@@ -563,7 +598,9 @@ app.post('/api/facturiers', (req, res) => {
     return res.status(400).json({ erreur: "Tous les champs obligatoires doivent être remplis." });
   }
 
-  db.query('SELECT * FROM facturiers WHERE email = ?', [email], (err, results) => {
+  const emailPropre = email.trim();
+
+  db.query('SELECT * FROM facturiers WHERE email = ?', [emailPropre], (err, results) => {
     if (err) {
       console.error("Erreur SQL vérification email facturier :", err);
       return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
@@ -573,8 +610,8 @@ app.post('/api/facturiers', (req, res) => {
       return res.status(400).json({ erreur: "Cette adresse e-mail est déjà utilisée." });
     }
 
-    const queryInsert = 'INSERT INTO facturiers (prenom, nom, email, motDePasse, role) VALUES (?, ?, ?, ?, ?)';
-    db.query(queryInsert, [prenom, nom, email, motDePasse, role], (errInsert, resultat) => {
+    const queryInsert = 'INSERT INTO facturiers (prenom, nom, email, mot_de_passe, role) VALUES (?, ?, ?, ?, ?)';
+    db.query(queryInsert, [prenom.trim(), nom.trim(), emailPropre, motDePasse, role], (errInsert, resultat) => {
       if (errInsert) {
         console.error("Erreur lors de l'insertion du facturier :", errInsert);
         return res.status(500).json({ erreur: "Erreur lors de la création du compte facturier." });
@@ -585,9 +622,9 @@ app.post('/api/facturiers', (req, res) => {
         message: "Compte facturier créé avec succès.",
         data: {
           id: resultat.insertId,
-          prenom,
-          nom,
-          email,
+          prenom: prenom.trim(),
+          nom: nom.trim(),
+          email: emailPropre,
           role
         }
       });

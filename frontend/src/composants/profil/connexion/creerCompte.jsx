@@ -161,7 +161,7 @@ export default function CreerCompte({ surInscriptionReussie, allerVersConnexion 
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const [redirectionEnCours, setRedirectionEnCours] = useState(false);
-  const [donneesAdmin, setDonneesAdmin] = useState(null); // Stocke les données renvoyées par l'API
+  const [donneesAdmin, setDonneesAdmin] = useState(null);
 
   const fonctionnalites = [
     { titre: "Gestion Locative Centralisée", description: "Suivez l'état de vos biens, l'historique et les informations de vos locataires en temps réel." },
@@ -199,8 +199,8 @@ export default function CreerCompte({ surInscriptionReussie, allerVersConnexion 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nom: formData.nom,
-          email: formData.email,
+          nom: formData.nom.trim(),
+          email: formData.email.trim(),
           motDePasse: formData.motDePasse,
           role: 'Administrateur'
         }),
@@ -216,7 +216,7 @@ export default function CreerCompte({ surInscriptionReussie, allerVersConnexion 
 
       setChargement(false);
       setDonneesAdmin(resultat.admin);
-      setRedirectionEnCours(true); // Affiche le composant MessageAccueil sans le fermer automatiquement
+      setRedirectionEnCours(true);
 
     } catch (err) {
       setErreur("Impossible de contacter le serveur.");

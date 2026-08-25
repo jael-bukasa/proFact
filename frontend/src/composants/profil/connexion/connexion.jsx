@@ -98,6 +98,32 @@ const Input = styled.input`
   }
 `;
 
+const Select = styled.select`
+  padding: 0.8rem 1rem;
+  background-color: #121212;
+  border: 1px solid #2A2A2A;
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-size: 0.9rem;
+  transition: all 0.25s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #444444;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #AEEA00;
+    box-shadow: 0 0 0 3px rgba(174, 234, 0, 0.12);
+  }
+
+  option {
+    background-color: #121212;
+    color: #FFFFFF;
+  }
+`;
+
 const BoutonSoumettre = styled.button`
   margin-top: 0.5rem;
   padding: 0.85rem;
@@ -152,7 +178,11 @@ const LienBas = styled.p`
 `;
 
 export default function Connexion({ surConnexionReussie, allerVersInscription }) {
-  const [formData, setFormData] = useState({ email: '', motDePasse: '' });
+  const [formData, setFormData] = useState({ 
+    email: '', 
+    motDePasse: '', 
+    role: 'Administrateur' // Valeur par défaut : Administrateur
+  });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const [redirectionEnCours, setRedirectionEnCours] = useState(false);
@@ -187,7 +217,11 @@ export default function Connexion({ surConnexionReussie, allerVersInscription })
       const reponse = await fetch('http://localhost:5000/api/admin/connexion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, motDePasse: formData.motDePasse }),
+        body: JSON.stringify({ 
+          email: formData.email, 
+          motDePasse: formData.motDePasse,
+          role: formData.role 
+        }),
       });
 
       const resultat = await reponse.json();
@@ -199,15 +233,14 @@ export default function Connexion({ surConnexionReussie, allerVersInscription })
       }
 
       setChargement(false);
-      // Récupération du nom de l'administrateur retourné par l'API (ajuste selon ta structure de réponse, ex: resultat.admin.nom)
       setNomAdminConnecte(resultat.admin?.nom || resultat.nom || '');
       setRedirectionEnCours(true);
 
       setTimeout(() => {
         if (surConnexionReussie) {
-          surConnexionReussie(resultat.admin);
+          surConnexionReussie(resultat.admin || { role: formData.role });
         }
-      }, 1500); // Temps d'affichage du message de bienvenue avec chargement
+      }, 1500);
 
     } catch (err) {
       setErreur("Impossible de contacter le serveur.");
@@ -217,7 +250,6 @@ export default function Connexion({ surConnexionReussie, allerVersInscription })
 
   return (
     <PageConteneur>
-      {/* Affichage du message de bienvenue et de chargement personnalisé */}
       {redirectionEnCours && (
         <MessageBienvenue nomUtilisateur={nomAdminConnecte} />
       )}
@@ -228,6 +260,18 @@ export default function Connexion({ surConnexionReussie, allerVersInscription })
           <SousTitre>Bon retour parmi nous, gérez vos biens.</SousTitre>
 
           <Form onSubmit={handleSubmit} noValidate>
+            <GroupeChamp>
+              <Label>Type d'utilisateur</Label>
+              <Select 
+                name="role" 
+                value={formData.role} 
+                onChange={handleChange}
+              >
+                <option value="Administrateur">Administrateur</option>
+                <option value="Facturier">Facturier</option>
+              </Select>
+            </GroupeChamp>
+
             <GroupeChamp>
               <Label>Adresse e-mail</Label>
               <Input 

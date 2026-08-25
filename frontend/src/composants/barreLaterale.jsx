@@ -191,22 +191,37 @@ const obtenirIconeNav = (element) => {
   }
 };
 
-export default function BarreLaterale({ ongletActif, auChangementOnglet, surDeconnexionEffective }) {
+export default function BarreLaterale({ 
+  ongletActif, 
+  auChangementOnglet, 
+  surDeconnexionEffective,
+  utilisateurConnecte 
+}) {
   const [profilOuvert, setProfilOuvert] = useState(false);
   const [enDeconnexion, setEnDeconnexion] = useState(false);
 
-  const configurationMenu = [
+  // Détermination sécurisée du rôle (Admin / Administrateur ou Facturier)
+  const roleBrut = utilisateurConnecte?.role || 'Admin';
+  const estAdmin = roleBrut.toLowerCase().includes('admin');
+
+  // Configuration des menus selon le rôle (Tableau de bord retiré pour le facturier)
+  const configurationMenu = estAdmin ? [
     { 
       titre: 'GESTION LOCATIVE', 
-      elements: ['Tableau de bord', 'Clients'] 
+      elements: ['Tableau de bord'] 
     },
     { 
       titre: 'COMPTABILITÉ', 
-      elements: ['Facturation', 'Paiements'] 
+      elements: ['Paiements'] 
     },
     { 
       titre: 'GESTION UTILISATEURS', 
       elements: ['Créer un compte', 'Gérer les comptes'] 
+    }
+  ] : [
+    { 
+      titre: 'ESPACE FACTURIER', 
+      elements: ['Clients', 'Facturation'] 
     }
   ];
 
