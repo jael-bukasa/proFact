@@ -104,7 +104,6 @@ db.connect((err) => {
       console.error("Erreur lors de la création de la table banques :", errBq);
     } else {
       console.log("Table banques vérifiée/créée avec succès.");
-      // Insertion des comptes initiaux si la table est vide
       db.query('SELECT COUNT(*) as count FROM banques', (errCount, resCount) => {
         if (!errCount && resCount[0].count === 0) {
           const banquesInitiales = [
@@ -121,6 +120,26 @@ db.connect((err) => {
           });
         }
       });
+    }
+  });
+
+  // Table admin
+  const sqlAdmin = `
+    CREATE TABLE IF NOT EXISTS admin (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      nom VARCHAR(100) NOT NULL,
+      email VARCHAR(150) NOT NULL UNIQUE,
+      motDePasse VARCHAR(255) NOT NULL,
+      role VARCHAR(50) DEFAULT 'Administrateur',
+      creeLe DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  db.query(sqlAdmin, (errAdmin) => {
+    if (errAdmin) {
+      console.error("Erreur lors de la création de la table admin :", errAdmin);
+    } else {
+      console.log("Table admin vérifiée/créée avec succès.");
     }
   });
 });
@@ -153,7 +172,6 @@ const formaterClient = (cli) => {
 
   let matricule = cli.matricule;
   if (!matricule || matricule === 'TEMP' || matricule.startsWith('LOC-') || matricule.startsWith('LOY-') || matricule.startsWith('LY-') || matricule.startsWith('ELE-') || matricule.startsWith('ELEC-') || matricule.startsWith('EAU-') || matricule.startsWith('DIV-')) {
-    
     const typeFiltre = ((cli.typeFacture || '') + ' ' + (cli.typeClient || ''))
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -194,7 +212,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// 1. Récupérer la CORBEILLE
 app.get('/api/clients/corbeille', (req, res) => {
   const query = 'SELECT * FROM clients WHERE supprime = 1 ORDER BY id ASC';
   db.query(query, (err, results) => {
@@ -206,7 +223,6 @@ app.get('/api/clients/corbeille', (req, res) => {
   });
 });
 
-// 2. Récupérer les clients ENREGISTRÉS
 app.get('/api/clients/enregistres', (req, res) => {
   const query = 'SELECT * FROM clients WHERE supprime = 0 AND enregistre = 1 ORDER BY id DESC';
   db.query(query, (err, results) => {
@@ -218,7 +234,6 @@ app.get('/api/clients/enregistres', (req, res) => {
   });
 });
 
-// 3. Récupérer les clients ACTIFS
 app.get('/api/clients', (req, res) => {
   const query = 'SELECT * FROM clients WHERE supprime = 0 ORDER BY id ASC';
   db.query(query, (err, results) => {
@@ -230,7 +245,6 @@ app.get('/api/clients', (req, res) => {
   });
 });
 
-// 4. AJOUTER UN CLIENT
 app.post('/api/clients', (req, res) => {
   const { 
     nom = '', postNom = '', prenom = '', bail = '', dateBail = null,
@@ -319,7 +333,6 @@ app.post('/api/clients', (req, res) => {
   });
 });
 
-// 5. VALIDER / ENREGISTRER UN CLIENT
 app.patch('/api/clients/:id/valider', (req, res) => {
   const { id } = req.params;
   const query = 'UPDATE clients SET enregistre = 1 WHERE id = ?';
@@ -330,7 +343,6 @@ app.patch('/api/clients/:id/valider', (req, res) => {
   });
 });
 
-// 6. Modifier un client (PUT)
 app.put('/api/clients/:id', (req, res) => {
   const { id } = req.params;
   const { 
@@ -359,7 +371,6 @@ app.put('/api/clients/:id', (req, res) => {
   });
 });
 
-// 7. RESTAURER un client
 app.patch('/api/clients/:id/restaurer', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE clients SET supprime = 0 WHERE id = ?', [id], (err) => {
@@ -368,7 +379,6 @@ app.patch('/api/clients/:id/restaurer', (req, res) => {
   });
 });
 
-// 8. VIDER LA CORBEILLE
 app.delete('/api/clients/corbeille/vider', (req, res) => {
   db.query('DELETE FROM clients WHERE supprime = 1', (err) => {
     if (err) return res.status(500).json({ erreur: "Erreur lors du vidage de la corbeille" });
@@ -376,7 +386,6 @@ app.delete('/api/clients/corbeille/vider', (req, res) => {
   });
 });
 
-// 9. SUPPRESSION DÉFINITIVE D'UN CLIENT
 app.delete('/api/clients/:id/definitif', (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM clients WHERE id = ?', [id], (err) => {
@@ -385,7 +394,6 @@ app.delete('/api/clients/:id/definitif', (req, res) => {
   });
 });
 
-// 10. ENVOYER EN CORBEILLE
 app.delete('/api/clients/:id', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE clients SET supprime = 1 WHERE id = ?', [id], (err) => {
@@ -394,12 +402,10 @@ app.delete('/api/clients/:id', (req, res) => {
   });
 });
 
-
 // ==========================================
-// ROUTES API - BANQUES (Via banqueService)
+// ROUTES API - BANQUES
 // ==========================================
 
-// Récupérer toutes les banques
 app.get('/api/banques', (req, res) => {
   banqueService.obtenirToutes((err, results) => {
     if (err) {
@@ -410,7 +416,6 @@ app.get('/api/banques', (req, res) => {
   });
 });
 
-// Ajouter une banque
 app.post('/api/banques', (req, res) => {
   const { nomBanque, numeroCompte, devise } = req.body;
 
@@ -427,7 +432,6 @@ app.post('/api/banques', (req, res) => {
   });
 });
 
-// Supprimer une banque
 app.delete('/api/banques/:id', (req, res) => {
   const { id } = req.params;
 
@@ -437,6 +441,82 @@ app.delete('/api/banques/:id', (req, res) => {
       return res.status(500).json({ erreur: "Erreur lors de la suppression de la banque" });
     }
     res.json({ message: "Banque supprimée avec succès" });
+  });
+});
+
+// ==========================================
+// ROUTES API - ADMIN / AUTHENTIFICATION
+// ==========================================
+
+app.post('/api/admin/inscription', (req, res) => {
+  const { nom, email, motDePasse, role = 'Administrateur' } = req.body;
+
+  if (!nom || !email || !motDePasse) {
+    return res.status(400).json({ erreur: "Tous les champs obligatoires doivent être remplis." });
+  }
+
+  db.query('SELECT * FROM admin WHERE email = ?', [email], (err, results) => {
+    if (err) {
+      console.error("Erreur SQL vérification email :", err);
+      return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
+    }
+
+    if (results.length > 0) {
+      return res.status(400).json({ erreur: "Cet email est déjà utilisé par un autre administrateur." });
+    }
+
+    const queryInsert = 'INSERT INTO admin (nom, email, motDePasse, role) VALUES (?, ?, ?, ?)';
+    db.query(queryInsert, [nom, email, motDePasse, role], (errInsert, resultat) => {
+      if (errInsert) {
+        console.error("Erreur lors de l'inscription admin :", errInsert);
+        return res.status(500).json({ erreur: "Erreur lors de la création du compte administrateur." });
+      }
+
+      res.status(201).json({
+        message: "Compte administrateur créé avec succès.",
+        admin: {
+          id: resultat.insertId,
+          nom,
+          email,
+          role
+        }
+      });
+    });
+  });
+});
+
+app.post('/api/admin/connexion', (req, res) => {
+  const { email, motDePasse } = req.body;
+
+  if (!email || !motDePasse) {
+    return res.status(400).json({ erreur: "L'email et le mot de passe sont requis." });
+  }
+
+  db.query('SELECT * FROM admin WHERE email = ?', [email], (err, results) => {
+    if (err) {
+      console.error("Erreur SQL connexion :", err);
+      return res.status(500).json({ erreur: "Erreur serveur lors de la connexion." });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ erreur: "Administrateur introuvable avec cet email." });
+    }
+
+    const admin = results[0];
+
+    if (admin.motDePasse !== motDePasse) {
+      return res.status(401).json({ erreur: "Mot de passe incorrect." });
+    }
+
+    res.json({
+      message: "Connexion réussie",
+      admin: {
+        id: admin.id,
+        nom: admin.nom,
+        email: admin.email,
+        role: admin.role
+      }
+    });
   });
 });
 

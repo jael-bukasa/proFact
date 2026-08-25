@@ -5,6 +5,7 @@ const path = require('path');
 const bdd = new Database(path.join(__dirname, '../profact.db'));
 
 function initialiserBaseDeDonnees() {
+  // Table clients
   bdd.exec(`
     CREATE TABLE IF NOT EXISTS clients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,6 +21,18 @@ function initialiserBaseDeDonnees() {
       devise TEXT DEFAULT 'USD',
       statut TEXT DEFAULT 'actif',
       est_supprime INTEGER DEFAULT 0,
+      cree_le DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Table admin (au singulier)
+  bdd.exec(`
+    CREATE TABLE IF NOT EXISTS admin (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nom TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      mot_de_passe TEXT NOT NULL,
+      role TEXT DEFAULT 'Administrateur',
       cree_le DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -40,7 +53,7 @@ const formaterClient = (cli) => {
   };
 };
 
-// Opérations CRUD
+// Opérations CRUD Clients
 const serviceClients = {
   obtenirTous: () => {
     const rows = bdd.prepare('SELECT * FROM clients ORDER BY id DESC').all();
@@ -146,8 +159,37 @@ const serviceClients = {
   }
 };
 
+// Opérations Admin
+const serviceAdmin = {
+  obtenirParEmail: (email) => {
+    return bdd.prepare('SELECT * FROM admin WHERE email = ?').get(email);
+  },
+
+  ajouter: (donnees) => {
+    const requete = bdd.prepare(`
+      INSERT INTO admin (nom, email, mot_de_passe, role)
+      VALUES (@nom, @email, @motDePasse, @role)
+    `);
+
+    const result = requete.run({
+      nom: donnees.nom,
+      email: donnees.email,
+      motDePasse: donnees.motDePasse, // Doit être hashé avec bcrypt dans ton routeur Express
+      role: donnees.role || 'Administrateur'
+    });
+
+    return bdd.prepare('SELECT id, nom, email, role, cree_le FROM admin WHERE id = ?').get(result.lastInsertRowid);
+  },
+
+  compter: () => {
+    const res = bdd.prepare('SELECT COUNT(*) as total FROM admin').get();
+    return res.total;
+  }
+};
+
 module.exports = {
   initialiserBaseDeDonnees,
   serviceClients,
-  serviceLocataires: serviceClients 
+  serviceLocataires: serviceClients,
+  serviceAdmin
 };

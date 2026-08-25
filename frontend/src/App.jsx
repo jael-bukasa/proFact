@@ -10,6 +10,12 @@ import Facturation from './composants/comptabilite/facturation';
 import Paiements from './composants/comptabilite/paiements';
 import Rapports from './composants/comptabilite/rapports';
 
+// --- IMPORTS AUTHENTIFICATION & PROFIL ---
+import Connexion from './composants/profil/connexion/connexion';
+import CreerCompte from './composants/profil/connexion/creerCompte';
+import Deconnexion from './composants/profil/deconnexion/deconnexion';
+import Profil from './composants/profil/profil';
+
 // --- ANIMATIONS ---
 const transitionDouce = keyframes`
   0% { opacity: 0; transform: translateY(12px) scale(0.995); filter: blur(4px); }
@@ -27,15 +33,16 @@ const StyleGlobal = createGlobalStyle`
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body, #root {
     width: 100%; height: 100%; overflow: hidden;
-    background-color: #000000; color: #FFFFFF;
+    background: linear-gradient(135deg, #070a13 0%, #0d1527 100%);
+    color: #FFFFFF;
     font-family: 'Inter', system-ui, sans-serif;
   }
 `;
 
 const THEME = {
-  fondApplication: '#000000',
+  fondApplication: 'transparent',
   accentuation: '#AEEA00',
-  bordure: '#2A2A2A'
+  bordure: 'rgba(255, 255, 255, 0.08)'
 };
 
 const ConteneurApp = styled.div`
@@ -50,7 +57,8 @@ const ConteneurContenuPrincipal = styled.main`
   min-width: 0;
   padding: 2.5rem;
   overflow-y: auto;
-  background: radial-gradient(circle at 80% 10%, rgba(30, 30, 30, 0.4) 0%, rgba(0, 0, 0, 1) 70%);
+  background: radial-gradient(circle at 80% 10%, rgba(174, 234, 0, 0.03) 0%, rgba(13, 21, 39, 0.3) 60%, rgba(7, 10, 19, 0.5) 100%);
+  backdrop-filter: blur(8px);
 `;
 
 const ZoneAnimee = styled.div`
@@ -63,15 +71,16 @@ const BadgeStatutApi = styled.div`
   right: 1.5rem;
   padding: 0.5rem 1rem;
   border-radius: 30px;
-  background-color: rgba(30, 30, 30, 0.85);
+  background-color: rgba(13, 21, 39, 0.6);
   border: 1px solid ${THEME.bordure};
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   color: #FFFFFF;
   font-size: 0.75rem;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   z-index: 100;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
 `;
 
 const VoyantSignal = styled.span`
@@ -83,11 +92,19 @@ const VoyantSignal = styled.span`
 `;
 
 export default function App() {
+  // Gestion de l'état d'authentification ('connecte', 'connexion', ou 'inscription')
+  const [etatAuth, setEtatAuth] = useState('connecte');
   const [ongletActif, setOngletActif] = useState('Tableau de bord');
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [backendConnecte, setBackendConnecte] = useState(false);
 
-  // État global initialisé depuis le localStorage
+  const utilisateurActuel = {
+    prenom: 'Bukasa',
+    nom: 'Mulaji',
+    role: 'Administrateur',
+    email: 'bukasa@profact.com'
+  };
+
   const [clientsEnregistres, setClientsEnregistres] = useState(() => {
     try {
       const sauvegarde = localStorage.getItem('proFact_clientsEnregistres');
@@ -97,14 +114,12 @@ export default function App() {
     }
   });
 
-  // Fonction de formatage de date en français
   const formaterDateFr = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     return isNaN(date) ? dateString : date.toLocaleDateString('fr-FR');
   };
 
-  // Synchronisation en temps réel via l'événement storage du navigateur
   useEffect(() => {
     const gererStockageChange = (e) => {
       if (e.key === 'proFact_clientsEnregistres' && e.newValue) {
@@ -119,7 +134,6 @@ export default function App() {
     return () => window.removeEventListener('storage', gererStockageChange);
   }, []);
 
-  // Synchronisation locale de secours
   useEffect(() => {
     try {
       localStorage.setItem('proFact_clientsEnregistres', JSON.stringify(clientsEnregistres));
@@ -138,6 +152,31 @@ export default function App() {
     setClientSelectionne(client);
     setOngletActif('Facturation');
   };
+
+  // --- GESTION DES VUES AUTH / INSCRIPTION ---
+  if (etatAuth === 'connexion') {
+    return (
+      <>
+        <StyleGlobal />
+        <Connexion 
+          surConnexionReussie={() => setEtatAuth('connecte')} 
+          allerVersInscription={() => setEtatAuth('inscription')} 
+        />
+      </>
+    );
+  }
+
+  if (etatAuth === 'inscription') {
+    return (
+      <>
+        <StyleGlobal />
+        <CreerCompte 
+          surInscriptionReussie={() => setEtatAuth('connecte')} 
+          allerVersConnexion={() => setEtatAuth('connexion')} 
+        />
+      </>
+    );
+  }
 
   const afficherPageCourante = () => {
     switch (ongletActif) {
@@ -176,6 +215,19 @@ export default function App() {
         );
       case 'Rapports':
         return <Rapports />;
+      case 'Voir Profil':
+        return (
+          <div>
+            <h1>Mon Profil</h1>
+            <Profil utilisateur={utilisateurActuel} />
+          </div>
+        );
+      case 'Parametres':
+        return <h1>Paramètres de l'application</h1>;
+      case 'Deconnexion':
+        return (
+          <Deconnexion surDeconnexion={() => setEtatAuth('connexion')} />
+        );
       default:
         return (
           <TableauDeBord 
@@ -197,6 +249,7 @@ export default function App() {
             if (element !== 'Facturation') setClientSelectionne(null);
             setOngletActif(element);
           }} 
+          surDeconnexionEffective={() => setEtatAuth('connexion')}
         />
         <ConteneurContenuPrincipal>
           <ZoneAnimee key={ongletActif}>

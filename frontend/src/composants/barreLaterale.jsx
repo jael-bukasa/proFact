@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
+import Deconnexion from './profil/deconnexion/deconnexion';
 
 const THEME = {
   fondSidebar: '#000000',
@@ -25,8 +26,18 @@ const SectionProfil = styled.div`
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  margin-bottom: 1.5rem;
+  padding: 0.6rem;
+  margin-bottom: 0.5rem;
   width: 100%;
+  border-radius: 12px;
+  cursor: pointer;
+  background-color: ${props => props.$ouvert ? 'rgba(255, 255, 255, 0.08)' : 'transparent'};
+  transition: background-color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
+  }
 `;
 
 const Avatar = styled.div`
@@ -42,17 +53,13 @@ const Avatar = styled.div`
   font-size: 0.85rem;
   color: ${THEME.accentuation};
   border: 1px solid ${THEME.bordure};
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
 `;
 
 const TexteProfil = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex: 1;
 `;
 
 const Salutation = styled.span`
@@ -66,6 +73,38 @@ const NomUtilisateur = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: ${THEME.textePrincipal};
+`;
+
+const MenuDeroulantProfil = styled.div`
+  margin-left: 1rem;
+  padding-left: 1rem;
+  border-left: 2px solid ${THEME.bordure};
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  animation: fadeIn 0.25s ease-in-out;
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
+
+const OptionProfil = styled.div`
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: ${THEME.texteSecondaire};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(174, 234, 0, 0.1);
+    color: ${THEME.accentuation};
+    transform: translateX(4px);
+  }
 `;
 
 const TitreSectionNav = styled.h3`
@@ -150,7 +189,10 @@ const obtenirIconeNav = (element) => {
   }
 };
 
-export default function BarreLaterale({ ongletActif, auChangementOnglet }) {
+export default function BarreLaterale({ ongletActif, auChangementOnglet, surDeconnexionEffective }) {
+  const [profilOuvert, setProfilOuvert] = useState(false);
+  const [enDeconnexion, setEnDeconnexion] = useState(false);
+
   const configurationMenu = [
     { 
       titre: 'GESTION LOCATIVE', 
@@ -162,34 +204,61 @@ export default function BarreLaterale({ ongletActif, auChangementOnglet }) {
     }
   ];
 
-  return (
-    <ConteneurBarreLaterale>
-      <SectionProfil>
-        <Avatar>PF</Avatar>
-        <TexteProfil>
-          <Salutation>ProFact</Salutation>
-          <NomUtilisateur>Mon profil</NomUtilisateur>
-        </TexteProfil>
-      </SectionProfil>
+  const declencherDeconnexion = () => {
+    setEnDeconnexion(true);
+    setTimeout(() => {
+      if (surDeconnexionEffective) {
+        surDeconnexionEffective(); // Redirige vers 'connexion' (ou 'inscription' selon ton choix)
+      }
+    }, 1200); // Laisse le temps de voir l'animation de déconnexion
+  };
 
-      {configurationMenu.map(section => (
-        <div key={section.titre}>
-          <TitreSectionNav>{section.titre}</TitreSectionNav>
-          {section.elements.map(element => (
-            <ElementNav 
-              key={element} 
-              $actif={ongletActif === element} 
-              onClick={() => auChangementOnglet(element)}
-            >
-              <Icone $actif={ongletActif === element}>
-                {obtenirIconeNav(element)}
-              </Icone>
-              <Libelle>{element}</Libelle>
-              <Fleche $actif={ongletActif === element}>›</Fleche>
-            </ElementNav>
-          ))}
-        </div>
-      ))}
-    </ConteneurBarreLaterale>
+  return (
+    <>
+      {enDeconnexion && (
+        <Deconnexion surDeconnexion={() => {}} />
+      )}
+
+      <ConteneurBarreLaterale>
+        <SectionProfil 
+          $ouvert={profilOuvert}
+          onClick={() => setProfilOuvert(!profilOuvert)}
+        >
+          <Avatar>BJ</Avatar>
+          <TexteProfil>
+            <Salutation>ProFact</Salutation>
+            <NomUtilisateur>Mon profil</NomUtilisateur>
+          </TexteProfil>
+          <span style={{ color: THEME.texteSecondaire, fontSize: '0.8rem', transform: profilOuvert ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>›</span>
+        </SectionProfil>
+
+        {profilOuvert && (
+          <MenuDeroulantProfil>
+            <OptionProfil onClick={() => auChangementOnglet('Voir Profil')}>👤 Voir les détails</OptionProfil>
+            <OptionProfil onClick={() => auChangementOnglet('Parametres')}>⚙️ Paramètres</OptionProfil>
+            <OptionProfil onClick={declencherDeconnexion}>🚪 Déconnexion</OptionProfil>
+          </MenuDeroulantProfil>
+        )}
+
+        {configurationMenu.map(section => (
+          <div key={section.titre}>
+            <TitreSectionNav>{section.titre}</TitreSectionNav>
+            {section.elements.map(element => (
+              <ElementNav 
+                key={element} 
+                $actif={ongletActif === element} 
+                onClick={() => auChangementOnglet(element)}
+              >
+                <Icone $actif={ongletActif === element}>
+                  {obtenirIconeNav(element)}
+                </Icone>
+                <Libelle>{element}</Libelle>
+                <Fleche $actif={ongletActif === element}>›</Fleche>
+              </ElementNav>
+            ))}
+          </div>
+        ))}
+      </ConteneurBarreLaterale>
+    </>
   );
 }
