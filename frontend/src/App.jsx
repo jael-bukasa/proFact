@@ -10,6 +10,10 @@ import Facturation from './composants/comptabilite/facturation';
 import Paiements from './composants/comptabilite/paiements';
 import Rapports from './composants/comptabilite/rapports';
 
+// --- IMPORTS GESTION UTILISATEURS ---
+import CreationsComptes from './composants/gestionsUtilisateurs/creationsComptes';
+import GererComptes from './composants/gestionsUtilisateurs/gererComptes';
+
 // --- IMPORTS AUTHENTIFICATION & PROFIL ---
 import Connexion from './composants/profil/connexion/connexion';
 import CreerCompte from './composants/profil/connexion/creerCompte';
@@ -92,7 +96,6 @@ const VoyantSignal = styled.span`
 `;
 
 export default function App() {
-  // Gestion de l'état d'authentification ('connecte', 'connexion', ou 'inscription')
   const [etatAuth, setEtatAuth] = useState('connecte');
   const [ongletActif, setOngletActif] = useState('Tableau de bord');
   const [clientSelectionne, setClientSelectionne] = useState(null);
@@ -113,6 +116,36 @@ export default function App() {
       return [];
     }
   });
+
+  // Gestion des comptes facturiers (avec localStorage)
+  const [facturiers, setFacturiers] = useState(() => {
+    try {
+      const sauvegarde = localStorage.getItem('proFact_facturiers');
+      return sauvegarde ? JSON.parse(sauvegarde) : [
+        { id: 1, prenom: 'Jean', nom: 'Dupont', email: 'jean.dupont@profact.com', role: 'Facturier principal' }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('proFact_facturiers', JSON.stringify(facturiers));
+    } catch (e) {
+      console.error("Erreur sauvegarde localStorage facturiers", e);
+    }
+  }, [facturiers]);
+
+  const ajouterFacturier = (nouveau) => {
+    setFacturiers([nouveau, ...facturiers]);
+  };
+
+  const supprimerFacturier = (id) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce compte facturier ?")) {
+      setFacturiers(facturiers.filter(f => f.id !== id));
+    }
+  };
 
   const formaterDateFr = (dateString) => {
     if (!dateString) return '';
@@ -153,7 +186,6 @@ export default function App() {
     setOngletActif('Facturation');
   };
 
-  // --- GESTION DES VUES AUTH / INSCRIPTION ---
   if (etatAuth === 'connexion') {
     return (
       <>
@@ -215,6 +247,13 @@ export default function App() {
         );
       case 'Rapports':
         return <Rapports />;
+      
+      // --- NOUVEAUX ONGLETS AJOUTÉS ICI ---
+      case 'Créer un compte':
+        return <CreationsComptes surAjoutFacturier={ajouterFacturier} />;
+      case 'Gérer les comptes':
+        return <GererComptes facturiers={facturiers} surSupprimerFacturier={supprimerFacturier} />;
+
       case 'Voir Profil':
         return (
           <div>

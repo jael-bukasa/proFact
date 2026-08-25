@@ -1,0 +1,558 @@
+import React, { useState, useRef } from 'react';
+import styled, { keyframes } from 'styled-components';
+
+const THEME = {
+  fondCarte: '#121826',
+  fondInput: '#0B101B',
+  accentuation: '#AEEA00',
+  textePrincipal: '#FFFFFF',
+  texteSecondaire: '#8A99AD',
+  bordure: 'rgba(255, 255, 255, 0.08)',
+  bordureFocus: '#AEEA00',
+  erreur: '#ef4444'
+};
+
+const apparition = keyframes`
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const ConteneurPrincipal = styled.div`
+  display: flex;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: flex-start;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+  }
+`;
+
+const ColonneFormulaire = styled.div`
+  flex: 1.4;
+  background-color: ${THEME.fondCarte};
+  border: 1px solid ${THEME.bordure};
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+`;
+
+const ColonneAide = styled.div`
+  flex: 1;
+  background: linear-gradient(145deg, rgba(18, 24, 38, 0.8) 0%, rgba(11, 16, 27, 0.9) 100%);
+  border: 1px solid ${THEME.accentuation}33;
+  border-radius: 16px;
+  padding: 2rem;
+  position: sticky;
+  top: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(174, 234, 0, 0.05);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: ${THEME.accentuation};
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
+  }
+`;
+
+const TitreSection = styled.h2`
+  font-size: 1.4rem;
+  color: ${THEME.textePrincipal};
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+`;
+
+const SousTitre = styled.p`
+  color: ${THEME.texteSecondaire};
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+`;
+
+const GrilleChamps = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GroupeChamp = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+
+  &.plein {
+    grid-column: span 2;
+  }
+`;
+
+const Label = styled.label`
+  font-size: 0.85rem;
+  color: ${THEME.textePrincipal};
+  font-weight: 500;
+`;
+
+const ConteneurInputMotDePasse = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem 2.8rem 0.75rem 1rem;
+  background-color: ${THEME.fondInput};
+  border: 1px solid ${props => props.$enErreur ? THEME.erreur : THEME.bordure};
+  border-radius: 8px;
+  color: ${THEME.textePrincipal};
+  font-size: 0.95rem;
+  transition: all 0.25s ease;
+
+  &:focus {
+    outline: none;
+    border-color: ${props => props.$enErreur ? THEME.erreur : THEME.bordureFocus};
+    box-shadow: 0 0 0 3px ${props => props.$enErreur ? 'rgba(239, 68, 68, 0.15)' : 'rgba(174, 234, 0, 0.15)'};
+  }
+
+  &::placeholder {
+    color: ${THEME.texteSecondaire};
+    opacity: 0.5;
+  }
+`;
+
+const BoutonOeil = styled.button`
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: ${THEME.texteSecondaire};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: ${THEME.accentuation};
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: ${THEME.fondInput};
+  border: 1px solid ${THEME.bordure};
+  border-radius: 8px;
+  color: ${THEME.textePrincipal};
+  font-size: 0.95rem;
+  transition: all 0.25s ease;
+
+  &:focus {
+    outline: none;
+    border-color: ${THEME.bordureFocus};
+    box-shadow: 0 0 0 3px rgba(174, 234, 0, 0.15);
+  }
+
+  option {
+    background-color: ${THEME.fondInput};
+    color: ${THEME.textePrincipal};
+  }
+`;
+
+const BoutonSoumettre = styled.button`
+  width: 100%;
+  padding: 0.85rem;
+  background-color: ${THEME.accentuation};
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  margin-top: 1rem;
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+`;
+
+const MessageSucces = styled.div`
+  background-color: rgba(174, 234, 0, 0.1);
+  border: 1px solid ${THEME.accentuation};
+  color: ${THEME.accentuation};
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+  animation: ${apparition} 0.3s ease forwards;
+`;
+
+const MessageErreur = styled.div`
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid ${THEME.erreur};
+  color: ${THEME.erreur};
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+  animation: ${apparition} 0.3s ease forwards;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+`;
+
+const TitreAide = styled.h3`
+  color: ${THEME.accentuation};
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const TexteAide = styled.p`
+  color: ${THEME.textePrincipal};
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+`;
+
+const ListeCheck = styled.ul`
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+`;
+
+const ElementCheck = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: ${props => props.$valide ? THEME.accentuation : THEME.texteSecondaire};
+`;
+
+export default function CreationsComptes({ surAjoutFacturier }) {
+  const [formData, setFormData] = useState({
+    prenom: '',
+    nom: '',
+    email: '',
+    role: 'Facturier',
+    motDePasse: '',
+    confirmationMotDePasse: ''
+  });
+
+  const [champActif, setChampActif] = useState('general');
+  const [succes, setSucces] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const [champsInvalides, setChampsInvalides] = useState([]);
+
+  const [voirMotDePasse, setVoirMotDePasse] = useState(false);
+  const [voirConfirmation, setVoirConfirmation] = useState(false);
+
+  // Référence pour cibler le haut du formulaire / message d'erreur
+  const referenceErreur = useRef(null);
+
+  const infosAide = {
+    general: {
+      titre: "💡 Guide de création de compte",
+      description: "Remplissez les informations du formulaire pour attribuer un accès sécurisé (Admin ou Facturier) sur la plateforme ProFact.",
+      etapes: [
+        "Renseigner l'identité du collaborateur",
+        "Définir un mot de passe sécurisé",
+        "Sélectionner le profil d'accès adapté"
+      ]
+    },
+    prenom: {
+      titre: "👤 Prénom du collaborateur",
+      description: "Entrez le prénom usuel de l'agent. Il sera affiché dans l'historique des quittances et des opérations.",
+      etapes: [
+        "Minimum 2 caractères requis",
+        "Première lettre en majuscule recommandée"
+      ]
+    },
+    nom: {
+      titre: "🏷️ Nom de famille",
+      description: "Indiquez le nom officiel de l'utilisateur pour l'identification claire dans les rapports et la gestion.",
+      etapes: [
+        "Nom officiel pour la traçabilité",
+        "Associé au profil de connexion"
+      ]
+    },
+    email: {
+      titre: "✉️ Adresse E-mail",
+      description: "Cette adresse servira d'identifiant unique pour se connecter au système ProFact.",
+      etapes: [
+        "Doit respecter le format valide (ex: nom@profact.com)",
+        "Doit être unique pour chaque utilisateur"
+      ]
+    },
+    role: {
+      titre: "🛡️ Niveau d'accès",
+      description: "Choisissez le type de privilèges accordé à ce compte :",
+      etapes: [
+        "• Facturier : Gestion des quittances, clients et paiements.",
+        "• Admin : Accès complet incluant la gestion des comptes."
+      ]
+    },
+    motDePasse: {
+      titre: "🔒 Mot de passe sécurisé",
+      description: "Définissez un mot de passe sécurisé que le collaborateur utilisera pour se connecter. Vous pouvez cliquer sur l'icône de l'œil pour vérifier la saisie.",
+      etapes: [
+        "Minimum de 6 caractères conseillé",
+        "Associer lettres et chiffres pour plus de sécurité"
+      ]
+    },
+    confirmationMotDePasse: {
+      titre: "🔄 Confirmation du mot de passe",
+      description: "Retapez exactement le même mot de passe pour valider qu'il n'y a pas d'erreur de saisie.",
+      etapes: [
+        "Doit correspondre parfaitement au champ précédent",
+        "Valide l'activation sécurisée du compte"
+      ]
+    }
+  };
+
+  const infoActuelle = infosAide[champActif] || infosAide.general;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    if (champsInvalides.includes(name)) {
+      setChampsInvalides(champsInvalides.filter(c => c !== name));
+    }
+    if (erreur) setErreur('');
+  };
+
+  const declencherErreur = (message, champsCibles = []) => {
+    setErreur(message);
+    setChampsInvalides(champsCibles);
+    setSucces(false);
+    
+    // Remonte la vue en douceur vers la zone d'erreur
+    if (referenceErreur.current) {
+      referenceErreur.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setErreur('');
+    setChampsInvalides([]);
+
+    if (!formData.prenom || !formData.nom || !formData.email || !formData.motDePasse || !formData.confirmationMotDePasse) {
+      declencherErreur("Veuillez remplir tous les champs obligatoires du formulaire.");
+      return;
+    }
+
+    if (formData.motDePasse !== formData.confirmationMotDePasse) {
+      declencherErreur("Les mots de passe saisis ne correspondent pas.", ['motDePasse', 'confirmationMotDePasse']);
+      return;
+    }
+
+    const nouveauCompte = {
+      id: Date.now(),
+      prenom: formData.prenom,
+      nom: formData.nom,
+      email: formData.email,
+      role: formData.role
+    };
+
+    if (surAjoutFacturier) {
+      surAjoutFacturier(nouveauCompte);
+    }
+
+    setSucces(true);
+    setFormData({
+      prenom: '',
+      nom: '',
+      email: '',
+      role: 'Facturier',
+      motDePasse: '',
+      confirmationMotDePasse: ''
+    });
+
+    if (referenceErreur.current) {
+      referenceErreur.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    setTimeout(() => {
+      setSucces(false);
+    }, 4000);
+  };
+
+  return (
+    <ConteneurPrincipal>
+      {/* COLONNE DE GAUCHE : Formulaire */}
+      <ColonneFormulaire>
+        {/* Élément invisible cible pour le scroll */}
+        <div ref={referenceErreur} tabIndex={-1} style={{ outline: 'none' }} />
+
+        <TitreSection>Créer un nouveau compte</TitreSection>
+        <SousTitre>Ajoutez un Admin ou un Facturier pour opérer sur la plateforme.</SousTitre>
+
+        {succes && (
+          <MessageSucces>
+            🎉 Compte créé avec succès ! Le collaborateur peut désormais se connecter.
+          </MessageSucces>
+        )}
+
+        {erreur && (
+          <MessageErreur>
+            <span>⚠️</span> {erreur}
+          </MessageErreur>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate>
+          <GrilleChamps>
+            <GroupeChamp>
+              <Label>Prénom</Label>
+              <Input 
+                type="text" 
+                name="prenom" 
+                value={formData.prenom} 
+                onChange={handleChange}
+                onFocus={() => setChampActif('prenom')}
+                placeholder="Ex: Jean" 
+              />
+            </GroupeChamp>
+            <GroupeChamp>
+              <Label>Nom</Label>
+              <Input 
+                type="text" 
+                name="nom" 
+                value={formData.nom} 
+                onChange={handleChange}
+                onFocus={() => setChampActif('nom')}
+                placeholder="Ex: Dupont" 
+              />
+            </GroupeChamp>
+          </GrilleChamps>
+
+          <GroupeChamp className="plein">
+            <Label>Adresse E-mail</Label>
+            <Input 
+              type="email" 
+              name="email" 
+              value={formData.email} 
+              onChange={handleChange}
+              onFocus={() => setChampActif('email')}
+              placeholder="jean.dupont@profact.com" 
+            />
+          </GroupeChamp>
+
+          <GroupeChamp className="plein">
+            <Label>Rôle du compte</Label>
+            <Select 
+              name="role" 
+              value={formData.role} 
+              onChange={handleChange}
+              onFocus={() => setChampActif('role')}
+            >
+              <option value="Facturier">Facturier</option>
+              <option value="Admin">Admin</option>
+            </Select>
+          </GroupeChamp>
+
+          <GrilleChamps>
+            <GroupeChamp>
+              <Label>Mot de passe</Label>
+              <ConteneurInputMotDePasse>
+                <Input 
+                  type={voirMotDePasse ? "text" : "password"} 
+                  name="motDePasse" 
+                  value={formData.motDePasse} 
+                  onChange={handleChange}
+                  onFocus={() => setChampActif('motDePasse')}
+                  placeholder="••••••••" 
+                  $enErreur={champsInvalides.includes('motDePasse')}
+                />
+                <BoutonOeil type="button" onClick={() => setVoirMotDePasse(!voirMotDePasse)}>
+                  {voirMotDePasse ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  )}
+                </BoutonOeil>
+              </ConteneurInputMotDePasse>
+            </GroupeChamp>
+
+            <GroupeChamp>
+              <Label>Confirmer le mot de passe</Label>
+              <ConteneurInputMotDePasse>
+                <Input 
+                  type={voirConfirmation ? "text" : "password"} 
+                  name="confirmationMotDePasse" 
+                  value={formData.confirmationMotDePasse} 
+                  onChange={handleChange}
+                  onFocus={() => setChampActif('confirmationMotDePasse')}
+                  placeholder="••••••••" 
+                  $enErreur={champsInvalides.includes('confirmationMotDePasse')}
+                />
+                <BoutonOeil type="button" onClick={() => setVoirConfirmation(!voirConfirmation)}>
+                  {voirConfirmation ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  )}
+                </BoutonOeil>
+              </ConteneurInputMotDePasse>
+            </GroupeChamp>
+          </GrilleChamps>
+
+          <BoutonSoumettre type="submit">
+            Créer le compte utilisateur
+          </BoutonSoumettre>
+        </form>
+      </ColonneFormulaire>
+
+      {/* COLONNE DE DROITE : Bloc d'informations contextuelles */}
+      <ColonneAide>
+        <TitreAide>{infoActuelle.titre}</TitreAide>
+        <TexteAide>{infoActuelle.description}</TexteAide>
+        
+        <TitreSection style={{ fontSize: '0.95rem', marginBottom: '0.8rem' }}>
+          Détails & Instructions :
+        </TitreSection>
+        <ListeCheck>
+          {infoActuelle.etapes.map((etape, index) => (
+            <ElementCheck key={index} $valide={true}>
+              <span>✔</span> {etape}
+            </ElementCheck>
+          ))}
+        </ListeCheck>
+      </ColonneAide>
+    </ConteneurPrincipal>
+  );
+}

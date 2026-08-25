@@ -185,6 +185,8 @@ const obtenirIconeNav = (element) => {
     case 'Clients': return '👥';
     case 'Facturation': return '📄';
     case 'Paiements': return '💳';
+    case 'Créer un compte': return '➕';
+    case 'Gérer les comptes': return '⚙️';
     default: return '📁';
   }
 };
@@ -201,6 +203,10 @@ export default function BarreLaterale({ ongletActif, auChangementOnglet, surDeco
     { 
       titre: 'COMPTABILITÉ', 
       elements: ['Facturation', 'Paiements'] 
+    },
+    { 
+      titre: 'GESTION UTILISATEURS', 
+      elements: ['Créer un compte', 'Gérer les comptes'] 
     }
   ];
 
@@ -208,9 +214,9 @@ export default function BarreLaterale({ ongletActif, auChangementOnglet, surDeco
     setEnDeconnexion(true);
     setTimeout(() => {
       if (surDeconnexionEffective) {
-        surDeconnexionEffective(); // Redirige vers 'connexion' (ou 'inscription' selon ton choix)
+        surDeconnexionEffective();
       }
-    }, 1200); // Laisse le temps de voir l'animation de déconnexion
+    }, 1200);
   };
 
   return (
