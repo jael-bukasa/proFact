@@ -370,11 +370,17 @@ const ContenuModal = styled.div`
 
 export default function GererComptes({ facturiers = [], surSupprimerFacturier, surModifierFacturier }) {
   const [idEnEdition, setIdEnEdition] = useState(null);
-  const [formDataEdit, setFormDataEdit] = useState({ prenom: '', nom: '', email: '', role: '' });
+  const [formDataEdit, setFormDataEdit] = useState({ 
+    prenom: '', 
+    nom: '', 
+    email: '', 
+    role: '', 
+    motDePasse: '' 
+  });
   const [recherche, setRecherche] = useState('');
   const [utilisateurASupprimer, setUtilisateurASupprimer] = useState(null);
 
-  const facturiersFiltres = useMemo(() => {
+  const utilisateursFiltres = useMemo(() => {
     return facturiers.filter(u => 
       `${u.prenom} ${u.nom} ${u.email}`.toLowerCase().includes(recherche.toLowerCase())
     );
@@ -384,8 +390,8 @@ export default function GererComptes({ facturiers = [], surSupprimerFacturier, s
   const nombreAdmins = facturiers.filter(u => u.role?.toLowerCase() === 'admin').length;
   const nombreFacturiers = facturiers.filter(u => u.role?.toLowerCase() === 'facturier').length;
 
-  const listeAdmins = facturiersFiltres.filter(u => u.role?.toLowerCase() === 'admin');
-  const listeFacturiersSeuls = facturiersFiltres.filter(u => u.role?.toLowerCase() === 'facturier');
+  const listeAdmins = utilisateursFiltres.filter(u => u.role?.toLowerCase() === 'admin');
+  const listeFacturiersSeuls = utilisateursFiltres.filter(u => u.role?.toLowerCase() === 'facturier');
 
   const demarrerEdition = (utilisateur) => {
     setIdEnEdition(utilisateur.id);
@@ -393,7 +399,9 @@ export default function GererComptes({ facturiers = [], surSupprimerFacturier, s
       prenom: utilisateur.prenom,
       nom: utilisateur.nom,
       email: utilisateur.email,
-      role: utilisateur.role
+      role: utilisateur.role,
+      // Récupération directe du mot de passe de la base de données (gère les deux conventions de nommage possibles)
+      motDePasse: utilisateur.mot_de_passe || utilisateur.motDePasse || ''
     });
   };
 
@@ -537,6 +545,15 @@ export default function GererComptes({ facturiers = [], surSupprimerFacturier, s
               <option value="Facturier">Facturier</option>
               <option value="Admin">Admin</option>
             </select>
+
+            {/* Input de type texte pour voir et modifier clairement le mot de passe */}
+            <input 
+              type="text" 
+              value={formDataEdit.motDePasse} 
+              onChange={(e) => setFormDataEdit({ ...formDataEdit, motDePasse: e.target.value })}
+              placeholder="Mot de passe"
+            />
+
             <div className="groupe-actions-edit">
               <button className="sauvegarder" onClick={() => sauvegarderModification(utilisateur.id)}>Enregistrer</button>
               <button className="annuler" onClick={() => setIdEnEdition(null)}>Annuler</button>

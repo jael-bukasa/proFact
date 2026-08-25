@@ -142,6 +142,27 @@ db.connect((err) => {
       console.log("Table admin vérifiée/créée avec succès.");
     }
   });
+
+  // Table facturiers
+  const sqlFacturiers = `
+    CREATE TABLE IF NOT EXISTS facturiers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      prenom VARCHAR(100) NOT NULL,
+      nom VARCHAR(100) NOT NULL,
+      email VARCHAR(150) NOT NULL UNIQUE,
+      motDePasse VARCHAR(255) NOT NULL,
+      role VARCHAR(50) DEFAULT 'Facturier',
+      creeLe DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  db.query(sqlFacturiers, (errFacturiers) => {
+    if (errFacturiers) {
+      console.error("Erreur lors de la création de la table facturiers :", errFacturiers);
+    } else {
+      console.log("Table facturiers vérifiée/créée avec succès.");
+    }
+  });
 });
 
 // ==========================================
@@ -517,6 +538,71 @@ app.post('/api/admin/connexion', (req, res) => {
         role: admin.role
       }
     });
+  });
+});
+
+// ==========================================
+// ROUTES API - FACTURIERS
+// ==========================================
+
+app.get('/api/facturiers', (req, res) => {
+  const query = 'SELECT id, prenom, nom, email, role, creeLe FROM facturiers ORDER BY id DESC';
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Erreur SQL récupération facturiers :", err);
+      return res.status(500).json({ erreur: "Erreur lors de la récupération des facturiers." });
+    }
+    res.json(results);
+  });
+});
+
+app.post('/api/facturiers', (req, res) => {
+  const { prenom, nom, email, motDePasse, role = 'Facturier' } = req.body;
+
+  if (!prenom || !nom || !email || !motDePasse) {
+    return res.status(400).json({ erreur: "Tous les champs obligatoires doivent être remplis." });
+  }
+
+  db.query('SELECT * FROM facturiers WHERE email = ?', [email], (err, results) => {
+    if (err) {
+      console.error("Erreur SQL vérification email facturier :", err);
+      return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
+    }
+
+    if (results.length > 0) {
+      return res.status(400).json({ erreur: "Cette adresse e-mail est déjà utilisée." });
+    }
+
+    const queryInsert = 'INSERT INTO facturiers (prenom, nom, email, motDePasse, role) VALUES (?, ?, ?, ?, ?)';
+    db.query(queryInsert, [prenom, nom, email, motDePasse, role], (errInsert, resultat) => {
+      if (errInsert) {
+        console.error("Erreur lors de l'insertion du facturier :", errInsert);
+        return res.status(500).json({ erreur: "Erreur lors de la création du compte facturier." });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Compte facturier créé avec succès.",
+        data: {
+          id: resultat.insertId,
+          prenom,
+          nom,
+          email,
+          role
+        }
+      });
+    });
+  });
+});
+
+app.delete('/api/facturiers/:id', (req, res) => {
+  const { id } = req.params;
+  db.query('DELETE FROM facturiers WHERE id = ?', [id], (err) => {
+    if (err) {
+      console.error("Erreur suppression facturier :", err);
+      return res.status(500).json({ erreur: "Erreur lors de la suppression du facturier" });
+    }
+    res.json({ message: "Facturier supprimé avec succès" });
   });
 });
 

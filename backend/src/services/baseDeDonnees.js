@@ -36,6 +36,19 @@ function initialiserBaseDeDonnees() {
       cree_le DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Table facturiers / utilisateurs
+  bdd.exec(`
+    CREATE TABLE IF NOT EXISTS facturiers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      prenom TEXT NOT NULL,
+      nom TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      mot_de_passe TEXT NOT NULL,
+      role TEXT DEFAULT 'Facturier',
+      cree_le DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 
 // Initialisation au chargement
@@ -174,7 +187,7 @@ const serviceAdmin = {
     const result = requete.run({
       nom: donnees.nom,
       email: donnees.email,
-      motDePasse: donnees.motDePasse, // Doit être hashé avec bcrypt dans ton routeur Express
+      motDePasse: donnees.motDePasse,
       role: donnees.role || 'Administrateur'
     });
 
@@ -187,9 +200,47 @@ const serviceAdmin = {
   }
 };
 
+// Opérations Facturiers
+const serviceFacturiers = {
+  obtenirTous: () => {
+    return bdd.prepare('SELECT id, prenom, nom, email, role, cree_le FROM facturiers ORDER BY id DESC').all();
+  },
+
+  obtenirParId: (id) => {
+    return bdd.prepare('SELECT id, prenom, nom, email, role, cree_le FROM facturiers WHERE id = ?').get(id);
+  },
+
+  obtenirParEmail: (email) => {
+    return bdd.prepare('SELECT * FROM facturiers WHERE email = ?').get(email);
+  },
+
+  ajouter: (donnees) => {
+    const requete = bdd.prepare(`
+      INSERT INTO facturiers (prenom, nom, email, mot_de_passe, role)
+      VALUES (@prenom, @nom, @email, @motDePasse, @role)
+    `);
+
+    const result = requete.run({
+      prenom: donnees.prenom,
+      nom: donnees.nom,
+      email: donnees.email,
+      motDePasse: donnees.motDePasse,
+      role: donnees.role || 'Facturier'
+    });
+
+    return serviceFacturiers.obtenirParId(result.lastInsertRowid);
+  },
+
+  supprimer: (id) => {
+    bdd.prepare('DELETE FROM facturiers WHERE id = ?').run(id);
+    return { success: true };
+  }
+};
+
 module.exports = {
   initialiserBaseDeDonnees,
   serviceClients,
   serviceLocataires: serviceClients,
-  serviceAdmin
+  serviceAdmin,
+  serviceFacturiers
 };

@@ -19,9 +19,9 @@ const apparition = keyframes`
 
 const ConteneurPrincipal = styled.div`
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
   align-items: flex-start;
 
@@ -34,8 +34,8 @@ const ColonneFormulaire = styled.div`
   flex: 1.4;
   background-color: ${THEME.fondCarte};
   border: 1px solid ${THEME.bordure};
-  border-radius: 16px;
-  padding: 2rem;
+  border-radius: 14px;
+  padding: 1.5rem;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 `;
 
@@ -43,10 +43,10 @@ const ColonneAide = styled.div`
   flex: 1;
   background: linear-gradient(145deg, rgba(18, 24, 38, 0.8) 0%, rgba(11, 16, 27, 0.9) 100%);
   border: 1px solid ${THEME.accentuation}33;
-  border-radius: 16px;
-  padding: 2rem;
+  border-radius: 14px;
+  padding: 1.5rem;
   position: sticky;
-  top: 2rem;
+  top: 1.5rem;
   box-shadow: 0 8px 32px 0 rgba(174, 234, 0, 0.05);
 
   &::before {
@@ -57,29 +57,29 @@ const ColonneAide = styled.div`
     width: 4px;
     height: 100%;
     background-color: ${THEME.accentuation};
-    border-top-left-radius: 16px;
-    border-bottom-left-radius: 16px;
+    border-top-left-radius: 14px;
+    border-bottom-left-radius: 14px;
   }
 `;
 
 const TitreSection = styled.h2`
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   color: ${THEME.textePrincipal};
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   font-weight: 600;
 `;
 
 const SousTitre = styled.p`
   color: ${THEME.texteSecondaire};
-  font-size: 0.9rem;
-  margin-bottom: 2rem;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
 `;
 
 const GrilleChamps = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.2rem;
-  margin-bottom: 1.2rem;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
 
   @media (max-width: 600px) {
     grid-template-columns: 1fr;
@@ -89,8 +89,8 @@ const GrilleChamps = styled.div`
 const GroupeChamp = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1.2rem;
+  gap: 0.35rem;
+  margin-bottom: 0.8rem;
 
   &.plein {
     grid-column: span 2;
@@ -98,7 +98,7 @@ const GroupeChamp = styled.div`
 `;
 
 const Label = styled.label`
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: ${THEME.textePrincipal};
   font-weight: 500;
 `;
@@ -110,12 +110,12 @@ const ConteneurInputMotDePasse = styled.div`
 
 const Input = styled.input`
   width: 100%;
-  padding: 0.75rem 2.8rem 0.75rem 1rem;
+  padding: 0.55rem 2.5rem 0.55rem 0.85rem;
   background-color: ${THEME.fondInput};
   border: 1px solid ${props => props.$enErreur ? THEME.erreur : THEME.bordure};
-  border-radius: 8px;
+  border-radius: 6px;
   color: ${THEME.textePrincipal};
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   transition: all 0.25s ease;
 
   &:focus {
@@ -132,7 +132,7 @@ const Input = styled.input`
 
 const BoutonOeil = styled.button`
   position: absolute;
-  right: 0.75rem;
+  right: 0.6rem;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -142,7 +142,7 @@ const BoutonOeil = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem;
+  padding: 0.2rem;
   transition: color 0.2s ease;
 
   &:hover {
@@ -152,12 +152,12 @@ const BoutonOeil = styled.button`
 
 const Select = styled.select`
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.55rem 0.85rem;
   background-color: ${THEME.fondInput};
   border: 1px solid ${THEME.bordure};
-  border-radius: 8px;
+  border-radius: 6px;
   color: ${THEME.textePrincipal};
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   transition: all 0.25s ease;
 
   &:focus {
@@ -174,20 +174,20 @@ const Select = styled.select`
 
 const BoutonSoumettre = styled.button`
   width: 100%;
-  padding: 0.85rem;
+  padding: 0.7rem;
   background-color: ${THEME.accentuation};
   color: #000000;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: transform 0.2s ease, opacity 0.2s ease;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 
   &:hover {
     opacity: 0.9;
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
 `;
 
@@ -195,10 +195,10 @@ const MessageSucces = styled.div`
   background-color: rgba(174, 234, 0, 0.1);
   border: 1px solid ${THEME.accentuation};
   color: ${THEME.accentuation};
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
   text-align: center;
   animation: ${apparition} 0.3s ease forwards;
 `;
@@ -207,10 +207,10 @@ const MessageErreur = styled.div`
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid ${THEME.erreur};
   color: ${THEME.erreur};
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
   text-align: center;
   animation: ${apparition} 0.3s ease forwards;
   display: flex;
@@ -221,8 +221,8 @@ const MessageErreur = styled.div`
 
 const TitreAide = styled.h3`
   color: ${THEME.accentuation};
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -230,22 +230,22 @@ const TitreAide = styled.h3`
 
 const TexteAide = styled.p`
   color: ${THEME.textePrincipal};
-  font-size: 0.95rem;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
 `;
 
 const ListeCheck = styled.ul`
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.6rem;
 `;
 
 const ElementCheck = styled.li`
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   font-size: 0.85rem;
   color: ${props => props.$valide ? THEME.accentuation : THEME.texteSecondaire};
 `;
@@ -268,7 +268,6 @@ export default function CreationsComptes({ surAjoutFacturier }) {
   const [voirMotDePasse, setVoirMotDePasse] = useState(false);
   const [voirConfirmation, setVoirConfirmation] = useState(false);
 
-  // Référence pour cibler le haut du formulaire / message d'erreur
   const referenceErreur = useRef(null);
 
   const infosAide = {
@@ -348,7 +347,6 @@ export default function CreationsComptes({ surAjoutFacturier }) {
     setChampsInvalides(champsCibles);
     setSucces(false);
     
-    // Remonte la vue en douceur vers la zone d'erreur
     if (referenceErreur.current) {
       referenceErreur.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -402,9 +400,7 @@ export default function CreationsComptes({ surAjoutFacturier }) {
 
   return (
     <ConteneurPrincipal>
-      {/* COLONNE DE GAUCHE : Formulaire */}
       <ColonneFormulaire>
-        {/* Élément invisible cible pour le scroll */}
         <div ref={referenceErreur} tabIndex={-1} style={{ outline: 'none' }} />
 
         <TitreSection>Créer un nouveau compte</TitreSection>
@@ -488,12 +484,12 @@ export default function CreationsComptes({ surAjoutFacturier }) {
                 />
                 <BoutonOeil type="button" onClick={() => setVoirMotDePasse(!voirMotDePasse)}>
                   {voirMotDePasse ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                       <line x1="1" y1="1" x2="23" y2="23"></line>
                     </svg>
                   ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                       <circle cx="12" cy="12" r="3"></circle>
                     </svg>
@@ -516,12 +512,12 @@ export default function CreationsComptes({ surAjoutFacturier }) {
                 />
                 <BoutonOeil type="button" onClick={() => setVoirConfirmation(!voirConfirmation)}>
                   {voirConfirmation ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                       <line x1="1" y1="1" x2="23" y2="23"></line>
                     </svg>
                   ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                       <circle cx="12" cy="12" r="3"></circle>
                     </svg>
@@ -537,12 +533,11 @@ export default function CreationsComptes({ surAjoutFacturier }) {
         </form>
       </ColonneFormulaire>
 
-      {/* COLONNE DE DROITE : Bloc d'informations contextuelles */}
       <ColonneAide>
         <TitreAide>{infoActuelle.titre}</TitreAide>
         <TexteAide>{infoActuelle.description}</TexteAide>
         
-        <TitreSection style={{ fontSize: '0.95rem', marginBottom: '0.8rem' }}>
+        <TitreSection style={{ fontSize: '0.85rem', marginBottom: '0.6rem' }}>
           Détails & Instructions :
         </TitreSection>
         <ListeCheck>

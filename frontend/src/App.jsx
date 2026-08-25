@@ -117,12 +117,12 @@ export default function App() {
     }
   });
 
-  // Gestion des comptes facturiers (avec localStorage)
+  // Gestion des comptes : Rôle défini à 'Admin' pour que le compte apparaisse dans les Administrateurs
   const [facturiers, setFacturiers] = useState(() => {
     try {
       const sauvegarde = localStorage.getItem('proFact_facturiers');
       return sauvegarde ? JSON.parse(sauvegarde) : [
-        { id: 1, prenom: 'Jean', nom: 'Dupont', email: 'jean.dupont@profact.com', role: 'Facturier principal' }
+        { id: 1, prenom: 'Jaël', nom: 'Bukasa', email: 'jaelbuk08@gmail.com', role: 'Admin', motDePasse: 'secret123' }
       ];
     } catch (e) {
       return [];
@@ -141,8 +141,12 @@ export default function App() {
     setFacturiers([nouveau, ...facturiers]);
   };
 
+  const modifierFacturier = (id, donneesModifiees) => {
+    setFacturiers(facturiers.map(f => (f.id === id ? { ...f, ...donneesModifiees } : f)));
+  };
+
   const supprimerFacturier = (id) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce compte facturier ?")) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce compte ?")) {
       setFacturiers(facturiers.filter(f => f.id !== id));
     }
   };
@@ -248,11 +252,17 @@ export default function App() {
       case 'Rapports':
         return <Rapports />;
       
-      // --- NOUVEAUX ONGLETS AJOUTÉS ICI ---
       case 'Créer un compte':
         return <CreationsComptes surAjoutFacturier={ajouterFacturier} />;
+      
       case 'Gérer les comptes':
-        return <GererComptes facturiers={facturiers} surSupprimerFacturier={supprimerFacturier} />;
+        return (
+          <GererComptes 
+            facturiers={facturiers} 
+            surSupprimerFacturier={supprimerFacturier} 
+            surModifierFacturier={modifierFacturier}
+          />
+        );
 
       case 'Voir Profil':
         return (
