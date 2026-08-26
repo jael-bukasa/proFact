@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
+import GuideCreationComptes from './guideCreationComptes';
 
 const THEME = {
   fondCarte: '#121826',
@@ -37,29 +38,6 @@ const ColonneFormulaire = styled.div`
   border-radius: 14px;
   padding: 1.5rem;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-`;
-
-const ColonneAide = styled.div`
-  flex: 1;
-  background: linear-gradient(145deg, rgba(18, 24, 38, 0.8) 0%, rgba(11, 16, 27, 0.9) 100%);
-  border: 1px solid ${THEME.accentuation}33;
-  border-radius: 14px;
-  padding: 1.5rem;
-  position: sticky;
-  top: 1.5rem;
-  box-shadow: 0 8px 32px 0 rgba(174, 234, 0, 0.05);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background-color: ${THEME.accentuation};
-    border-top-left-radius: 14px;
-    border-bottom-left-radius: 14px;
-  }
 `;
 
 const TitreSection = styled.h2`
@@ -154,7 +132,7 @@ const Select = styled.select`
   width: 100%;
   padding: 0.55rem 0.85rem;
   background-color: ${THEME.fondInput};
-  border: 1px solid ${THEME.bordure};
+  border: 1px solid ${props => props.$enErreur ? THEME.erreur : THEME.bordure};
   border-radius: 6px;
   color: ${THEME.textePrincipal};
   font-size: 0.9rem;
@@ -162,14 +140,21 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: ${THEME.bordureFocus};
-    box-shadow: 0 0 0 3px rgba(174, 234, 0, 0.15);
+    border-color: ${props => props.$enErreur ? THEME.erreur : THEME.bordureFocus};
+    box-shadow: 0 0 0 3px ${props => props.$enErreur ? 'rgba(239, 68, 68, 0.15)' : 'rgba(174, 234, 0, 0.15)'};
   }
 
   option {
     background-color: ${THEME.fondInput};
     color: ${THEME.textePrincipal};
   }
+`;
+
+const TexteErreurChamp = styled.span`
+  color: ${THEME.erreur};
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+  animation: ${apparition} 0.2s ease forwards;
 `;
 
 const BoutonSoumettre = styled.button`
@@ -208,7 +193,7 @@ const MessageSucces = styled.div`
   animation: ${apparition} 0.3s ease forwards;
 `;
 
-const MessageErreur = styled.div`
+const MessageErreurGlobal = styled.div`
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid ${THEME.erreur};
   color: ${THEME.erreur};
@@ -224,37 +209,6 @@ const MessageErreur = styled.div`
   gap: 0.5rem;
 `;
 
-const TitreAide = styled.h3`
-  color: ${THEME.accentuation};
-  font-size: 1rem;
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const TexteAide = styled.p`
-  color: ${THEME.textePrincipal};
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin-bottom: 1rem;
-`;
-
-const ListeCheck = styled.ul`
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-`;
-
-const ElementCheck = styled.li`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: ${props => props.$valide ? THEME.accentuation : THEME.texteSecondaire};
-`;
-
 export default function CreationsComptes({ surAjoutFacturier }) {
   const [formData, setFormData] = useState({
     prenom: '',
@@ -267,132 +221,96 @@ export default function CreationsComptes({ surAjoutFacturier }) {
 
   const [champActif, setChampActif] = useState('general');
   const [succes, setSucces] = useState(false);
-  const [erreur, setErreur] = useState('');
+  const [erreurGlobale, setErreurGlobale] = useState('');
+  const [erreursChamps, setErreursChamps] = useState({});
   const [chargement, setChargement] = useState(false);
-  const [champsInvalides, setChampsInvalides] = useState([]);
 
   const [voirMotDePasse, setVoirMotDePasse] = useState(false);
   const [voirConfirmation, setVoirConfirmation] = useState(false);
 
-  const referenceErreur = useRef(null);
-
-  const infosAide = {
-    general: {
-      titre: "💡 Guide de création de compte",
-      description: "Remplissez les informations du formulaire pour attribuer un accès sécurisé (Admin ou Facturier) sur la plateforme ProFact.",
-      etapes: [
-        "Renseigner l'identité du collaborateur",
-        "Définir un mot de passe sécurisé",
-        "Sélectionner le profil d'accès adapté"
-      ]
-    },
-    prenom: {
-      titre: "👤 Prénom du collaborateur",
-      description: "Entrez le prénom usuel de l'agent. Il sera affiché dans l'historique des quittances et des opérations.",
-      etapes: [
-        "Minimum 2 caractères requis",
-        "Première lettre en majuscule recommandée"
-      ]
-    },
-    nom: {
-      titre: "🏷️ Nom de famille",
-      description: "Indiquez le nom officiel de l'utilisateur pour l'identification claire dans les rapports et la gestion.",
-      etapes: [
-        "Nom officiel pour la traçabilité",
-        "Associé au profil de connexion"
-      ]
-    },
-    email: {
-      titre: "✉️ Adresse E-mail",
-      description: "Cette adresse servira d'identifiant unique pour se connecter au système ProFact.",
-      etapes: [
-        "Doit respecter le format valide (ex: nom@profact.com)",
-        "Doit être unique pour chaque utilisateur"
-      ]
-    },
-    role: {
-      titre: "🛡️ Niveau d'accès",
-      description: "Choisissez le type de privilèges accordé à ce compte :",
-      etapes: [
-        "• Facturier : Gestion des quittances, clients et paiements.",
-        "• Admin : Accès complet incluant la gestion des comptes."
-      ]
-    },
-    motDePasse: {
-      titre: "🔒 Mot de passe sécurisé",
-      description: "Définissez un mot de passe sécurisé que le collaborateur utilisera pour se connecter. Vous pouvez cliquer sur l'icône de l'œil pour vérifier la saisie.",
-      etapes: [
-        "Minimum de 6 caractères conseillé",
-        "Associer lettres et chiffres pour plus de sécurité"
-      ]
-    },
-    confirmationMotDePasse: {
-      titre: "🔄 Confirmation du mot de passe",
-      description: "Retapez exactement le même mot de passe pour valider qu'il n'y a pas d'erreur de saisie.",
-      etapes: [
-        "Doit correspondre parfaitement au champ précédent",
-        "Valide l'activation sécurisée du compte"
-      ]
-    }
+  const refsChamps = {
+    prenom: useRef(null),
+    nom: useRef(null),
+    email: useRef(null),
+    role: useRef(null),
+    motDePasse: useRef(null),
+    confirmationMotDePasse: useRef(null),
   };
-
-  const infoActuelle = infosAide[champActif] || infosAide.general;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     
-    if (champsInvalides.includes(name)) {
-      setChampsInvalides(champsInvalides.filter(c => c !== name));
+    if (erreursChamps[name]) {
+      setErreursChamps({ ...erreursChamps, [name]: '' });
     }
-    if (erreur) setErreur('');
-  };
-
-  const declencherErreur = (message, champsCibles = []) => {
-    setErreur(message);
-    setChampsInvalides(champsCibles);
-    setSucces(false);
-    
-    if (referenceErreur.current) {
-      referenceErreur.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (erreurGlobale) setErreurGlobale('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErreur('');
-    setChampsInvalides([]);
+    setErreurGlobale('');
+    
+    let nouvellesErreurs = {};
+    let premierChampInvalide = null;
 
-    if (!formData.prenom || !formData.nom || !formData.email || !formData.motDePasse || !formData.confirmationMotDePasse) {
-      declencherErreur("Veuillez remplir tous les champs obligatoires du formulaire.");
-      return;
+    if (!formData.prenom.trim()) {
+      nouvellesErreurs.prenom = "Le prénom est requis.";
+      if (!premierChampInvalide) premierChampInvalide = 'prenom';
+    }
+    if (!formData.nom.trim()) {
+      nouvellesErreurs.nom = "Le nom est requis.";
+      if (!premierChampInvalide) premierChampInvalide = 'nom';
+    }
+    if (!formData.email.trim()) {
+      nouvellesErreurs.email = "L'adresse e-mail est requise.";
+      if (!premierChampInvalide) premierChampInvalide = 'email';
+    } else {
+      const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!regexEmail.test(formData.email)) {
+        nouvellesErreurs.email = "Format d'e-mail invalide.";
+        if (!premierChampInvalide) premierChampInvalide = 'email';
+      }
+    }
+    if (!formData.motDePasse) {
+      nouvellesErreurs.motDePasse = "Le mot de passe est requis.";
+      if (!premierChampInvalide) premierChampInvalide = 'motDePasse';
+    } else if (formData.motDePasse.length < 6) {
+      nouvellesErreurs.motDePasse = "Le mot de passe doit contenir au moins 6 caractères.";
+      if (!premierChampInvalide) premierChampInvalide = 'motDePasse';
+    }
+    if (!formData.confirmationMotDePasse) {
+      nouvellesErreurs.confirmationMotDePasse = "Veuillez confirmer le mot de passe.";
+      if (!premierChampInvalide) premierChampInvalide = 'confirmationMotDePasse';
+    } else if (formData.motDePasse !== formData.confirmationMotDePasse) {
+      nouvellesErreurs.confirmationMotDePasse = "Les mots de passe ne correspondent pas.";
+      if (!premierChampInvalide) premierChampInvalide = 'confirmationMotDePasse';
     }
 
-    if (formData.motDePasse !== formData.confirmationMotDePasse) {
-      declencherErreur("Les mots de passe saisis ne correspondent pas.", ['motDePasse', 'confirmationMotDePasse']);
+    setErreursChamps(nouvellesErreurs);
+
+    if (Object.keys(nouvellesErreurs).length > 0) {
+      setErreurGlobale("Veuillez corriger les erreurs signalées dans le formulaire.");
+      if (premierChampInvalide && refsChamps[premierChampInvalide]?.current) {
+        refsChamps[premierChampInvalide].current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        refsChamps[premierChampInvalide].current.focus();
+      }
       return;
     }
 
     setChargement(true);
 
     try {
-      // Détermination de l'URL selon le rôle choisi
-      // Si c'est Admin -> /api/admin/inscription
-      // Si c'est Facturier -> /api/facturiers
       const estAdmin = formData.role.toLowerCase() === 'admin';
       const urlEndpoint = estAdmin ? 'http://localhost:5000/api/admin/inscription' : 'http://localhost:5000/api/facturiers';
 
-      // Pour l'admin, les clés attendues par ton back sont { nom, email, motDePasse, role }
-      // Pour le facturier, les clés attendues sont { prenom, nom, email, motDePasse, role }
       const corpsRequete = estAdmin 
         ? { nom: `${formData.prenom} ${formData.nom}`, email: formData.email, motDePasse: formData.motDePasse, role: formData.role }
         : { prenom: formData.prenom, nom: formData.nom, email: formData.email, motDePasse: formData.motDePasse, role: formData.role };
 
       const reponse = await fetch(urlEndpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(corpsRequete),
       });
 
@@ -404,12 +322,10 @@ export default function CreationsComptes({ surAjoutFacturier }) {
 
       setSucces(true);
 
-      // Si une fonction parente est fournie, on la prévient
       if (surAjoutFacturier && !estAdmin) {
         surAjoutFacturier(resultat.data || resultat.facturier);
       }
 
-      // Réinitialisation du formulaire
       setFormData({
         prenom: '',
         nom: '',
@@ -419,16 +335,15 @@ export default function CreationsComptes({ surAjoutFacturier }) {
         confirmationMotDePasse: ''
       });
 
-      if (referenceErreur.current) {
-        referenceErreur.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
       setTimeout(() => {
         setSucces(false);
       }, 4000);
 
     } catch (err) {
-      declencherErreur(err.message || "Impossible de joindre le serveur backend.");
+      setErreurGlobale(err.message || "Impossible de joindre le serveur backend.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setChargement(false);
     }
@@ -437,8 +352,6 @@ export default function CreationsComptes({ surAjoutFacturier }) {
   return (
     <ConteneurPrincipal>
       <ColonneFormulaire>
-        <div ref={referenceErreur} tabIndex={-1} style={{ outline: 'none' }} />
-
         <TitreSection>Créer un nouveau compte</TitreSection>
         <SousTitre>Ajoutez un Admin ou un Facturier pour opérer sur la plateforme.</SousTitre>
 
@@ -448,15 +361,15 @@ export default function CreationsComptes({ surAjoutFacturier }) {
           </MessageSucces>
         )}
 
-        {erreur && (
-          <MessageErreur>
-            <span>⚠️</span> {erreur}
-          </MessageErreur>
+        {erreurGlobale && (
+          <MessageErreurGlobal>
+            <span>⚠️</span> {erreurGlobale}
+          </MessageErreurGlobal>
         )}
 
         <form onSubmit={handleSubmit} noValidate>
           <GrilleChamps>
-            <GroupeChamp>
+            <GroupeChamp ref={refsChamps.prenom}>
               <Label>Prénom</Label>
               <Input 
                 type="text" 
@@ -465,9 +378,12 @@ export default function CreationsComptes({ surAjoutFacturier }) {
                 onChange={handleChange}
                 onFocus={() => setChampActif('prenom')}
                 placeholder="Ex: Jean" 
+                $enErreur={!!erreursChamps.prenom}
               />
+              {erreursChamps.prenom && <TexteErreurChamp>{erreursChamps.prenom}</TexteErreurChamp>}
             </GroupeChamp>
-            <GroupeChamp>
+            
+            <GroupeChamp ref={refsChamps.nom}>
               <Label>Nom</Label>
               <Input 
                 type="text" 
@@ -476,11 +392,13 @@ export default function CreationsComptes({ surAjoutFacturier }) {
                 onChange={handleChange}
                 onFocus={() => setChampActif('nom')}
                 placeholder="Ex: Dupont" 
+                $enErreur={!!erreursChamps.nom}
               />
+              {erreursChamps.nom && <TexteErreurChamp>{erreursChamps.nom}</TexteErreurChamp>}
             </GroupeChamp>
           </GrilleChamps>
 
-          <GroupeChamp className="plein">
+          <GroupeChamp className="plein" ref={refsChamps.email}>
             <Label>Adresse E-mail</Label>
             <Input 
               type="email" 
@@ -489,24 +407,28 @@ export default function CreationsComptes({ surAjoutFacturier }) {
               onChange={handleChange}
               onFocus={() => setChampActif('email')}
               placeholder="jean.dupont@profact.com" 
+              $enErreur={!!erreursChamps.email}
             />
+            {erreursChamps.email && <TexteErreurChamp>{erreursChamps.email}</TexteErreurChamp>}
           </GroupeChamp>
 
-          <GroupeChamp className="plein">
+          <GroupeChamp className="plein" ref={refsChamps.role}>
             <Label>Rôle du compte</Label>
             <Select 
               name="role" 
               value={formData.role} 
               onChange={handleChange}
               onFocus={() => setChampActif('role')}
+              $enErreur={!!erreursChamps.role}
             >
               <option value="Facturier">Facturier</option>
               <option value="Admin">Admin</option>
             </Select>
+            {erreursChamps.role && <TexteErreurChamp>{erreursChamps.role}</TexteErreurChamp>}
           </GroupeChamp>
 
           <GrilleChamps>
-            <GroupeChamp>
+            <GroupeChamp ref={refsChamps.motDePasse}>
               <Label>Mot de passe</Label>
               <ConteneurInputMotDePasse>
                 <Input 
@@ -516,7 +438,7 @@ export default function CreationsComptes({ surAjoutFacturier }) {
                   onChange={handleChange}
                   onFocus={() => setChampActif('motDePasse')}
                   placeholder="••••••••" 
-                  $enErreur={champsInvalides.includes('motDePasse')}
+                  $enErreur={!!erreursChamps.motDePasse}
                 />
                 <BoutonOeil type="button" onClick={() => setVoirMotDePasse(!voirMotDePasse)}>
                   {voirMotDePasse ? (
@@ -532,9 +454,10 @@ export default function CreationsComptes({ surAjoutFacturier }) {
                   )}
                 </BoutonOeil>
               </ConteneurInputMotDePasse>
+              {erreursChamps.motDePasse && <TexteErreurChamp>{erreursChamps.motDePasse}</TexteErreurChamp>}
             </GroupeChamp>
 
-            <GroupeChamp>
+            <GroupeChamp ref={refsChamps.confirmationMotDePasse}>
               <Label>Confirmer le mot de passe</Label>
               <ConteneurInputMotDePasse>
                 <Input 
@@ -544,7 +467,7 @@ export default function CreationsComptes({ surAjoutFacturier }) {
                   onChange={handleChange}
                   onFocus={() => setChampActif('confirmationMotDePasse')}
                   placeholder="••••••••" 
-                  $enErreur={champsInvalides.includes('confirmationMotDePasse')}
+                  $enErreur={!!erreursChamps.confirmationMotDePasse}
                 />
                 <BoutonOeil type="button" onClick={() => setVoirConfirmation(!voirConfirmation)}>
                   {voirConfirmation ? (
@@ -560,6 +483,7 @@ export default function CreationsComptes({ surAjoutFacturier }) {
                   )}
                 </BoutonOeil>
               </ConteneurInputMotDePasse>
+              {erreursChamps.confirmationMotDePasse && <TexteErreurChamp>{erreursChamps.confirmationMotDePasse}</TexteErreurChamp>}
             </GroupeChamp>
           </GrilleChamps>
 
@@ -569,21 +493,8 @@ export default function CreationsComptes({ surAjoutFacturier }) {
         </form>
       </ColonneFormulaire>
 
-      <ColonneAide>
-        <TitreAide>{infoActuelle.titre}</TitreAide>
-        <TexteAide>{infoActuelle.description}</TexteAide>
-        
-        <TitreSection style={{ fontSize: '0.85rem', marginBottom: '0.6rem' }}>
-          Détails & Instructions :
-        </TitreSection>
-        <ListeCheck>
-          {infoActuelle.etapes.map((etape, index) => (
-            <ElementCheck key={index} $valide={true}>
-              <span>✔</span> {etape}
-            </ElementCheck>
-          ))}
-        </ListeCheck>
-      </ColonneAide>
+      {/* Appel du composant guide séparé */}
+      <GuideCreationComptes champActif={champActif} />
     </ConteneurPrincipal>
   );
 }
