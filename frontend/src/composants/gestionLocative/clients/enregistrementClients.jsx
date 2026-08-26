@@ -235,6 +235,19 @@ export default function EnregistrementClients({
   const longueurDesignation = (formulaire.designation ?? '').length;
   const limiteAtteinte = longueurDesignation >= MAX_CARACTERES_DESIGNATION;
 
+  const gererChangementDate = (e) => {
+    const { name, value } = e.target;
+    if (value) {
+      const parties = value.split('-');
+      const annee = parties[0];
+      if (annee && annee.length > 4) {
+        parties[0] = annee.slice(0, 4);
+        e.target.value = parties.join('-');
+      }
+    }
+    handleChange(e);
+  };
+
   const gererToucheEntree = (e) => {
     if (e.target.tagName === 'TEXTAREA') return;
 
@@ -280,12 +293,12 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Date Bail * (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.dateBail = el} type="date" name="dateBail" value={formulaire.dateBail ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.dateBail} />
+              <EntreeTexte ref={el => refs.current.dateBail = el} type="date" name="dateBail" max="9999-12-31" value={formulaire.dateBail ?? ''} onChange={gererChangementDate} onKeyDown={gererToucheEntree} $hasError={!!erreurs.dateBail} />
               {erreurs.dateBail && <MessageErreurInterne>{typeof erreurs.dateBail === 'string' ? erreurs.dateBail : "Requis"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
 
-                    <ChampConteneur>
+          <ChampConteneur>
             <Etiquette>Logement (LOC) *</Etiquette>
             <ChampInterneWrapper>
               <EntreeTexte ref={el => refs.current.logement = el} name="logement" value={formulaire.logement ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} placeholder="Ex: A12" $hasError={!!erreurs.logement} />
@@ -386,10 +399,25 @@ export default function EnregistrementClients({
           </ChampConteneur>
 
           <ChampConteneur>
-            <Etiquette>Montant *</Etiquette>
+            <Etiquette>Montant * (&gt; 0)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.montant = el} type="number" name="montant" value={formulaire.montant ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} placeholder="0.00" $hasError={!!erreurs.montant} />
-              {erreurs.montant && <MessageErreurInterne>{typeof erreurs.montant === 'string' ? erreurs.montant : "Requis"}</MessageErreurInterne>}
+              <EntreeTexte 
+                ref={el => refs.current.montant = el} 
+                type="number" 
+                step="any"
+                min="0.0001"
+                name="montant" 
+                value={formulaire.montant ?? ''} 
+                onChange={handleChange} 
+                onKeyDown={gererToucheEntree} 
+                placeholder="Ex: 150.00" 
+                $hasError={!!erreurs.montant} 
+              />
+              {erreurs.montant && (
+                <MessageErreurInterne>
+                  {typeof erreurs.montant === 'string' ? erreurs.montant : "Invalide (> 0)"}
+                </MessageErreurInterne>
+              )}
             </ChampInterneWrapper>
           </ChampConteneur>
 
@@ -431,7 +459,7 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Début Contrat * (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.debutContrat = el} type="date" name="debutContrat" value={formulaire.debutContrat ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.debutContrat} />
+              <EntreeTexte ref={el => refs.current.debutContrat = el} type="date" name="debutContrat" max="9999-12-31" value={formulaire.debutContrat ?? ''} onChange={gererChangementDate} onKeyDown={gererToucheEntree} $hasError={!!erreurs.debutContrat} />
               {erreurs.debutContrat && <MessageErreurInterne>{typeof erreurs.debutContrat === 'string' ? erreurs.debutContrat : "Invalide"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
@@ -439,7 +467,7 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Fin Contrat * (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.finContrat = el} type="date" name="finContrat" value={formulaire.finContrat ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.finContrat} />
+              <EntreeTexte ref={el => refs.current.finContrat = el} type="date" name="finContrat" max="9999-12-31" value={formulaire.finContrat ?? ''} onChange={gererChangementDate} onKeyDown={gererToucheEntree} $hasError={!!erreurs.finContrat} />
               {erreurs.finContrat && <MessageErreurInterne>{typeof erreurs.finContrat === 'string' ? erreurs.finContrat : "Invalide"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
@@ -447,7 +475,7 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Date Comptable (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.dateComptable = el} type="date" name="dateComptable" value={formulaire.dateComptable ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} $hasError={!!erreurs.dateComptable} />
+              <EntreeTexte ref={el => refs.current.dateComptable = el} type="date" name="dateComptable" max="9999-12-31" value={formulaire.dateComptable ?? ''} onChange={gererChangementDate} onKeyDown={gererToucheEntree} $hasError={!!erreurs.dateComptable} />
               {erreurs.dateComptable && <MessageErreurInterne>{typeof erreurs.dateComptable === 'string' ? erreurs.dateComptable : "Invalide"}</MessageErreurInterne>}
             </ChampInterneWrapper>
           </ChampConteneur>
@@ -484,7 +512,7 @@ export default function EnregistrementClients({
           <ChampConteneur>
             <Etiquette>Dernière Date (DER Dt) (AAAA-MM-JJ)</Etiquette>
             <ChampInterneWrapper>
-              <EntreeTexte ref={el => refs.current.derniereDate = el} type="date" name="derniereDate" value={formulaire.derniereDate ?? ''} onChange={handleChange} onKeyDown={gererToucheEntree} />
+              <EntreeTexte ref={el => refs.current.derniereDate = el} type="date" name="derniereDate" max="9999-12-31" value={formulaire.derniereDate ?? ''} onChange={gererChangementDate} onKeyDown={gererToucheEntree} />
             </ChampInterneWrapper>
           </ChampConteneur>
         </GrilleChamps>

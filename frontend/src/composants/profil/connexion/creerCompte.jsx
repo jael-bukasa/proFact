@@ -219,7 +219,8 @@ export default function CreerCompte({ surInscriptionReussie, allerVersConnexion 
       setRedirectionEnCours(true);
 
     } catch (err) {
-      setErreur("Impossible de contacter le serveur.");
+      console.error("Erreur réseau :", err);
+      setErreur("Impossible de contacter le serveur. Vérifiez qu'il est bien démarré sur le port 5000.");
       setChargement(false);
     }
   };
