@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -58,27 +59,85 @@ const IconeWrapper = styled.div`
   font-size: 1rem;
 `;
 
-const ValeurCarte = styled.h2`
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: ${THEME.textePrincipal};
-  margin: 0;
+// Conteneur pour l'effet d'écran défilant
+const EcranDefilant = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 55px;
+  position: relative;
 `;
 
-const SousTexteCarte = styled.span`
+const LigneNom = styled(motion.div)`
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: ${THEME.textePrincipal};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const AucunDossier = styled.span`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: ${THEME.texteSecondaire};
+`;
+
+const SousTexteCarte = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: ${THEME.texteSecondaire};
   font-size: 0.75rem;
 `;
 
-export default function DossiersSoldes({ totalRegle, totalDossiers }) {
+export default function DossiersSoldes({ totalRegle, totalDossiers, clientsSoldes = [] }) {
+  const [indexActuel, setIndexActuel] = useState(0);
+
+  // Fait tourner les noms toutes les 3 secondes s'il y a des clients
+  useEffect(() => {
+    if (clientsSoldes.length <= 1) return;
+
+    const intervalle = setInterval(() => {
+      setIndexActuel((prevIndex) => (prevIndex + 1) % clientsSoldes.length);
+    }, 3000);
+
+    return () => clearInterval(intervalle);
+  }, [clientsSoldes.length]);
+
+  const clientActuel = clientsSoldes[indexActuel];
+
   return (
     <CarteMetrique>
       <EnTeteCarte>
         <TitreCarte>Dossiers Soldés</TitreCarte>
         <IconeWrapper>✅</IconeWrapper>
       </EnTeteCarte>
-      <ValeurCarte>{totalRegle} / {totalDossiers}</ValeurCarte>
-      <SousTexteCarte>Paiements validés</SousTexteCarte>
+
+      <EcranDefilant>
+        {clientsSoldes.length > 0 && clientActuel ? (
+          <AnimatePresence mode="wait">
+            <LigneNom
+              key={indexActuel}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4 }}
+            >
+              {clientActuel.nom} {clientActuel.postnom || clientActuel.postNom || ''}
+            </LigneNom>
+          </AnimatePresence>
+        ) : (
+          <AucunDossier>Aucun dossier soldé</AucunDossier>
+        )}
+      </EcranDefilant>
+
+      <SousTexteCarte>
+        <span>Paiements validés</span>
+        <span style={{ fontWeight: '600', color: THEME.vert }}>
+          {totalRegle} / {totalDossiers}
+        </span>
+      </SousTexteCarte>
     </CarteMetrique>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 
 // Importation des sous-composants
 import TotalEnregistrements from './tableauDeBord/totalEnregistrements';
@@ -19,14 +20,14 @@ const THEME = {
   violet: '#a855f7'
 };
 
-const ConteneurSection = styled.div`
+const ConteneurSection = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 2rem;
   width: 100%;
 `;
 
-const BarreSuperieureFiltres = styled.div`
+const BarreSuperieureFiltres = styled(motion.div)`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -44,6 +45,22 @@ const GrilleMetriques = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.2rem;
   width: 100%;
+  align-items: stretch;
+`;
+
+const CarteAnimee = styled(motion.div)`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  & > * {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+  }
 `;
 
 export default function TableauDeBord({ clientsEnregistres = [], utilisateurConnecte }) {
@@ -107,6 +124,9 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
     let montantTotalGlobalUSD = 0;
     let totalRegle = 0;
 
+    // Liste des clients dont le dossier est soldé
+    const clientsSoldesListe = [];
+
     const statsTypes = {
       Loyers: { count: 0, montantUSD: 0, couleur: THEME.accentuation, icon: '🏠', label: 'Loyers' },
       Eau: { count: 0, montantUSD: 0, couleur: THEME.bleu, icon: '💧', label: 'Eau' },
@@ -124,7 +144,10 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
       montantTotalGlobalUSD += montantEnUSD;
 
       const estPaye = Boolean(cli.modePaiement && cli.modePaiement !== '-' && cli.modePaiement !== '');
-      if (estPaye) totalRegle++;
+      if (estPaye) {
+        totalRegle++;
+        clientsSoldesListe.push(cli);
+      }
 
       const matriculeBrut = (cli.matricule || cli.numero || '').toUpperCase();
       const typeBrutSource = cli.typeClient || cli.typeFacture || cli.type || '';
@@ -155,7 +178,8 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
       totalDossiers,
       montantTotalGlobalUSD,
       totalRegle,
-      statsTypes
+      statsTypes,
+      clientsSoldesListe
     };
   }, [clientsEnregistres, dateFiltre, tauxChangeCDF]);
 
@@ -188,9 +212,17 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
     : statistiques.montantTotalGlobalUSD * tauxChangeCDF;
 
   return (
-    <ConteneurSection>
+    <ConteneurSection
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       
-      <BarreSuperieureFiltres>
+      <BarreSuperieureFiltres
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
         <FiltrePeriode 
           dateActuelle={dateFiltre}
           onChangerMois={gererChangementMois}
@@ -208,30 +240,65 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
       </BarreSuperieureFiltres>
 
       <GrilleMetriques>
-        <TotalEnregistrements 
-          totalDossiers={statistiques.totalDossiers}
-          statsTypes={statistiques.statsTypes}
-          donneesDonut={donneesDonut}
-        />
+        <CarteAnimee
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <TotalEnregistrements 
+            totalDossiers={statistiques.totalDossiers}
+            statsTypes={statistiques.statsTypes}
+            donneesDonut={donneesDonut}
+          />
+        </CarteAnimee>
 
-        <VolumeFinancier 
-          devise={devise}
-          basculerDevise={basculerDevise}
-          volumeFinancierAffiche={volumeFinancierAffiche}
-        />
+        <CarteAnimee
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <VolumeFinancier 
+            devise={devise}
+            basculerDevise={basculerDevise}
+            volumeFinancierAffiche={volumeFinancierAffiche}
+          />
+        </CarteAnimee>
 
-        <DossiersSoldes 
-          totalRegle={statistiques.totalRegle}
-          totalDossiers={statistiques.totalDossiers}
-        />
+        <CarteAnimee
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <DossiersSoldes 
+            totalRegle={statistiques.totalRegle}
+            totalDossiers={statistiques.totalDossiers}
+            clientsSoldes={statistiques.clientsSoldesListe}
+          />
+        </CarteAnimee>
       </GrilleMetriques>
 
-      <RepartionParTypes 
-        statsTypes={statistiques.statsTypes}
-        totalDossiers={statistiques.totalDossiers}
-        devise={devise}
-        tauxChangeCDF={tauxChangeCDF}
-      />
+      <CarteAnimee
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <RepartionParTypes 
+          statsTypes={statistiques.statsTypes}
+          totalDossiers={statistiques.totalDossiers}
+          devise={devise}
+          tauxChangeCDF={tauxChangeCDF}
+        />
+      </CarteAnimee>
 
     </ConteneurSection>
   );
