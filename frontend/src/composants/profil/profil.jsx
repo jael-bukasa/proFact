@@ -47,6 +47,7 @@ const NomComplet = styled.h2`
   font-size: 1.4rem;
   color: #FFFFFF;
   font-weight: 600;
+  text-transform: capitalize;
 `;
 
 const BadgeRole = styled.span`
@@ -87,16 +88,21 @@ const Valeur = styled.span`
   font-size: 0.95rem;
   color: #FFFFFF;
   font-weight: 500;
+  text-transform: capitalize;
 `;
 
 export default function Profil({ utilisateur }) {
-  // Valeurs par défaut de secours si l'objet utilisateur est vide
+  // Sécurisation et fusion intelligente des données
+  const prenomBrut = utilisateur?.prenom || 'Jaël';
+  const nomBrut = utilisateur?.nom || 'Mulaji';
+  const postnomBrut = utilisateur?.postnom || 'Bukasa';
+
   const utilisateurSecours = {
-    prenom: 'Bukasa',
-    nom: 'Mulaji',
-    role: 'Administrateur',
-    email: 'bukasa@profact.com',
-    ...utilisateur
+    prenom: prenomBrut,
+    nom: nomBrut,
+    postnom: postnomBrut,
+    role: utilisateur?.role || 'Administrateur',
+    email: utilisateur?.email || 'jaelbuk08@gmail.com',
   };
 
   const initiales = `${utilisateurSecours.prenom?.charAt(0) || ''}${utilisateurSecours.nom?.charAt(0) || ''}`.toUpperCase();
@@ -106,7 +112,7 @@ export default function Profil({ utilisateur }) {
       <EnTeteProfil>
         <AvatarGrand>{initiales}</AvatarGrand>
         <InfoUtilisateur>
-          <NomComplet>{`${utilisateurSecours.prenom} ${utilisateurSecours.nom}`}</NomComplet>
+          <NomComplet>{`${utilisateurSecours.prenom} ${utilisateurSecours.nom} ${utilisateurSecours.postnom}`}</NomComplet>
           <BadgeRole>{utilisateurSecours.role}</BadgeRole>
         </InfoUtilisateur>
       </EnTeteProfil>
@@ -121,12 +127,12 @@ export default function Profil({ utilisateur }) {
           <Valeur>{utilisateurSecours.nom}</Valeur>
         </ChampDetail>
         <ChampDetail>
-          <Label>Adresse e-mail</Label>
-          <Valeur>{utilisateurSecours.email}</Valeur>
+          <Label>Postnom</Label>
+          <Valeur>{utilisateurSecours.postnom}</Valeur>
         </ChampDetail>
         <ChampDetail>
-          <Label>Rôle du système</Label>
-          <Valeur>{utilisateurSecours.role}</Valeur>
+          <Label>Adresse e-mail</Label>
+          <Valeur style={{ textTransform: 'none' }}>{utilisateurSecours.email}</Valeur>
         </ChampDetail>
       </GrilleDetails>
     </CarteProfil>

@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
 
-// Importation des sous-composants du tableau de bord
+// Importation des sous-composants
 import TotalEnregistrements from './tableauDeBord/totalEnregistrements';
 import VolumeFinancier from './tableauDeBord/volumeFinancier';
 import DossiersSoldes from './tableauDeBord/dossiersSoldes';
 import RepartionParTypes from './tableauDeBord/repartionParTypes';
+import FiltrePeriode from './tableauDeBord/filtrePeriode';
+import GenererStatistique from './tableauDeBord/genererStatistique';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -25,27 +26,17 @@ const ConteneurSection = styled.div`
   width: 100%;
 `;
 
-const ConteneurEnTete = styled(motion.header)`
+const BarreSuperieureFiltres = styled.div`
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-`;
 
-const SelecteurMois = styled(motion.div)`
-  background-color: ${THEME.fondCarte};
-  color: ${THEME.textePrincipal};
-  border: 1px solid ${THEME.bordure};
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  text-transform: capitalize;
-  cursor: pointer;
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const GrilleMetriques = styled.div`
@@ -55,14 +46,8 @@ const GrilleMetriques = styled.div`
   width: 100%;
 `;
 
-const obtenirMoisCourant = () => {
-  const date = new Date();
-  const moisAnnee = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-  return moisAnnee.charAt(0).toUpperCase() + moisAnnee.slice(1);
-};
-
-export default function TableauDeBord({ clientsEnregistres = [] }) {
-  const [moisSelectionne] = useState(obtenirMoisCourant());
+export default function TableauDeBord({ clientsEnregistres = [], utilisateurConnecte }) {
+  const [dateFiltre, setDateFiltre] = useState(new Date());
   const [devise, setDevise] = useState('USD');
   const tauxChangeCDF = 2800;
 
@@ -70,8 +55,55 @@ export default function TableauDeBord({ clientsEnregistres = [] }) {
     setDevise(prev => (prev === 'USD' ? 'CDF' : 'USD'));
   };
 
+  const gererChangementMois = (deltaMois) => {
+    setDateFiltre(prevDate => {
+      const nouvelleDate = new Date(prevDate);
+      nouvelleDate.setMonth(prevDate.getMonth() + deltaMois);
+      return new Date(nouvelleDate);
+    });
+  };
+
+  const gererChangementDateExacte = (nouvelleDate) => {
+    setDateFiltre(new Date(nouvelleDate));
+  };
+
+  const gererReinitialiser = () => {
+    setDateFiltre(new Date());
+  };
+
+  const convertirDate = (valeur) => {
+    if (!valeur) return null;
+    if (valeur instanceof Date) return valeur;
+    
+    if (typeof valeur === 'string' && (valeur.includes('/') || (valeur.includes('-') && valeur.indexOf('-') === 2))) {
+      const separateur = valeur.includes('/') ? '/' : '-';
+      const parties = valeur.split(separateur);
+      if (parties.length === 3) {
+        if (parties[0].length === 4) {
+          return new Date(valeur);
+        }
+        return new Date(`${parties[2]}-${parties[1]}-${parties[0]}`);
+      }
+    }
+    
+    return new Date(valeur);
+  };
+
   const statistiques = useMemo(() => {
-    const totalDossiers = clientsEnregistres.length;
+    const clientsFiltres = clientsEnregistres.filter(cli => {
+      const rawDate = cli.date || cli.dateComptable || cli.dateEnregistrement || cli.created_at || cli.createdAt;
+      if (!rawDate) return false;
+
+      const dateTransaction = convertirDate(rawDate);
+      if (!dateTransaction || isNaN(dateTransaction.getTime())) return false;
+
+      return (
+        dateTransaction.getMonth() === dateFiltre.getMonth() &&
+        dateTransaction.getFullYear() === dateFiltre.getFullYear()
+      );
+    });
+
+    const totalDossiers = clientsFiltres.length;
     let montantTotalGlobalUSD = 0;
     let totalRegle = 0;
 
@@ -82,7 +114,7 @@ export default function TableauDeBord({ clientsEnregistres = [] }) {
       Divers: { count: 0, montantUSD: 0, couleur: THEME.violet, icon: '📦', label: 'Divers' }
     };
 
-    clientsEnregistres.forEach((cli) => {
+    clientsFiltres.forEach((cli) => {
       let montantBrut = parseFloat(cli.montant) || 0;
       let montantEnUSD = montantBrut;
       if (cli.devise && cli.devise.toUpperCase() === 'CDF') {
@@ -125,7 +157,7 @@ export default function TableauDeBord({ clientsEnregistres = [] }) {
       totalRegle,
       statsTypes
     };
-  }, [clientsEnregistres, tauxChangeCDF]);
+  }, [clientsEnregistres, dateFiltre, tauxChangeCDF]);
 
   const donneesDonut = useMemo(() => {
     const total = statistiques.totalDossiers;
@@ -158,22 +190,23 @@ export default function TableauDeBord({ clientsEnregistres = [] }) {
   return (
     <ConteneurSection>
       
-      {/* En-tête */}
-      <ConteneurEnTete
-        initial={{ opacity: 0, y: -20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: false, amount: 0.2 }}
-        transition={{ duration: 0.4 }}
-      >
-        <SelecteurMois
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          📅 Période : {moisSelectionne}
-        </SelecteurMois>
-      </ConteneurEnTete>
+      <BarreSuperieureFiltres>
+        <FiltrePeriode 
+          dateActuelle={dateFiltre}
+          onChangerMois={gererChangementMois}
+          onChangerDateExacte={gererChangementDateExacte}
+          onReinitialiser={gererReinitialiser}
+        />
 
-      {/* Cartes de Synthèse Principales */}
+        <GenererStatistique 
+          dateFiltre={dateFiltre}
+          statistiques={statistiques}
+          devise={devise}
+          tauxChangeCDF={tauxChangeCDF}
+          utilisateurConnecte={utilisateurConnecte}
+        />
+      </BarreSuperieureFiltres>
+
       <GrilleMetriques>
         <TotalEnregistrements 
           totalDossiers={statistiques.totalDossiers}
@@ -193,7 +226,6 @@ export default function TableauDeBord({ clientsEnregistres = [] }) {
         />
       </GrilleMetriques>
 
-      {/* Répartition par Type (Sous-composant modulaire) */}
       <RepartionParTypes 
         statsTypes={statistiques.statsTypes}
         totalDossiers={statistiques.totalDossiers}

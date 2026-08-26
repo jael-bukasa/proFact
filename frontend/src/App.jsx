@@ -37,7 +37,7 @@ const StyleGlobal = createGlobalStyle`
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body, #root {
     width: 100%; height: 100%; overflow: hidden;
-    background: #000000; /* Fond noir unifié identique à la barre latérale */
+    background: #000000;
     color: #FFFFFF;
     font-family: 'Inter', system-ui, sans-serif;
   }
@@ -61,7 +61,7 @@ const ConteneurContenuPrincipal = styled.main`
   min-width: 0;
   padding: 2.5rem;
   overflow-y: auto;
-  background-color: #000000; /* Fond noir unifié pour tout le contenu principal */
+  background-color: #000000;
 `;
 
 const ZoneAnimee = styled.div`
@@ -95,20 +95,18 @@ const VoyantSignal = styled.span`
 `;
 
 export default function App() {
-  // L'application commence sur le formulaire de connexion
   const [etatAuth, setEtatAuth] = useState('connexion');
   
-  // Utilisateur connecté de manière dynamique
   const [utilisateurActuel, setUtilisateurActuel] = useState({
     prenom: 'Jaël',
-    nom: 'Bukasa',
+    nom: 'Mulaji',
+    postnom: 'Bukasa',
     role: 'Facturier',
     email: 'jaelbuk08@gmail.com'
   });
 
   const estAdmin = utilisateurActuel.role.toLowerCase().includes('admin');
 
-  // L'onglet actif s'adapte automatiquement selon le rôle
   const [ongletActif, setOngletActif] = useState(estAdmin ? 'Tableau de bord' : 'Clients');
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [backendConnecte, setBackendConnecte] = useState(false);
@@ -126,7 +124,7 @@ export default function App() {
     try {
       const sauvegarde = localStorage.getItem('proFact_facturiers');
       return sauvegarde ? JSON.parse(sauvegarde) : [
-        { id: 1, prenom: 'Jaël', nom: 'Bukasa', email: 'jaelbuk08@gmail.com', role: 'Admin', motDePasse: 'secret123' }
+        { id: 1, prenom: 'Jaël', nom: 'Mulaji', postnom: 'Bukasa', email: 'jaelbuk08@gmail.com', role: 'Admin', motDePasse: 'secret123' }
       ];
     } catch (e) {
       return [];
@@ -201,7 +199,13 @@ export default function App() {
         <Connexion 
           surConnexionReussie={(donneesUtilisateur) => {
             if (donneesUtilisateur) {
-              setUtilisateurActuel(donneesUtilisateur);
+              setUtilisateurActuel({
+                prenom: donneesUtilisateur.prenom || 'Jaël',
+                nom: donneesUtilisateur.nom || 'Mulaji',
+                postnom: donneesUtilisateur.postnom || 'Bukasa',
+                role: donneesUtilisateur.role || 'Facturier',
+                email: donneesUtilisateur.email || 'jaelbuk08@gmail.com'
+              });
               const isAdminConnexion = donneesUtilisateur.role?.toLowerCase().includes('admin');
               setOngletActif(isAdminConnexion ? 'Tableau de bord' : 'Clients');
             }
@@ -220,7 +224,13 @@ export default function App() {
         <CreerCompte 
           surInscriptionReussie={(donneesUtilisateur) => {
             if (donneesUtilisateur) {
-              setUtilisateurActuel(donneesUtilisateur);
+              setUtilisateurActuel({
+                prenom: donneesUtilisateur.prenom || 'Jaël',
+                nom: donneesUtilisateur.nom || 'Mulaji',
+                postnom: donneesUtilisateur.postnom || 'Bukasa',
+                role: donneesUtilisateur.role || 'Facturier',
+                email: donneesUtilisateur.email || 'jaelbuk08@gmail.com'
+              });
               const isAdminInscription = donneesUtilisateur.role?.toLowerCase().includes('admin');
               setOngletActif(isAdminInscription ? 'Tableau de bord' : 'Clients');
             }
@@ -249,6 +259,7 @@ export default function App() {
             clientsEnregistres={clientsEnregistres} 
             onSelectClient={allerAFacturation}
             onNouvelleFacture={() => { setClientSelectionne(null); setOngletActif('Facturation'); }} 
+            utilisateurConnecte={utilisateurActuel}
           />
         );
       case 'Clients':
