@@ -64,6 +64,7 @@ const nettoyerDate = (valeur) => {
 };
 
 module.exports = (db) => {
+  // Récupérer la corbeille
   router.get('/corbeille', (req, res) => {
     const query = 'SELECT * FROM clients WHERE supprime = 1 ORDER BY id ASC';
     db.query(query, (err, results) => {
@@ -75,6 +76,7 @@ module.exports = (db) => {
     });
   });
 
+  // Récupérer uniquement les clients enregistrés (pour le tableau principal)
   router.get('/enregistres', (req, res) => {
     const query = 'SELECT * FROM clients WHERE supprime = 0 AND enregistre = 1 ORDER BY id DESC';
     db.query(query, (err, results) => {
@@ -86,6 +88,7 @@ module.exports = (db) => {
     });
   });
 
+  // Récupérer TOUS les clients (actifs et non supprimés)
   router.get('/', (req, res) => {
     const query = 'SELECT * FROM clients WHERE supprime = 0 ORDER BY id ASC';
     db.query(query, (err, results) => {
@@ -97,6 +100,7 @@ module.exports = (db) => {
     });
   });
 
+  // Créer un nouveau client
   router.post('/', (req, res) => {
     const { 
       nom = '', postNom = '', prenom = '', bail = '', dateBail = null,
@@ -105,7 +109,7 @@ module.exports = (db) => {
       montant = 0, modePaiement = 'Virement', moisFacture = '',
       debutContrat = null, finContrat = null, dateComptable = null,
       compteur = '', imputation = '', dernierNumero = '', dernierMontant = 0,
-      derniereDate = null, telephone = '', email = '', enregistre = false 
+      derniereDate = null, telephone = '', email = '', enregistre = true // <-- Forcé à true par défaut
     } = req.body;
 
     const nomClient = nom.trim() !== '' ? nom : (designation || 'Client');
@@ -157,38 +161,13 @@ module.exports = (db) => {
       const valeurEnregistre = enregistre ? 1 : 0;
 
       const valeurs = [
-        idDisponible, 
-        matricule, 
-        nomClient, 
-        postNom, 
-        prenomClient, 
-        bail, 
-        nettoyerDate(dateBail), 
-        logement, 
-        adresse, 
-        pays, 
-        designation, 
-        typeClient, 
-        typeFacture, 
-        devise,
-        Number(montant) || 0, 
-        modePaiement, 
-        moisFacture, 
-        nettoyerDate(debutContrat),
-        nettoyerDate(finContrat), 
-        nettoyerDate(dateComptable), 
-        compteur, 
-        imputation,
-        dernierNumero, 
-        Number(dernierMontant) || 0, 
-        nettoyerDate(derniereDate), 
-        telephone, 
-        email, 
-        dateEntree, 
-        'Actif', 
-        0, 
-        valeurEnregistre, 
-        creeLe  
+        idDisponible, matricule, nomClient, postNom, prenomClient, bail, 
+        nettoyerDate(dateBail), logement, adresse, pays, designation, typeClient, 
+        typeFacture, devise, Number(montant) || 0, modePaiement, moisFacture, 
+        nettoyerDate(debutContrat), nettoyerDate(finContrat), nettoyerDate(dateComptable), 
+        compteur, imputation, dernierNumero, Number(dernierMontant) || 0, 
+        nettoyerDate(derniereDate), telephone, email, dateEntree, 'Actif', 0, 
+        valeurEnregistre, creeLe  
       ];
 
       db.query(queryInsert, valeurs, (insertErr) => {
@@ -211,6 +190,7 @@ module.exports = (db) => {
     });
   });
 
+  // Valider / Enregistrer un client (Patch)
   router.patch('/:id/valider', (req, res) => {
     const { id } = req.params;
     const query = 'UPDATE clients SET enregistre = 1 WHERE id = ?';
@@ -221,6 +201,7 @@ module.exports = (db) => {
     });
   });
 
+  // Modifier un client (Put) - Renvoie le client mis à jour pour fluidifier le front
   router.put('/:id', (req, res) => {
     const { id } = req.params;
     const { 
@@ -245,10 +226,18 @@ module.exports = (db) => {
 
     db.query(query, valeurs, (err) => {
       if (err) return res.status(500).json({ erreur: "Erreur lors de la modification" });
-      res.json({ message: "Client modifié avec succès" });
+      
+      // Récupération du client mis à jour pour renvoi direct
+      db.query('SELECT * FROM clients WHERE id = ?', [id], (errSelect, results) => {
+        if (errSelect || results.length === 0) {
+          return res.json({ message: "Client modifié avec succès" });
+        }
+        res.json(formaterClient(results[0]));
+      });
     });
   });
 
+  // Restaurer un client depuis la corbeille
   router.patch('/:id/restaurer', (req, res) => {
     const { id } = req.params;
     db.query('UPDATE clients SET supprime = 0 WHERE id = ?', [id], (err) => {
@@ -257,6 +246,7 @@ module.exports = (db) => {
     });
   });
 
+  // Vider entièrement la corbeille
   router.delete('/corbeille/vider', (req, res) => {
     db.query('DELETE FROM clients WHERE supprime = 1', (err) => {
       if (err) return res.status(500).json({ erreur: "Erreur lors du vidage de la corbeille" });
@@ -264,6 +254,7 @@ module.exports = (db) => {
     });
   });
 
+  // Supprimer un client définitivement
   router.delete('/:id/definitif', (req, res) => {
     const { id } = req.params;
     db.query('DELETE FROM clients WHERE id = ?', [id], (err) => {
@@ -272,6 +263,7 @@ module.exports = (db) => {
     });
   });
 
+  // Envoyer un client dans la corbeille (Soft Delete)
   router.delete('/:id', (req, res) => {
     const { id } = req.params;
     db.query('UPDATE clients SET supprime = 1 WHERE id = ?', [id], (err) => {

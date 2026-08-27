@@ -25,7 +25,7 @@ function initialiserBaseDeDonnees() {
     );
   `);
 
-  // Table admin (au singulier)
+  // Table admin
   bdd.exec(`
     CREATE TABLE IF NOT EXISTS admin (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +46,17 @@ function initialiserBaseDeDonnees() {
       email TEXT NOT NULL UNIQUE,
       mot_de_passe TEXT NOT NULL,
       role TEXT DEFAULT 'Facturier',
+      cree_le DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Table banques (Ajoutée ici pour éviter l'erreur 500)
+  bdd.exec(`
+    CREATE TABLE IF NOT EXISTS banques (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nomBanque TEXT NOT NULL,
+      numeroCompte TEXT NOT NULL,
+      devise TEXT DEFAULT 'USD',
       cree_le DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -238,6 +249,7 @@ const serviceFacturiers = {
 };
 
 module.exports = {
+  bdd,
   initialiserBaseDeDonnees,
   serviceClients,
   serviceLocataires: serviceClients,

@@ -3,13 +3,11 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { 
-  FiUsers, 
   FiUserPlus, 
   FiCheckSquare, 
   FiTrash2 
 } from 'react-icons/fi';
 
-import ClientsActifs from './clients/clientsActifs';
 import ClientsSupprimes from './clients/clientsSupprimes';
 import EnregistrementClients from './clients/enregistrementClients';
 import ClientsEnregistres from './clients/ClientsEnregistres';
@@ -30,29 +28,6 @@ const ConteneurPage = styled.div`
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
-`;
-
-const EnTete = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const SectionTitre = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-`;
-
-const TitrePage = styled.h1`
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: ${THEME.textePrincipal};
-`;
-
-const SousTitrePage = styled.p`
-  color: ${THEME.texteSecondaire};
-  font-size: 0.9rem;
 `;
 
 const BarreOnglets = styled.div`
@@ -117,11 +92,10 @@ const extraireHeureAuto = (client) => {
   return !isNaN(d.getTime()) ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
 };
 
-export default function Clients({ clientsEnregistres = [], setClientsEnregistres }) {
-  const [listeClients, setListeClients] = useState([]);
+export default function Clients() {
+  const [clientsEnregistres, setClientsEnregistres] = useState([]);
   const [listeCorbeille, setListeCorbeille] = useState([]);
-
-  const [ongletActif, setOngletActif] = useState('actifs');
+  const [ongletActif, setOngletActif] = useState('enregistres');
   const [notification, setNotification] = useState(null);
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [erreursChamps, setErreursChamps] = useState({});
@@ -160,17 +134,12 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
 
   const chargerClients = async () => {
     try {
-      const resActifs = await axios.get(`${API_URL}/clients`);
       const resEnregistres = await axios.get(`${API_URL}/clients/enregistres`);
       const resCorbeille = await axios.get(`${API_URL}/clients/corbeille`);
       
-      const clientsFormates = Array.isArray(resActifs.data) ? resActifs.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : [];
       const enregistresFormates = Array.isArray(resEnregistres.data) ? resEnregistres.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : [];
       
-      setListeClients(clientsFormates);
-      if (typeof setClientsEnregistres === 'function') {
-        setClientsEnregistres(enregistresFormates);
-      }
+      setClientsEnregistres(enregistresFormates);
       setListeCorbeille(Array.isArray(resCorbeille.data) ? resCorbeille.data.map(c => ({ ...c, heure: extraireHeureAuto(c) })) : []);
     } catch (erreur) {
       console.error("Erreur de chargement :", erreur);
@@ -180,6 +149,42 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
   const afficherNotificationProvisoire = (texte, type = 'info', duree = 10000) => {
     setNotification({ texte, type });
     setTimeout(() => setNotification(null), duree);
+  };
+
+  // ♻️ Restaurer un client depuis la corbeille
+  const restaurerClient = async (id) => {
+    try {
+      await axios.patch(`${API_URL}/clients/${id}/restaurer`);
+      afficherNotificationProvisoire("Client restauré avec succès !", "succes", 5000);
+      await chargerClients();
+    } catch (erreur) {
+      console.error("Erreur lors de la restauration :", erreur);
+      afficherNotificationProvisoire("Impossible de restaurer le client.", "info", 5000);
+    }
+  };
+
+  // ❌ Supprimer un client définitivement
+  const supprimerDefinitif = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/clients/${id}/definitif`);
+      afficherNotificationProvisoire("Client supprimé définitivement.", "succes", 5000);
+      await chargerClients();
+    } catch (erreur) {
+      console.error("Erreur lors de la suppression définitive :", erreur);
+      afficherNotificationProvisoire("Impossible de supprimer définitivement ce client.", "info", 5000);
+    }
+  };
+
+  // 🗑️ Vider toute la corbeille
+  const viderCorbeille = async () => {
+    try {
+      await axios.delete(`${API_URL}/clients/corbeille/vider`);
+      afficherNotificationProvisoire("La corbeille a été vidée avec succès.", "succes", 5000);
+      await chargerClients();
+    } catch (erreur) {
+      console.error("Erreur lors du vidage de la corbeille :", erreur);
+      afficherNotificationProvisoire("Impossible de vider la corbeille.", "info", 5000);
+    }
   };
 
   const allerAEnregistrementClient = (client) => {
@@ -325,7 +330,7 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
       await chargerClients();
       
       reinitialiserFormulaire();
-      setOngletActif('enregistres');
+      // 🌟 Suppression du changement d'onglet automatique ici : on reste sur le formulaire
     } catch (erreur) {
       console.error("Détail complet de l'erreur :", erreur.response?.data || erreur.message);
       const messageServeur = erreur.response?.data?.message || erreur.message;
@@ -333,17 +338,11 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
     }
   };
 
-  const typesUniques = [...new Set(listeClients.map(c => c.typeFacture || c.type).filter(Boolean))];
-  const optionsTypesFinales = typesUniques.length > 0 ? typesUniques : ['Locataire', 'Loyers', 'Eau', 'Electricite', 'Divers'];
+  const optionsTypesFinales = ['Locataire', 'Loyers', 'Eau', 'Electricite', 'Divers'];
 
   return (
     <ConteneurPage>
-
       <BarreOnglets>
-        <Onglet $actif={ongletActif === 'actifs'} onClick={() => setOngletActif('actifs')}>
-          <FiUsers /> Clients Actifs <BadgeCompteur $actif={ongletActif === 'actifs'}>{listeClients.length}</BadgeCompteur>
-        </Onglet>
-        
         <Onglet $actif={ongletActif === 'gestion'} onClick={() => setOngletActif('gestion')}>
           <FiUserPlus /> Enregistrement Clients
         </Onglet>
@@ -357,14 +356,7 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
         </Onglet>
       </BarreOnglets>
 
-      {ongletActif === 'actifs' ? (
-        <ClientsActifs 
-          listeClients={listeClients} 
-          setListeClients={setListeClients}
-          chargerClients={chargerClients} 
-          allerAFacturation={allerAEnregistrementClient} 
-        />
-      ) : ongletActif === 'gestion' ? (
+      {ongletActif === 'gestion' ? (
         <div>
           <EnregistrementClients 
             formulaire={formulaire} 
@@ -373,6 +365,10 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
             handleChange={handleChangeFormulaire} 
             onReset={reinitialiserFormulaire} 
             onSubmit={soumettreFormulaireClient} 
+            onClientAjoute={async () => {
+              await chargerClients();
+              // Reste sur l'onglet gestion sans basculer
+            }}
           />
           <AnimatePresence>
             {notification && (
@@ -391,9 +387,16 @@ export default function Clients({ clientsEnregistres = [], setClientsEnregistres
         <ClientsEnregistres 
           clientsEnregistres={clientsEnregistres} 
           onSelectClient={allerAEnregistrementClient} 
+          chargerClients={chargerClients}
         />
       ) : (
-        <ClientsSupprimes listeCorbeille={listeCorbeille} chargerClients={chargerClients} />
+        <ClientsSupprimes 
+          listeClientsSupprimes={listeCorbeille}
+          restaurerClient={restaurerClient}
+          supprimerDefinitif={supprimerDefinitif}
+          viderCorbeille={viderCorbeille}
+          afficherNotificationProvisoire={afficherNotificationProvisoire}
+        />
       )}
     </ConteneurPage>
   );

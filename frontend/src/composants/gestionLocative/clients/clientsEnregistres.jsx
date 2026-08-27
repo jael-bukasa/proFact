@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import FiltreClients from './filtreClients';
 
 const THEME = {
@@ -92,12 +92,71 @@ const CelluleData = styled.td`
   vertical-align: middle;
 `;
 
-const LigneTableau = styled.tr`
-  transition: background-color 0.15s ease;
+const BoutonSupprimer = styled.button`
+  background: rgba(255, 82, 82, 0.1);
+  color: #FF5252;
+  border: 1px solid rgba(255, 82, 82, 0.25);
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 0.8rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 82, 82, 0.2);
+  }
+`;
+
+const InfobulleCurseur = styled.div`
+  position: fixed;
+  left: ${props => props.$x}px;
+  top: ${props => props.$y}px;
+  transform: translate(12px, 12px);
+  background-color: #111111;
+  color: ${THEME.accentuation};
+  border: 1px solid ${THEME.accentuation};
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 99999;
+  white-space: nowrap;
+  animation: fadeIn 0.2s ease-in-out;
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translate(12px, 20px); }
+    to { opacity: 1; transform: translate(12px, 12px); }
+  }
+`;
+
+const AlerteInterface = styled(motion.div)`
+  padding: 0.75rem 1rem;
+  background-color: rgba(255, 82, 82, 0.15);
+  border: 1px solid rgba(255, 82, 82, 0.3);
+  color: #FF5252;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const LigneTableau = styled.tr`
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 
   &:hover {
     background-color: ${THEME.survol};
+  }
+
+  &:hover ${BoutonSupprimer} {
+    opacity: 1;
+    visibility: visible;
   }
 
   &:last-child ${CelluleData} {
@@ -128,7 +187,7 @@ const BadgeType = styled.span`
   border-radius: 4px;
 `;
 
-const MessageVide = styled.div`
+const MessageEtat = styled.div`
   padding: 3rem;
   text-align: center;
   color: ${THEME.texteSecondaire};
@@ -138,7 +197,17 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
-export default function ClientsEnregistres({ clientsEnregistres = [], onSelectClient }) {
+export default function ClientsEnregistres({ clientsEnregistres = [], onSelectClient, chargerClients: chargerClientsParent }) {
+  const [listeClients, setListeClients] = useState(clientsEnregistres);
+  const [loading, setLoading] = useState(false);
+  const [erreur, setErreur] = useState(null);
+  const [messageInterface, setMessageInterface] = useState(null);
+
+  const [ligneSurvoleeId, setLigneSurvoleeId] = useState(null);
+  const [afficherMessage, setAfficherMessage] = useState(false);
+  const [positionSouris, setPositionSouris] = useState({ x: 0, y: 0 });
+  const timerRef = useRef(null);
+
   const [rechercheTexte, setRechercheTexte] = useState('');
   const [filtreJour, setFiltreJour] = useState('');
   const [filtreMois, setFiltreMois] = useState('');
@@ -150,11 +219,89 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
   const tableRef = useRef(null);
   const [largeurTableau, setLargeurTableau] = useState(0);
 
+  const chargerClientsInterne = async () => {
+    setLoading(true);
+    setErreur(null);
+    try {
+      const response = await fetch('http://localhost:5000/api/clients/enregistres');
+      if (!response.ok) {
+        throw new Error("Impossible de récupérer la liste des clients enregistrés");
+      }
+      const data = await response.json();
+      setListeClients(data);
+    } catch (err) {
+      console.error("Erreur lors du chargement des clients :", err);
+      setErreur(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (clientsEnregistres && clientsEnregistres.length > 0) {
+      setListeClients(clientsEnregistres);
+    } else {
+      chargerClientsInterne();
+    }
+  }, [clientsEnregistres]);
+
+  const gererMouseEnter = (id, e) => {
+    setLigneSurvoleeId(id);
+    setAfficherMessage(false);
+    setPositionSouris({ x: e.clientX, y: e.clientY });
+
+    timerRef.current = setTimeout(() => {
+      setAfficherMessage(true);
+    }, 4000);
+  };
+
+  const gererMouseMove = (e) => {
+    setPositionSouris({ x: e.clientX, y: e.clientY });
+  };
+
+  const gererMouseLeave = () => {
+    clearTimeout(timerRef.current);
+    setLigneSurvoleeId(null);
+    setAfficherMessage(false);
+  };
+
+  const supprimerClient = async (e, id) => {
+    e.stopPropagation(); 
+    setMessageInterface(null);
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/clients/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la mise à la corbeille du client.");
+      }
+
+      // Met à jour la liste locale immédiatement
+      setListeClients(prev => prev.filter(client => client.id !== id));
+
+      // 🔄 Notifie le parent pour qu'il mette à jour ses compteurs et la corbeille instantanément
+      if (chargerClientsParent) {
+        chargerClientsParent();
+      }
+    } catch (err) {
+      console.error("Erreur :", err);
+      setMessageInterface("Impossible de placer le client dans la corbeille. Veuillez réessayer.");
+    }
+  };
+
+  const modifierClient = (client) => {
+    if (onSelectClient) {
+      onSelectClient(client);
+    }
+  };
+
   useEffect(() => {
     if (tableRef.current) {
       setLargeurTableau(tableRef.current.scrollWidth);
     }
-  }, [clientsEnregistres]);
+  }, [listeClients]);
 
   const gererScrollHaut = () => {
     if (conteneurTableauRef.current && scrollbarHautRef.current) {
@@ -177,12 +324,12 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
   };
 
   const clientsFiltres = useMemo(() => {
-    return clientsEnregistres.filter(client => {
+    return listeClients.filter(client => {
       if (!client) return false;
 
       if (rechercheTexte) {
         const terme = rechercheTexte.toLowerCase();
-        const nomComplet = `${client.nom || ''} ${client.postNom || ''} ${client.prenom || ''} ${client.matricule || ''} ${client.bail || ''}`.toLowerCase();
+        const nomComplet = `${client.nom || ''} ${client.postNom || ''} ${client.prenom || ''} ${client.matricule || ''} ${client.bail || ''} ${client.telephone || ''}`.toLowerCase();
         if (!nomComplet.includes(terme)) return false;
       }
 
@@ -204,7 +351,7 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
 
       return true;
     });
-  }, [clientsEnregistres, rechercheTexte, filtreJour, filtreMois, filtreAnnee, filtreDateExacte]);
+  }, [listeClients, rechercheTexte, filtreJour, filtreMois, filtreAnnee, filtreDateExacte]);
 
   return (
     <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -222,8 +369,24 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
         reinitialiserFiltres={reinitialiserFiltres}
       />
 
-      {clientsFiltres.length === 0 ? (
-        <MessageVide>Aucun client enregistré ne correspond à vos critères de recherche.</MessageVide>
+      <AnimatePresence>
+        {messageInterface && (
+          <AlerteInterface
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            ⚠️ {messageInterface}
+          </AlerteInterface>
+        )}
+      </AnimatePresence>
+
+      {loading ? (
+        <MessageEtat>Chargement des clients depuis la base de données...</MessageEtat>
+      ) : erreur ? (
+        <MessageEtat style={{ color: '#FF5252' }}>{erreur}</MessageEtat>
+      ) : clientsFiltres.length === 0 ? (
+        <MessageEtat>Aucun client enregistré ne correspond à vos critères de recherche.</MessageEtat>
       ) : (
         <>
           <ScrollbarHautWrapper ref={scrollbarHautRef} onScroll={gererScrollHaut}>
@@ -235,7 +398,7 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
               <EnTeteTableau>
                 <tr>
                   <CelluleHeader>Matricule</CelluleHeader>
-                  <CelluleHeader>Nom complet</CelluleHeader>
+                  <CelluleHeader>Nom complet & Contact</CelluleHeader>
                   <CelluleHeader>N° Bail & Date</CelluleHeader>
                   <CelluleHeader>Logement / Adresse / Pays</CelluleHeader>
                   <CelluleHeader>Type & Désignation</CelluleHeader>
@@ -245,21 +408,33 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
                   <CelluleHeader>Contrat (Début / Fin)</CelluleHeader>
                   <CelluleHeader>Date Comptable</CelluleHeader>
                   <CelluleHeader>Compteurs & Suivi Index</CelluleHeader>
+                  <CelluleHeader>Actions</CelluleHeader>
                 </tr>
               </EnTeteTableau>
               <tbody>
                 {clientsFiltres.map((cli, index) => {
                   const possedeCompteur = Boolean(cli.compteur || cli.imputation || cli.dernierNumero);
+                  const clientId = cli.id || index;
 
                   return (
                     <LigneTableau 
-                      key={cli.id || index}
-                      onClick={() => onSelectClient && onSelectClient(cli)}
+                      key={clientId} 
+                      onClick={() => modifierClient(cli)}
+                      onMouseEnter={(e) => gererMouseEnter(clientId, e)}
+                      onMouseMove={gererMouseMove}
+                      onMouseLeave={gererMouseLeave}
                     >
-                      <CelluleData><BadgeMatricule>{cli.matricule || 'N/A'}</BadgeMatricule></CelluleData>
+                      <CelluleData>
+                        <BadgeMatricule>{cli.matricule || 'N/A'}</BadgeMatricule>
+                      </CelluleData>
                       
                       <CelluleData style={{ fontWeight: 600 }}>
                         {cli.nom || ''} {cli.postNom || ''} {cli.prenom || ''}
+                        {cli.telephone && (
+                          <div style={{ fontSize: '0.7rem', color: THEME.texteSecondaire, marginTop: '2px' }}>
+                            Tél: {cli.telephone}
+                          </div>
+                        )}
                       </CelluleData>
                       
                       <CelluleData>
@@ -293,7 +468,7 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
                       <CelluleData>{cli.dateComptable || '-'}</CelluleData>
                       
                       <CelluleData style={{ fontSize: '0.75rem' }}>
-                        {possedeCompteur === true ? (
+                        {possedeCompteur ? (
                           <>
                             {cli.compteur ? `CPT: ${cli.compteur}` : ''} {cli.imputation ? `| Imp: ${cli.imputation}` : ''}<br/>
                             Der N°: {cli.dernierNumero || 0} | Mt: {cli.dernierMontant || 0}<br/>
@@ -303,12 +478,27 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
                           <span style={{ color: THEME.texteSecondaire }}>Aucun</span>
                         )}
                       </CelluleData>
+
+                      <CelluleData>
+                        <BoutonSupprimer 
+                          title="Mettre à la corbeille" 
+                          onClick={(e) => supprimerClient(e, cli.id)}
+                        >
+                          🗑️ Supprimer
+                        </BoutonSupprimer>
+                      </CelluleData>
                     </LigneTableau>
                   );
                 })}
               </tbody>
             </TableElement>
           </ConteneurTableau>
+
+          {ligneSurvoleeId !== null && afficherMessage && (
+            <InfobulleCurseur $x={positionSouris.x} $y={positionSouris.y}>
+              💡 Cliquez pour modifier
+            </InfobulleCurseur>
+          )}
         </>
       )}
     </ConteneurSection>
