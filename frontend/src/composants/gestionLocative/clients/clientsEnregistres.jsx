@@ -109,6 +109,39 @@ const BoutonSupprimer = styled.button`
   }
 `;
 
+const ConteneurConfirmationInline = styled(motion.div)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: rgba(255, 82, 82, 0.12);
+  border: 1px solid rgba(255, 82, 82, 0.3);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+
+  span {
+    font-size: 0.75rem;
+    color: #FF5252;
+    font-weight: 600;
+  }
+`;
+
+const BoutonConfirmation = styled.button`
+  background: ${props => props.$oui ? 'rgba(255, 82, 82, 0.25)' : 'transparent'};
+  color: ${props => props.$oui ? '#FF5252' : THEME.texteSecondaire};
+  border: 1px solid ${props => props.$oui ? 'rgba(255, 82, 82, 0.4)' : THEME.bordure};
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.$oui ? 'rgba(255, 82, 82, 0.4)' : 'rgba(255, 255, 255, 0.08)'};
+    color: ${props => props.$oui ? '#FFFFFF' : THEME.textePrincipal};
+  }
+`;
+
 const InfobulleCurseur = styled.div`
   position: fixed;
   left: ${props => props.$x}px;
@@ -203,6 +236,8 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
   const [erreur, setErreur] = useState(null);
   const [messageInterface, setMessageInterface] = useState(null);
 
+  const [idEnCoursDeSuppression, setIdEnCoursDeSuppression] = useState(null);
+
   const [ligneSurvoleeId, setLigneSurvoleeId] = useState(null);
   const [afficherMessage, setAfficherMessage] = useState(false);
   const [positionSouris, setPositionSouris] = useState({ x: 0, y: 0 });
@@ -278,16 +313,16 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
         throw new Error("Erreur lors de la mise à la corbeille du client.");
       }
 
-      // Met à jour la liste locale immédiatement
       setListeClients(prev => prev.filter(client => client.id !== id));
+      setIdEnCoursDeSuppression(null);
 
-      // 🔄 Notifie le parent pour qu'il mette à jour ses compteurs et la corbeille instantanément
       if (chargerClientsParent) {
         chargerClientsParent();
       }
     } catch (err) {
       console.error("Erreur :", err);
       setMessageInterface("Impossible de placer le client dans la corbeille. Veuillez réessayer.");
+      setIdEnCoursDeSuppression(null);
     }
   };
 
@@ -415,6 +450,7 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
                 {clientsFiltres.map((cli, index) => {
                   const possedeCompteur = Boolean(cli.compteur || cli.imputation || cli.dernierNumero);
                   const clientId = cli.id || index;
+                  const enAttenteSuppression = idEnCoursDeSuppression === clientId;
 
                   return (
                     <LigneTableau 
@@ -479,13 +515,44 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
                         )}
                       </CelluleData>
 
-                      <CelluleData>
-                        <BoutonSupprimer 
-                          title="Mettre à la corbeille" 
-                          onClick={(e) => supprimerClient(e, cli.id)}
-                        >
-                          🗑️ Supprimer
-                        </BoutonSupprimer>
+                      <CelluleData onClick={(e) => e.stopPropagation()}>
+                        <AnimatePresence mode="popLayout">
+                          {enAttenteSuppression ? (
+                            <ConteneurConfirmationInline
+                              key="confirmation"
+                              initial={{ opacity: 0, scale: 0.9, x: 10 }}
+                              animate={{ opacity: 1, scale: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.9, x: -10 }}
+                              transition={{ duration: 0.2, ease: 'easeOut' }}
+                            >
+                              <span>Confirmer ?</span>
+                              <BoutonConfirmation 
+                                $oui 
+                                onClick={(e) => supprimerClient(e, cli.id)}
+                              >
+                                Oui
+                              </BoutonConfirmation>
+                              <BoutonConfirmation 
+                                onClick={() => setIdEnCoursDeSuppression(null)}
+                              >
+                                Non
+                              </BoutonConfirmation>
+                            </ConteneurConfirmationInline>
+                          ) : (
+                            <BoutonSupprimer 
+                              key="bouton"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                              as={motion.button}
+                              title="Mettre à la corbeille" 
+                              onClick={() => setIdEnCoursDeSuppression(clientId)}
+                            >
+                              🗑️ Supprimer
+                            </BoutonSupprimer>
+                          )}
+                        </AnimatePresence>
                       </CelluleData>
                     </LigneTableau>
                   );

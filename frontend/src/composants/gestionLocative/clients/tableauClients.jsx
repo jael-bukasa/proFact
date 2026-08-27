@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -96,12 +96,41 @@ const BadgeDevise = styled.span`
 
 const BoutonOption = styled.button`
   background: transparent;
-  border: 1px solid ${props => props.$danger ? THEME.danger : THEME.bordure};
-  color: ${props => props.$danger ? THEME.danger : THEME.textePrincipal};
+  border: 1px solid ${props => props.$danger ? THEME.danger : (props.$succes ? THEME.succes : THEME.bordure)};
+  color: ${props => props.$danger ? THEME.danger : (props.$succes ? THEME.succes : THEME.textePrincipal)};
   padding: 0.35rem 0.65rem;
   border-radius: 6px;
   font-size: 0.75rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  &:hover {
+    background: ${props => props.$danger ? 'rgba(255, 82, 82, 0.1)' : (props.$succes ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 255, 255, 0.05)')};
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+`;
+
+const ConteneurConfirmationInline = styled(motion.div)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: rgba(255, 82, 82, 0.12);
+  border: 1px solid rgba(255, 82, 82, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+
+  span {
+    font-size: 0.75rem;
+    color: ${THEME.danger};
+    font-weight: 600;
+  }
 `;
 
 export default function TableauClients({
@@ -109,11 +138,31 @@ export default function TableauClients({
   clientsEnregistres = [],
   editerClient,
   supprimerClient,
+  restaurerClient,
+  supprimerDefinitif,
   formaterDateFr,
   estCorbeille = false,
   allerAFacturation,
 }) {
   const listeEffective = clients.length > 0 ? clients : clientsEnregistres;
+
+  // États locaux pour gérer les actions individuelles par ligne
+  const [idEnRestauration, setIdEnRestauration] = useState(null);
+  const [idEnCoursDeSuppression, setIdEnCoursDeSuppression] = useState(null); // Pour le mode normal
+  const [idEnCoursDeSuppressionDefinitif, setIdEnCoursDeSuppressionDefinitif] = useState(null); // Pour la corbeille
+
+  const gererRestauration = async (idClient) => {
+    try {
+      setIdEnRestauration(idClient);
+      if (restaurerClient) {
+        await restaurerClient(idClient);
+      }
+    } catch (erreur) {
+      console.error("Erreur lors de la restauration :", erreur);
+    } finally {
+      setIdEnRestauration(null);
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -133,13 +182,16 @@ export default function TableauClients({
             {listeEffective.length === 0 ? (
               <tr>
                 <CelluleData colSpan="6" style={{ textAlign: 'center', color: '#888', padding: '2rem' }}>
-                  Aucun client enregistré ne correspond à vos critères de recherche.
+                  {estCorbeille ? "La corbeille est vide." : "Aucun client enregistré ne correspond à vos critères de recherche."}
                 </CelluleData>
               </tr>
             ) : (
               listeEffective.map((cli, index) => {
                 if (!cli) return null;
                 const idClient = cli.id || cli._id || index;
+                const enRestauration = idEnRestauration === idClient;
+                const enAttenteSuppressionNormal = idEnCoursDeSuppression === idClient;
+                const enAttenteSuppressionDef = idEnCoursDeSuppressionDefinitif === idClient;
 
                 return (
                   <LigneTableau key={idClient} onClick={() => !estCorbeille && allerAFacturation?.(cli)}>
@@ -152,9 +204,108 @@ export default function TableauClients({
                     <CelluleData>
                       {formaterDateFr ? formaterDateFr(cli.dateEnregistrement) : (cli.dateEnregistrement || '-')}
                     </CelluleData>
+                    
                     <CelluleData style={{ textAlign: 'right' }}>
-                      <BoutonOption onClick={(e) => { e.stopPropagation(); editerClient?.(cli); }}>Éditer</BoutonOption>
-                      <BoutonOption $danger style={{ marginLeft: '5px' }} onClick={(e) => { e.stopPropagation(); supprimerClient?.(idClient); }}>Supprimer</BoutonOption>
+                      {estCorbeille ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                          {/* Bouton Restaurer avec chargement */}
+                          <BoutonOption 
+                            $succes 
+                            disabled={enRestauration}
+                            onClick={(e) => { e.stopPropagation(); gererRestauration(idClient); }}
+                          >
+                            {enRestauration ? '⏳ Restauration...' : 'Restaurer ♻️'}
+                          </BoutonOption>
+
+                          {/* Confirmation inline pour la suppression définitive */}
+                          <AnimatePresence mode="wait">
+                            {enAttenteSuppressionDef ? (
+                              <ConteneurConfirmationInline
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span>Confirmer ?</span>
+                                <BoutonOption 
+                                  $danger 
+                                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
+                                  onClick={() => {
+                                    supprimerDefinitif?.(idClient);
+                                    setIdEnCoursDeSuppressionDefinitif(null);
+                                  }}
+                                >
+                                  Oui
+                                </BoutonOption>
+                                <BoutonOption 
+                                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
+                                  onClick={() => setIdEnCoursDeSuppressionDefinitif(null)}
+                                >
+                                  Non
+                                </BoutonOption>
+                              </ConteneurConfirmationInline>
+                            ) : (
+                              <BoutonOption 
+                                key="btn-suppr-def"
+                                $danger 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setIdEnCoursDeSuppressionDefinitif(idClient); 
+                                }}
+                              >
+                                Supprimer ❌
+                              </BoutonOption>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <BoutonOption onClick={(e) => { e.stopPropagation(); editerClient?.(cli); }}>
+                            Éditer
+                          </BoutonOption>
+
+                          {/* Confirmation inline pour la suppression normale */}
+                          <AnimatePresence mode="wait">
+                            {enAttenteSuppressionNormal ? (
+                              <ConteneurConfirmationInline
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span>Confirmer ?</span>
+                                <BoutonOption 
+                                  $danger 
+                                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
+                                  onClick={() => {
+                                    supprimerClient?.(idClient);
+                                    setIdEnCoursDeSuppression(null);
+                                  }}
+                                >
+                                  Oui
+                                </BoutonOption>
+                                <BoutonOption 
+                                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }}
+                                  onClick={() => setIdEnCoursDeSuppression(null)}
+                                >
+                                  Non
+                                </BoutonOption>
+                              </ConteneurConfirmationInline>
+                            ) : (
+                              <BoutonOption 
+                                key="btn-suppr-norm"
+                                $danger 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setIdEnCoursDeSuppression(idClient); 
+                                }}
+                              >
+                                Supprimer
+                              </BoutonOption>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      )}
                     </CelluleData>
                   </LigneTableau>
                 );

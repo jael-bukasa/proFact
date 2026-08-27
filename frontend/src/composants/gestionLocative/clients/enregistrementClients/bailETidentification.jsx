@@ -66,18 +66,18 @@ export default function BailETidentification({
           </div>
         </div>
 
-        {/* Numéro / Téléphone */}
+        {/* Numéro / Téléphone (Modifié en type="number") */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '0.2rem' }}>
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Numéro *</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <input 
               ref={el => refs.current.telephone = el} 
-              type="tel" 
+              type="number" 
               name="telephone" 
               value={formulaire.telephone ?? ''} 
               onChange={handleChange} 
               onKeyDown={gererToucheEntree} 
-              placeholder="Ex: +243..." 
+              placeholder="Ex: 243..." 
               style={{ width: '100%', backgroundColor: '#121212', border: `1px solid ${erreurs.telephone ? '#FF5252' : '#2A2A2A'}`, borderRadius: '6px', padding: erreurs.telephone ? '0.45rem 6.5rem 0.45rem 0.6rem' : '0.45rem 0.6rem', color: '#FFFFFF', fontSize: '0.8rem', outline: 'none' }}
             />
             {erreurs.telephone && <span style={{ position: 'absolute', right: '0.6rem', color: '#FF5252', fontSize: '0.6rem', fontWeight: 600, backgroundColor: 'rgba(18, 18, 18, 0.85)', padding: '0.1rem 0.2rem', borderRadius: '3px' }}>{erreurs.telephone}</span>}
@@ -109,10 +109,11 @@ export default function BailETidentification({
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Matricule (Auto) *</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <input 
+              ref={el => refs.current.matricule = el} 
               name="matricule" 
               value={formulaire.matricule ?? ''} 
               readOnly 
-              style={{ width: '100%', backgroundColor: '#181818', border: '1px solid #2A2A2A', borderRadius: '6px', padding: '0.45rem 0.6rem', color: '#AAAAAA', fontSize: '0.8rem', cursor: 'not-allowed', opacity: 0.8 }}
+              style={{ width: '100%', backgroundColor: '#181818', border: '1px solid #AEEA00', borderRadius: '6px', padding: '0.45rem 0.6rem', color: '#AEEA00', fontWeight: 'bold', fontSize: '0.8rem', cursor: 'not-allowed' }}
             />
           </div>
         </div>

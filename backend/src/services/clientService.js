@@ -9,10 +9,37 @@ const PREFIXES_CLIENT = {
   divers: 'DIV'
 };
 
-export const genererMatricule10Chiffres = (idOuCompteur = 1, typeClient = 'locataire') => {
-  const prefixe = PREFIXES_CLIENT[typeClient?.toLowerCase()] || 'CLI';
+export const genererMatricule10Chiffres = (idOuCompteur = 1, typeClient = 'locataire', typeFacture = 'Loyers', devise = 'USD') => {
+  let prefixe = 'CLI';
+  const typeClean = (typeClient || '').toLowerCase();
+  const deviseClean = (devise || '').toUpperCase();
+
+  // Gestion spécifique pour les locataires / loyers selon la devise
+  if (typeClean.includes('locat') || (typeFacture || '').toLowerCase().includes('loyer')) {
+    prefixe = deviseClean.includes('CDF') ? 'LY' : 'LOY';
+  } else {
+    prefixe = PREFIXES_CLIENT[typeClean] || 'CLI';
+  }
+
   const numeroFormate = String(idOuCompteur).padStart(10, '0');
   return `${prefixe}-${numeroFormate}`;
+};
+
+// 🌟 Récupération du prochain ID en envoyant les filtres au backend
+export const obtenirProchainIDApi = async (typeClient = 'locataire', typeFacture = 'Loyers', devise = 'USD') => {
+  try {
+    const queryParams = new URLSearchParams({
+      type: typeClient,
+      typeFacture: typeFacture,
+      devise: devise
+    });
+
+    const reponse = await axios.get(`${API_URL}/prochain-id?${queryParams.toString()}`);
+    return reponse.data.id || 1;
+  } catch (erreur) {
+    console.error("Erreur lors de la récupération du prochain ID :", erreur);
+    return 1; // Valeur par défaut en cas de panne
+  }
 };
 
 export const obtenirClientsApi = async () => {
@@ -41,7 +68,7 @@ export const ajouterClientApi = async (nouveauClient) => {
       ...nouveauClient,
       typeClient: nouveauClient.typeClient || 'locataire',
       devise: nouveauClient.devise || 'USD',
-      enregistre: true, // Force le statut à enregistré (1) pour l'affichage dans les clients enregistrés
+      enregistre: true,
     };
 
     const reponse = await axios.post(API_URL, payload);

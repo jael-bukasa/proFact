@@ -4,6 +4,7 @@ import { FiCheckCircle } from 'react-icons/fi';
 import BailETidentification from './enregistrementClients/bailETidentification';
 import DelaisFactureEtPeriode from './enregistrementClients/delaisFactureEtPeriode';
 import CompteursETsuivis from './enregistrementClients/compteursETsuivis';
+import { genererMatricule10Chiffres } from '../../../../../backend/src/services/clientService';
 
 export default function EnregistrementClients({ onClientAjoute }) {
   const [formulaire, setFormulaire] = useState({
@@ -45,6 +46,37 @@ export default function EnregistrementClients({ onClientAjoute }) {
   const longueurDesignation = (formulaire.designation ?? '').length;
   const limiteAtteinte = longueurDesignation >= MAX_CARACTERES_DESIGNATION;
 
+  // 🌟 Fonction pour récupérer dynamiquement le prochain ID/Matricule selon le type et la devise
+  const fetchProchainMatricule = async (typeClient, typeFacture, devise) => {
+    try {
+      const queryParams = new URLSearchParams({
+        type: typeClient || 'locataire',
+        typeFacture: typeFacture || 'Loyers',
+        devise: devise || 'USD'
+      });
+
+      const response = await fetch(`http://localhost:5000/api/clients/prochain-id?${queryParams.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        const prochainId = data.id || 1;
+        const matriculeGenere = genererMatricule10Chiffres(prochainId, typeClient, typeFacture, devise);
+        
+        setFormulaire(prev => ({
+          ...prev,
+          id: prochainId,
+          matricule: matriculeGenere
+        }));
+      }
+    } catch (error) {
+      console.error("Impossible de récupérer le prochain ID:", error);
+    }
+  };
+
+  // 🌟 Récupération automatique au chargement initial du composant
+  useEffect(() => {
+    fetchProchainMatricule(formulaire.typeClient, formulaire.typeFacture, formulaire.devise);
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     let nouveauFormulaire = { ...formulaire, [name]: value };
@@ -53,23 +85,16 @@ export default function EnregistrementClients({ onClientAjoute }) {
       nouveauFormulaire.moisFacture = '';
     }
 
-    if (name === 'typeClient' || name === 'id' || name === 'bail') {
-      let prefixe = 'LOY';
-      const type = name === 'typeClient' ? value : formulaire.typeClient;
-
-      if (type === 'electricite') prefixe = 'ELEC';
-      else if (type === 'eau') prefixe = 'EAU';
-      else if (type === 'divers') prefixe = 'DIV';
-      else if (type === 'locataire') prefixe = 'LOY';
-      else if (type === 'autre') prefixe = 'LY';
-
-      const numeroBrut = nouveauFormulaire.id || '1';
-      const numero10Chiffres = String(numeroBrut).replace(/\D/g, '').padStart(10, '0');
-
-      nouveauFormulaire.matricule = `${prefixe}-${numero10Chiffres}`;
-    }
-
     setFormulaire(nouveauFormulaire);
+
+    // 🌟 Dès que le type de client, le type de facture ou la devise change, on interroge le backend pour avoir la bonne incrémentation
+    if (name === 'typeClient' || name === 'typeFacture' || name === 'devise') {
+      fetchProchainMatricule(
+        name === 'typeClient' ? value : formulaire.typeClient,
+        name === 'typeFacture' ? value : formulaire.typeFacture,
+        name === 'devise' ? value : formulaire.devise
+      );
+    }
 
     if (erreurs[name] && value.trim() !== '') {
       setErreurs({ ...erreurs, [name]: null });
@@ -112,6 +137,7 @@ export default function EnregistrementClients({ onClientAjoute }) {
   };
 
   const handleReset = () => {
+    fetchProchainMatricule('locataire', 'Loyers', 'USD');
     setFormulaire({
       nom: '',
       postNom: '',
@@ -215,7 +241,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* 🌟 Formulaire avec effet de balayage fluide de bas en haut */}
       <motion.form 
         onSubmit={handleSubmit} 
         noValidate 

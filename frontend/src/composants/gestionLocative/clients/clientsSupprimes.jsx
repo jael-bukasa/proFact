@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import TableauClients from './tableauClients';
-import FiltreClients from './filtreClients'; // <-- Importation du composant de filtre
+import FiltreClients from './filtreClients';
 
-// --- THÈME SOMBRE HOMOGÈNE ---
+// --- THÈME SOMBRE ---
 const THEME = {
   fondCarte: '#1E1E1E',
   accentuation: '#AEEA00',
@@ -17,7 +17,13 @@ const THEME = {
   fondChamps: '#121212'
 };
 
-const ConteneurCorbeille = styled.div`
+// Animation pour le chargement
+const rotation = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const ConteneurCorbeille = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -224,14 +230,22 @@ const BoutonSupprimerFinal = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: all 0.3s ease;
 
   &:hover {
     background-color: #e04848;
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.7;
     cursor: wait;
+    background-color: #9e2a2b;
+    border-color: #9e2a2b;
+  }
+
+  .spinner {
+    display: inline-block;
+    animation: ${rotation} 1s linear infinite;
   }
 `;
 
@@ -256,7 +270,6 @@ export default function ClientsSupprimes({
   supprimerDefinitif,
   viderCorbeille,
   formaterDateFr,
-  afficherNotificationProvisoire
 }) {
   const [rechercheTexte, setRechercheTexte] = useState('');
   const [filtreJour, setFiltreJour] = useState('');
@@ -264,10 +277,13 @@ export default function ClientsSupprimes({
   const [filtreAnnee, setFiltreAnnee] = useState('');
   const [filtreDateExacte, setFiltreDateExacte] = useState('');
 
-  // 🔴 Gestion de la Modale à 4 étapes (1-3: Risques, 4: Succès UI)
+  // Modale à 4 étapes
   const [modalOuverte, setModalOuverte] = useState(false);
   const [etapeCourante, setEtapeCourante] = useState(1);
   const [estEnTraitement, setEstEnTraitement] = useState(false);
+
+  // État local pour animer la disparition fluide des lignes lors d'une action unitaire (Restaurer / Supprimer déf.)
+  const [idEnAction, setIdEnAction] = useState(null);
 
   const reinitialiserFiltres = () => {
     setRechercheTexte('');
@@ -277,7 +293,6 @@ export default function ClientsSupprimes({
     setFiltreDateExacte('');
   };
 
-  // 🔍 FILTRAGE DE LA LISTE DES CLIENTS EN CORBEILLE
   const clientsFiltres = useMemo(() => {
     return listeClientsSupprimes.filter(client => {
       if (rechercheTexte) {
@@ -285,24 +300,40 @@ export default function ClientsSupprimes({
         const nomComplet = `${client.nom || ''} ${client.postNom || ''} ${client.prenom || ''} ${client.matricule || ''}`.toLowerCase();
         if (!nomComplet.includes(terme)) return false;
       }
-
-      const rawDate = client.dateEnregistrement || client.dateEntree || client.creeLe || client.createdAt;
-      if (rawDate) {
-        const dateSeule = String(rawDate).replace(' ', 'T').split('T')[0];
-        const parts = dateSeule.split('-');
-
-        if (parts.length === 3) {
-          const [annee, mois, jour] = parts;
-          if (filtreDateExacte && dateSeule !== filtreDateExacte) return false;
-          if (filtreJour && jour !== filtreJour) return false;
-          if (filtreMois && mois !== filtreMois) return false;
-          if (filtreAnnee && annee !== filtreAnnee) return false;
-        }
-      }
-
       return true;
     });
-  }, [listeClientsSupprimes, rechercheTexte, filtreJour, filtreMois, filtreAnnee, filtreDateExacte]);
+  }, [listeClientsSupprimes, rechercheTexte]);
+
+  // ⚡ Gestion fluide de la restauration unitaire
+  const gererRestaurer = async (client) => {
+    try {
+      setIdEnAction(client.id);
+      // Laisser le temps à l'animation de sortie de se jouer (300ms)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      if (restaurerClient) {
+        await restaurerClient(client);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIdEnAction(null);
+    }
+  };
+
+  // ⚡ Gestion fluide de la suppression définitive unitaire
+  const gererSuppressionDefinitive = async (client) => {
+    try {
+      setIdEnAction(client.id);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      if (supprimerDefinitif) {
+        await supprimerDefinitif(client);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIdEnAction(null);
+    }
+  };
 
   const ouvrirAvertissement = () => {
     setEtapeCourante(1);
@@ -310,20 +341,26 @@ export default function ClientsSupprimes({
   };
 
   const fermerAvertissement = () => {
+    if (estEnTraitement) return;
     setModalOuverte(false);
-    setEtapeCourante(1);
-    setEstEnTraitement(false);
+    setTimeout(() => {
+      setEtapeCourante(1);
+      setEstEnTraitement(false);
+    }, 300);
   };
 
-  // ⚡ EXÉCUTION DU VIDAGE + PASSAGE À L'ÉCRAN DE SUCCÈS UI
+  // ⚡ EXÉCUTION DU VIDAGE AVEC DÉLAI FLUIDE ET RÉALISTE
   const confirmerEtVider = async () => {
     try {
       setEstEnTraitement(true);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       if (viderCorbeille) {
         await viderCorbeille();
       }
+      
       setEstEnTraitement(false);
-      setEtapeCourante(4); // Affiche l'étape Succès UI
+      setEtapeCourante(4);
     } catch (erreur) {
       console.error("Erreur vidage :", erreur);
       setEstEnTraitement(false);
@@ -331,7 +368,11 @@ export default function ClientsSupprimes({
   };
 
   return (
-    <ConteneurCorbeille>
+    <ConteneurCorbeille
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <BarreSuperieure>
         <TitreSection>
           🗑️ Corbeille ({listeClientsSupprimes.length} client{listeClientsSupprimes.length > 1 ? 's' : ''})
@@ -342,12 +383,11 @@ export default function ClientsSupprimes({
             onClick={ouvrirAvertissement}
             disabled={listeClientsSupprimes.length === 0}
           >
-            Vider la corbeille
+            Vider la corbeille (Tout supprimer)
           </BoutonViderCorbeille>
         )}
       </BarreSuperieure>
 
-      {/* Remplacement par le composant FiltreClients */}
       <FiltreClients 
         rechercheTexte={rechercheTexte}
         setRechercheTexte={setRechercheTexte}
@@ -362,23 +402,27 @@ export default function ClientsSupprimes({
         reinitialiserFiltres={reinitialiserFiltres}
       />
 
-      {/* TABLEAU DES CLIENTS SUPPRIMÉS */}
-      <TableauClients 
-        clients={clientsFiltres}
-        restaurerClient={restaurerClient}
-        supprimerDefinitif={supprimerDefinitif}
-        formaterDateFr={formaterDateFr}
-        estCorbeille={true}
-      />
+      {/* Conteneur animé pour enrober le tableau et gérer l'apparition/disparition fluide des éléments */}
+      <motion.div layout>
+        <AnimatePresence mode="popLayout">
+          <TableauClients 
+            clients={clientsFiltres.filter(c => c.id !== idEnAction)}
+            restaurerClient={gererRestaurer}
+            supprimerDefinitif={gererSuppressionDefinitive}
+            formaterDateFr={formaterDateFr}
+            estCorbeille={true}
+          />
+        </AnimatePresence>
+      </motion.div>
 
-      {/* 🔴 INTERFACE MULTI-ÉTAPES 100% UI (SANS ALERT BROWSER) */}
+      {/* 🔴 INTERFACE MULTI-ÉTAPES */}
       <AnimatePresence>
         {modalOuverte && (
           <OverlayModal
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={estEnTraitement ? null : fermerAvertissement}
+            onClick={fermerAvertissement}
           >
             <BoiteModal
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -388,7 +432,7 @@ export default function ClientsSupprimes({
             >
               <EnTeteModal>
                 <h4>
-                  {etapeCourante === 4 ? '🎉 Operation Réussie' : `⚠️ Risques - Étape ${etapeCourante}/3`}
+                  {etapeCourante === 4 ? '🎉 Opération Réussie' : `⚠️ Risques - Étape ${etapeCourante}/3`}
                 </h4>
                 <IndicateurEtapes>
                   <PuceEtape $actif={etapeCourante >= 1} $succes={etapeCourante === 4} />
@@ -397,15 +441,9 @@ export default function ClientsSupprimes({
                 </IndicateurEtapes>
               </EnTeteModal>
 
-              {/* CONTENU SELON L'ÉTAPE */}
               <AnimatePresence mode="wait">
                 {etapeCourante === 1 && (
-                  <CarteRisque
-                    key="etape1"
-                    initial={{ opacity: 0, x: 15 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -15 }}
-                  >
+                  <CarteRisque key="etape1" initial={{ opacity: 0, x: 15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -15 }}>
                     <TitreRisque>🚨 Risque #1 : Perte définitive des données</TitreRisque>
                     <DescriptionRisque>
                       En vidant la corbeille, vous effacez définitivement <strong>{listeClientsSupprimes.length} client(s)</strong> de la base de données. 
@@ -415,12 +453,7 @@ export default function ClientsSupprimes({
                 )}
 
                 {etapeCourante === 2 && (
-                  <CarteRisque
-                    key="etape2"
-                    initial={{ opacity: 0, x: 15 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -15 }}
-                  >
+                  <CarteRisque key="etape2" initial={{ opacity: 0, x: 15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -15 }}>
                     <TitreRisque>🔗 Risque #2 : Perte de l'historique associé</TitreRisque>
                     <DescriptionRisque>
                       Toutes les transactions, contrats ou historiques de paiement liés à ces matricules clients risquent d'être définitivement rompus.
@@ -429,12 +462,7 @@ export default function ClientsSupprimes({
                 )}
 
                 {etapeCourante === 3 && (
-                  <CarteRisque
-                    key="etape3"
-                    initial={{ opacity: 0, x: 15 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -15 }}
-                  >
+                  <CarteRisque key="etape3" initial={{ opacity: 0, x: 15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -15 }}>
                     <TitreRisque>⚡ Risque #3 : Confirmation finale requise</TitreRisque>
                     <DescriptionRisque>
                       Avez-vous bien vérifié votre liste ? Si vous êtes totalement sûr de vouloir purger définitivement la corbeille, cliquez ci-dessous.
@@ -442,14 +470,8 @@ export default function ClientsSupprimes({
                   </CarteRisque>
                 )}
 
-                {/* ✅ ÉTAPE 4 : INTERFACE DE CONFIRMATION DE SUCCÈS SUR ÉCRAN */}
                 {etapeCourante === 4 && (
-                  <CarteSucces
-                    key="etape4"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
+                  <CarteSucces key="etape4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
                     <span className="icone">✅</span>
                     <h4>Corbeille vidée avec succès !</h4>
                     <p>Tous les enregistrements en corbeille ont été définitivement supprimés de la base de données.</p>
@@ -461,11 +483,11 @@ export default function ClientsSupprimes({
               {etapeCourante < 4 ? (
                 <GroupeBoutonsModal>
                   {etapeCourante === 1 ? (
-                    <BoutonSecondaire onClick={fermerAvertissement}>
+                    <BoutonSecondaire onClick={fermerAvertissement} disabled={estEnTraitement}>
                       Annuler
                     </BoutonSecondaire>
                   ) : (
-                    <BoutonSecondaire onClick={() => setEtapeCourante(prev => prev - 1)}>
+                    <BoutonSecondaire onClick={() => setEtapeCourante(prev => prev - 1)} disabled={estEnTraitement}>
                       Précédent
                     </BoutonSecondaire>
                   )}
@@ -475,11 +497,14 @@ export default function ClientsSupprimes({
                       Compris, étape suivante ➔
                     </BoutonSuivant>
                   ) : (
-                    <BoutonSupprimerFinal 
-                      onClick={confirmerEtVider} 
-                      disabled={estEnTraitement}
-                    >
-                      {estEnTraitement ? 'Suppression en cours...' : "J'assume les risques, vider"}
+                    <BoutonSupprimerFinal onClick={confirmerEtVider} disabled={estEnTraitement}>
+                      {estEnTraitement ? (
+                        <>
+                          <span className="spinner">🔄</span> Purge en cours...
+                        </>
+                      ) : (
+                        "J'assume les risques, tout supprimer"
+                      )}
                     </BoutonSupprimerFinal>
                   )}
                 </GroupeBoutonsModal>

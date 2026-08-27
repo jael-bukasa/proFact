@@ -64,6 +64,51 @@ const nettoyerDate = (valeur) => {
 };
 
 module.exports = (db) => {
+
+  // 🌟 Route pour obtenir le prochain numéro indépendant selon le préfixe/type
+  router.get('/prochain-id', (req, res) => {
+    const typeClientReq = req.query.type || 'locataire';
+    const typeFactureReq = req.query.typeFacture || '';
+    const deviseReq = req.query.devise || 'USD';
+
+    const typeFiltre = ((typeFactureReq) + ' ' + (typeClientReq))
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+    let prefixeCible = 'LOY-';
+    if (typeFiltre.includes('elect') || typeFiltre.includes('snel')) {
+      prefixeCible = 'ELE-';
+    } else if (typeFiltre.includes('eau') || typeFiltre.includes('regideso')) {
+      prefixeCible = 'EAU-';
+    } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
+      prefixeCible = 'DIV-';
+    } else if (typeFiltre.includes('locat') || typeFiltre.includes('loyer')) {
+      prefixeCible = (deviseReq === 'CDF') ? 'LY-' : 'LOY-';
+    }
+
+    const queryAll = 'SELECT matricule FROM clients';
+    db.query(queryAll, (err, results) => {
+      if (err) {
+        console.error("Erreur lors du calcul du prochain ID par type :", err);
+        return res.status(500).json({ erreur: "Erreur serveur" });
+      }
+
+      let maxNumero = 0;
+      results.forEach(row => {
+        if (row.matricule && row.matricule.startsWith(prefixeCible)) {
+          const partieNumerique = parseInt(row.matricule.replace(prefixeCible, ''), 10);
+          if (!isNaN(partieNumerique) && partieNumerique > maxNumero) {
+            maxNumero = partieNumerique;
+          }
+        }
+      });
+
+      const prochainId = maxNumero + 1;
+      res.json({ id: prochainId, prefixe: prefixeCible });
+    });
+  });
+
   // Récupérer la corbeille
   router.get('/corbeille', (req, res) => {
     const query = 'SELECT * FROM clients WHERE supprime = 1 ORDER BY id ASC';
@@ -109,46 +154,58 @@ module.exports = (db) => {
       montant = 0, modePaiement = 'Virement', moisFacture = '',
       debutContrat = null, finContrat = null, dateComptable = null,
       compteur = '', imputation = '', dernierNumero = '', dernierMontant = 0,
-      derniereDate = null, telephone = '', email = '', enregistre = true // <-- Forcé à true par défaut
+      derniereDate = null, telephone = '', email = '', enregistre = true
     } = req.body;
 
     const nomClient = nom.trim() !== '' ? nom : (designation || 'Client');
     const prenomClient = prenom.trim() !== '' ? prenom : '-';
 
-    const queryAllIds = 'SELECT id FROM clients ORDER BY id ASC';
+    const typeFiltre = ((typeFacture || '') + ' ' + (typeClient || ''))
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
 
-    db.query(queryAllIds, (err, results) => {
+    let prefixe = 'LOY-';
+    if (typeFiltre.includes('elect') || typeFiltre.includes('snel')) {
+      prefixe = 'ELE-';
+    } else if (typeFiltre.includes('eau') || typeFiltre.includes('regideso')) {
+      prefixe = 'EAU-';
+    } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
+      prefixe = 'DIV-';
+    } else if (typeFiltre.includes('locat') || typeFiltre.includes('loyer')) {
+      prefixe = (devise === 'CDF') ? 'LY-' : 'LOY-';
+    }
+
+    const queryAll = 'SELECT id, matricule FROM clients ORDER BY id ASC';
+
+    db.query(queryAll, (err, results) => {
       if (err) {
-        console.error("Erreur lors du calcul de l'ID libre :", err);
-        return res.status(500).json({ erreur: "Erreur serveur lors de la préparation de l'ID" });
+        console.error("Erreur lors de la préparation du matricule :", err);
+        return res.status(500).json({ erreur: "Erreur serveur lors de la préparation du matricule" });
       }
 
+      // 1. Déterminer le prochain incrément spécifique au préfixe
+      let maxNumeroPrefixe = 0;
+      results.forEach(row => {
+        if (row.matricule && row.matricule.startsWith(prefixe)) {
+          const partieNumerique = parseInt(row.matricule.replace(prefixe, ''), 10);
+          if (!isNaN(partieNumerique) && partieNumerique > maxNumeroPrefixe) {
+            maxNumeroPrefixe = partieNumerique;
+          }
+        }
+      });
+
+      const prochainNumero = maxNumeroPrefixe + 1;
+      const matricule = `${prefixe}${String(prochainNumero).padStart(10, '0')}`;
+
+      // 2. Trouver le premier ID libre en base de données pour la clé primaire SQL
       const idsUtilises = new Set(results.map(r => r.id));
       let idDisponible = 1;
       while (idsUtilises.has(idDisponible)) {
         idDisponible++;
       }
 
-      const typeFiltre = ((typeFacture || '') + ' ' + (typeClient || ''))
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase();
-
-      let prefixe = 'LOY-';
-
-      if (typeFiltre.includes('elect') || typeFiltre.includes('snel')) {
-        prefixe = 'ELE-';
-      } else if (typeFiltre.includes('eau') || typeFiltre.includes('regideso')) {
-        prefixe = 'EAU-';
-      } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
-        prefixe = 'DIV-';
-      } else if (typeFiltre.includes('locat') || typeFiltre.includes('loyer')) {
-        prefixe = (devise === 'CDF') ? 'LY-' : 'LOY-';
-      }
-
-      const matricule = `${prefixe}${String(idDisponible).padStart(10, '0')}`;
       const dateEntree = new Date().toISOString().split('T')[0];
-      
       const now = new Date();
       const creeLe = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
@@ -173,7 +230,7 @@ module.exports = (db) => {
       db.query(queryInsert, valeurs, (insertErr) => {
         if (insertErr) {
           console.error("Erreur SQL lors de l'insertion :", insertErr);
-          return res.status(500).json({ erreur: "Erreur lors de l'enregistrement dans MySQL : " + insertErr.message });
+          return res.status(500).json({ erreur: "Erreur lors de l'enregistrement : " + insertErr.message });
         }
 
         const clientCree = formaterClient({
@@ -201,7 +258,7 @@ module.exports = (db) => {
     });
   });
 
-  // Modifier un client (Put) - Renvoie le client mis à jour pour fluidifier le front
+  // Modifier un client (Put)
   router.put('/:id', (req, res) => {
     const { id } = req.params;
     const { 
@@ -227,7 +284,6 @@ module.exports = (db) => {
     db.query(query, valeurs, (err) => {
       if (err) return res.status(500).json({ erreur: "Erreur lors de la modification" });
       
-      // Récupération du client mis à jour pour renvoi direct
       db.query('SELECT * FROM clients WHERE id = ?', [id], (errSelect, results) => {
         if (errSelect || results.length === 0) {
           return res.json({ message: "Client modifié avec succès" });
