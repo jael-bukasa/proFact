@@ -439,7 +439,6 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
                   <CelluleHeader>Type & Désignation</CelluleHeader>
                   <CelluleHeader>Montant</CelluleHeader>
                   <CelluleHeader>Paiement & Réf.</CelluleHeader>
-                  <CelluleHeader>Mois Facturé</CelluleHeader>
                   <CelluleHeader>Contrat (Début / Fin)</CelluleHeader>
                   <CelluleHeader>Date Comptable</CelluleHeader>
                   <CelluleHeader>Compteurs & Suivi Index</CelluleHeader>
@@ -494,8 +493,6 @@ export default function ClientsEnregistres({ clientsEnregistres = [], onSelectCl
                         {cli.modePaiement || '-'} 
                         {cli.reference && <><br/><span style={{ fontSize: '0.7rem', color: THEME.texteSecondaire }}>Réf: {cli.reference}</span></>}
                       </CelluleData>
-                      
-                      <CelluleData>{cli.moisFacture || 'N/A'}</CelluleData>
                       
                       <CelluleData style={{ fontSize: '0.75rem' }}>
                         {cli.debutContrat || '-'} <br/>au {cli.finContrat || '-'}
