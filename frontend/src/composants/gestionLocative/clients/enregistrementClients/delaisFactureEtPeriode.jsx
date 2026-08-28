@@ -11,12 +11,6 @@ export default function DelaisFactureEtPeriode({
   limiteAtteinte, 
   MAX_CARACTERES_DESIGNATION 
 }) {
-  const obtenirLibellePeriode = () => {
-    if (formulaire.typePeriode === 'mois') return 'Mois Concerné *';
-    if (formulaire.typePeriode === 'trimestre') return 'Trimestre Concerné *';
-    return 'Semestre Concerné *';
-  };
-
   // Récupère la valeur du type de facture depuis le formulaire
   const typeFactureAffiche = formulaire.typeFacture || formulaire.typeClient || 'locataire';
 
@@ -132,54 +126,6 @@ export default function DelaisFactureEtPeriode({
               <option value="trimestre">Par Trimestre</option>
               <option value="semestre">Par Semestre</option>
             </select>
-          </div>
-        </div>
-
-        {/* Mois / Trimestre / Semestre Concerné */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '0.2rem' }}>
-          <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>{obtenirLibellePeriode()}</label>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
-            <select 
-              ref={el => refs.current.moisFacture = el} 
-              name="moisFacture" 
-              value={formulaire.moisFacture ?? ''} 
-              onChange={handleChange} 
-              onKeyDown={gererToucheEntree} 
-              style={{ width: '100%', backgroundColor: '#121212', border: `1px solid ${erreurs.moisFacture ? '#FF5252' : '#2A2A2A'}`, borderRadius: '6px', padding: '0.45rem 2.2rem 0.45rem 0.6rem', color: '#FFFFFF', fontSize: '0.8rem', outline: 'none', cursor: 'pointer' }}
-            >
-              <option value="">-- Choisir --</option>
-              {formulaire.typePeriode === 'mois' && (
-                <>
-                  <option value="Janvier">Janvier</option>
-                  <option value="Février">Février</option>
-                  <option value="Mars">Mars</option>
-                  <option value="Avril">Avril</option>
-                  <option value="Mai">Mai</option>
-                  <option value="Juin">Juin</option>
-                  <option value="Juillet">Juillet</option>
-                  <option value="Août">Août</option>
-                  <option value="Septembre">Septembre</option>
-                  <option value="Octobre">Octobre</option>
-                  <option value="Novembre">Novembre</option>
-                  <option value="Décembre">Décembre</option>
-                </>
-              )}
-              {formulaire.typePeriode === 'trimestre' && (
-                <>
-                  <option value="T1 (Jan - Mar)">T1 (Jan - Mar)</option>
-                  <option value="T2 (Avr - Jun)">T2 (Avr - Jun)</option>
-                  <option value="T3 (Jul - Sep)">T3 (Jul - Sep)</option>
-                  <option value="T4 (Oct - Déc)">T4 (Oct - Déc)</option>
-                </>
-              )}
-              {formulaire.typePeriode === 'semestre' && (
-                <>
-                  <option value="S1 (Jan - Juin)">S1 (Jan - Juin)</option>
-                  <option value="S2 (Juil - Déc)">S2 (Juil - Déc)</option>
-                </>
-              )}
-            </select>
-            {erreurs.moisFacture && <span style={{ position: 'absolute', right: '2rem', color: '#FF5252', fontSize: '0.6rem', fontWeight: 600, backgroundColor: 'rgba(18, 18, 18, 0.85)', padding: '0.1rem 0.2rem', borderRadius: '3px' }}>Requis</span>}
           </div>
         </div>
 
