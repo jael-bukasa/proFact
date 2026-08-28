@@ -10,7 +10,7 @@ import {
 
 import ClientsSupprimes from './clients/clientsSupprimes';
 import EnregistrementClients from './clients/enregistrementClients';
-import ClientsEnregistres from './clients/ClientsEnregistres';
+import ClientsEnregistres from './clients/clientsEnregistres';
 
 const API_URL = 'http://localhost:5000/api';
 

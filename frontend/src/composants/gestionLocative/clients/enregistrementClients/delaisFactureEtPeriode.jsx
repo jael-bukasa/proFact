@@ -17,6 +17,9 @@ export default function DelaisFactureEtPeriode({
     return 'Semestre Concerné *';
   };
 
+  // Récupère la valeur du type de facture depuis le formulaire
+  const typeFactureAffiche = formulaire.typeFacture || formulaire.typeClient || 'locataire';
+
   return (
     <fieldset style={{ border: '1px solid #2A2A2A', borderRadius: '10px', padding: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       <legend style={{ color: '#AEEA00', fontSize: '0.78rem', fontWeight: 600, padding: '0 0.4rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -50,7 +53,7 @@ export default function DelaisFactureEtPeriode({
             <input 
               ref={el => refs.current.typeFacture = el} 
               name="typeFacture" 
-              value={formulaire.typeFacture ?? 'Loyers'} 
+              value={typeFactureAffiche} 
               readOnly 
               style={{ width: '100%', backgroundColor: '#181818', border: '1px solid #2A2A2A', borderRadius: '6px', padding: '0.45rem 0.6rem', color: '#AAAAAA', fontSize: '0.8rem', cursor: 'not-allowed', opacity: 0.8 }}
             />

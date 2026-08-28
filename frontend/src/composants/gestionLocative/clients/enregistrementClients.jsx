@@ -20,7 +20,7 @@ export default function EnregistrementClients({ onClientAjoute }) {
     adresse: '',
     pays: 'RDC',
     designation: '',
-    typeFacture: 'Loyers',
+    typeFacture: 'locataire',
     devise: 'USD',
     montant: '',
     modePaiement: 'Virement',
@@ -51,7 +51,7 @@ export default function EnregistrementClients({ onClientAjoute }) {
     try {
       const queryParams = new URLSearchParams({
         type: typeClient || 'locataire',
-        typeFacture: typeFacture || 'Loyers',
+        typeFacture: typeFacture || 'locataire',
         devise: devise || 'USD'
       });
 
@@ -81,19 +81,24 @@ export default function EnregistrementClients({ onClientAjoute }) {
     const { name, value } = e.target;
     let nouveauFormulaire = { ...formulaire, [name]: value };
 
+    // Si on change le type de client, on met automatiquement à jour le type de facture pour qu'ils soient identiques partout
+    if (name === 'typeClient') {
+      nouveauFormulaire.typeFacture = value;
+    }
+
     if (name === 'typePeriode') {
       nouveauFormulaire.moisFacture = '';
     }
 
     setFormulaire(nouveauFormulaire);
 
-    // 🌟 Dès que le type de client, le type de facture ou la devise change, on interroge le backend pour avoir la bonne incrémentation
+    const clientActuel = name === 'typeClient' ? value : formulaire.typeClient;
+    const factureActuelle = name === 'typeClient' ? value : (name === 'typeFacture' ? value : formulaire.typeFacture);
+    const deviseActuelle = name === 'devise' ? value : formulaire.devise;
+
+    // 🌟 Dès que le type de client, le type de facture ou la devise change, on interroge le backend
     if (name === 'typeClient' || name === 'typeFacture' || name === 'devise') {
-      fetchProchainMatricule(
-        name === 'typeClient' ? value : formulaire.typeClient,
-        name === 'typeFacture' ? value : formulaire.typeFacture,
-        name === 'devise' ? value : formulaire.devise
-      );
+      fetchProchainMatricule(clientActuel, factureActuelle, deviseActuelle);
     }
 
     if (erreurs[name] && value.trim() !== '') {
@@ -137,7 +142,7 @@ export default function EnregistrementClients({ onClientAjoute }) {
   };
 
   const handleReset = () => {
-    fetchProchainMatricule('locataire', 'Loyers', 'USD');
+    fetchProchainMatricule('locataire', 'locataire', 'USD');
     setFormulaire({
       nom: '',
       postNom: '',
@@ -151,7 +156,7 @@ export default function EnregistrementClients({ onClientAjoute }) {
       adresse: '',
       pays: 'RDC',
       designation: '',
-      typeFacture: 'Loyers',
+      typeFacture: 'locataire',
       devise: 'USD',
       montant: '',
       modePaiement: 'Virement',
