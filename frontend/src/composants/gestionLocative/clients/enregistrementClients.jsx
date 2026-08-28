@@ -41,12 +41,14 @@ export default function EnregistrementClients({ onClientAjoute }) {
   const [loading, setLoading] = useState(false);
   const [messageSucces, setMessageSucces] = useState(false);
   
+  // 🌟 État pour animer la couleur du bouton Réinitialiser au clic
+  const [isResetting, setIsResetting] = useState(false);
+  
   const refs = useRef({});
   const MAX_CARACTERES_DESIGNATION = 500;
   const longueurDesignation = (formulaire.designation ?? '').length;
   const limiteAtteinte = longueurDesignation >= MAX_CARACTERES_DESIGNATION;
 
-  // 🌟 Fonction pour récupérer dynamiquement le prochain ID/Matricule selon le type et la devise
   const fetchProchainMatricule = async (typeClient, typeFacture, devise) => {
     try {
       const queryParams = new URLSearchParams({
@@ -72,7 +74,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
     }
   };
 
-  // 🌟 Récupération automatique au chargement initial du composant
   useEffect(() => {
     fetchProchainMatricule(formulaire.typeClient, formulaire.typeFacture, formulaire.devise);
   }, []);
@@ -81,7 +82,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
     const { name, value } = e.target;
     let nouveauFormulaire = { ...formulaire, [name]: value };
 
-    // Si on change le type de client, on met automatiquement à jour le type de facture pour qu'ils soient identiques partout
     if (name === 'typeClient') {
       nouveauFormulaire.typeFacture = value;
     }
@@ -96,7 +96,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
     const factureActuelle = name === 'typeClient' ? value : (name === 'typeFacture' ? value : formulaire.typeFacture);
     const deviseActuelle = name === 'devise' ? value : formulaire.devise;
 
-    // 🌟 Dès que le type de client, le type de facture ou la devise change, on interroge le backend
     if (name === 'typeClient' || name === 'typeFacture' || name === 'devise') {
       fetchProchainMatricule(clientActuel, factureActuelle, deviseActuelle);
     }
@@ -141,8 +140,11 @@ export default function EnregistrementClients({ onClientAjoute }) {
     }
   };
 
+  // 🌟 Action déclenchée au clic sur Réinitialiser (le formulaire reste affiché, le bouton change de couleur brièvement)
   const handleReset = () => {
-    fetchProchainMatricule('locataire', 'locataire', 'USD');
+    setIsResetting(true);
+    
+    // Remet le formulaire à zéro
     setFormulaire({
       nom: '',
       postNom: '',
@@ -172,7 +174,14 @@ export default function EnregistrementClients({ onClientAjoute }) {
       derniereDate: '',
       id: 1
     });
+    
     setErreurs({});
+    fetchProchainMatricule('locataire', 'locataire', 'USD');
+
+    // Retire l'effet visuel du bouton après 500 millisecondes
+    setTimeout(() => {
+      setIsResetting(false);
+    }, 500);
   };
 
   const handleSubmit = async (e) => {
@@ -289,9 +298,27 @@ export default function EnregistrementClients({ onClientAjoute }) {
 
         {/* Barre de boutons finale */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-          <button type="button" onClick={handleReset} style={{ backgroundColor: 'transparent', color: '#888888', border: '1px solid #2A2A2A', padding: '0.55rem 1.4rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '0.82rem' }}>
-            Réinitialiser
-          </button>
+          <motion.button 
+            type="button" 
+            onClick={handleReset} 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
+            style={{ 
+              // 🌟 Changement de couleur dynamique du bouton lorsque isResetting est à true
+              backgroundColor: isResetting ? '#FF9800' : '#121212', 
+              color: isResetting ? '#000000' : '#FFFFFF', 
+              border: `1px solid ${isResetting ? '#FF9800' : '#3A3A3A'}`, 
+              padding: '0.55rem 1.4rem', 
+              borderRadius: '8px', 
+              fontWeight: 600, 
+              cursor: 'pointer', 
+              fontSize: '0.82rem',
+              transition: 'background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease'
+            }}
+          >
+            {isResetting ? "Réinitialisé !" : "Réinitialiser"}
+          </motion.button>
+
           <button 
             type="submit" 
             name="submitButton" 
