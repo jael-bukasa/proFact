@@ -4,7 +4,14 @@ import { FiCheckCircle } from 'react-icons/fi';
 import BailETidentification from './enregistrementClients/bailETidentification';
 import DelaisFactureEtPeriode from './enregistrementClients/delaisFactureEtPeriode';
 import CompteursETsuivis from './enregistrementClients/compteursETsuivis';
-import { genererMatricule10Chiffres } from '../../../../../backend/src/services/clientService';
+
+// Fonction utilitaire de génération de matricule intégrée côté frontend
+const genererMatricule10Chiffres = (id, typeClient, typeFacture, devise) => {
+  const prefixClient = typeClient === 'proprietaire' ? 'PR' : 'LOY';
+  const prefixDevise = devise === 'EUR' ? 'EU' : 'US';
+  const idFormate = String(id).padStart(6, '0');
+  return `${prefixClient}-${prefixDevise}-${idFormate}`;
+};
 
 export default function EnregistrementClients({ onClientAjoute }) {
   const [formulaire, setFormulaire] = useState({
@@ -13,7 +20,7 @@ export default function EnregistrementClients({ onClientAjoute }) {
     prenom: '',
     telephone: '',
     typeClient: 'locataire',
-    matricule: 'LOY-0000000001',
+    matricule: 'LOY-US-000001',
     bail: '',
     dateBail: '',
     logement: '',
@@ -40,8 +47,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
   const [erreurs, setErreurs] = useState({});
   const [loading, setLoading] = useState(false);
   const [messageSucces, setMessageSucces] = useState(false);
-  
-  // 🌟 État pour animer la couleur du bouton Réinitialiser au clic
   const [isResetting, setIsResetting] = useState(false);
   
   const refs = useRef({});
@@ -140,18 +145,16 @@ export default function EnregistrementClients({ onClientAjoute }) {
     }
   };
 
-  // 🌟 Action déclenchée au clic sur Réinitialiser (le formulaire reste affiché, le bouton change de couleur brièvement)
   const handleReset = () => {
     setIsResetting(true);
     
-    // Remet le formulaire à zéro
     setFormulaire({
       nom: '',
       postNom: '',
       prenom: '',
       telephone: '',
       typeClient: 'locataire',
-      matricule: 'LOY-0000000001',
+      matricule: 'LOY-US-000001',
       bail: '',
       dateBail: '',
       logement: '',
@@ -178,7 +181,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
     setErreurs({});
     fetchProchainMatricule('locataire', 'locataire', 'USD');
 
-    // Retire l'effet visuel du bouton après 500 millisecondes
     setTimeout(() => {
       setIsResetting(false);
     }, 500);
@@ -188,15 +190,10 @@ export default function EnregistrementClients({ onClientAjoute }) {
     e.preventDefault();
     const nouvellesErreurs = {};
 
+    // Validation assouplie : seuls les champs critiques bloquent l'enregistrement s'ils sont vides
     if (!formulaire.nom || formulaire.nom.trim() === '') nouvellesErreurs.nom = 'Requis';
-    if (!formulaire.postNom || formulaire.postNom.trim() === '') nouvellesErreurs.postNom = 'Requis';
     if (!formulaire.prenom || formulaire.prenom.trim() === '') nouvellesErreurs.prenom = 'Requis';
     if (!formulaire.telephone || formulaire.telephone.trim() === '') nouvellesErreurs.telephone = 'Requis';
-    if (!formulaire.logement || formulaire.logement.trim() === '') nouvellesErreurs.logement = 'Requis';
-    if (!formulaire.dateBail || formulaire.dateBail.trim() === '') nouvellesErreurs.dateBail = 'Requis';
-    if (!formulaire.debutContrat || formulaire.debutContrat.trim() === '') nouvellesErreurs.debutContrat = 'Requis';
-    if (!formulaire.finContrat || formulaire.finContrat.trim() === '') nouvellesErreurs.finContrat = 'Requis';
-    if (!formulaire.moisFacture || formulaire.moisFacture.trim() === '') nouvellesErreurs.moisFacture = 'Requis';
     if (!formulaire.montant || String(formulaire.montant).trim() === '' || Number(formulaire.montant) <= 0) {
       nouvellesErreurs.montant = 'Requis';
     }
@@ -264,7 +261,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
         style={{ backgroundColor: '#1E1E1E', padding: '1.2rem', borderRadius: '12px', border: '1px solid #2A2A2A', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '950px', margin: '0 auto' }}
       >
         
-        {/* 1. Bloc Bail & Identification */}
         <BailETidentification 
           formulaire={formulaire} 
           erreurs={erreurs} 
@@ -274,7 +270,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
           refs={refs} 
         />
 
-        {/* 2. Bloc Détails Facture & Période */}
         <DelaisFactureEtPeriode 
           formulaire={formulaire} 
           erreurs={erreurs} 
@@ -287,7 +282,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
           MAX_CARACTERES_DESIGNATION={MAX_CARACTERES_DESIGNATION} 
         />
 
-        {/* 3. Bloc Compteurs & Suivi Index */}
         <CompteursETsuivis 
           formulaire={formulaire} 
           handleChange={handleChange} 
@@ -296,7 +290,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
           refs={refs} 
         />
 
-        {/* Barre de boutons finale */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
           <motion.button 
             type="button" 
@@ -304,7 +297,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
             style={{ 
-              // 🌟 Changement de couleur dynamique du bouton lorsque isResetting est à true
               backgroundColor: isResetting ? '#FF9800' : '#121212', 
               color: isResetting ? '#000000' : '#FFFFFF', 
               border: `1px solid ${isResetting ? '#FF9800' : '#3A3A3A'}`, 
@@ -332,7 +324,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
 
       </motion.form>
 
-      {/* 🌟 Toast de succès élégant */}
       <AnimatePresence>
         {messageSucces && (
           <motion.div

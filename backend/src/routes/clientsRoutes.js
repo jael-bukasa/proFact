@@ -233,6 +233,29 @@ module.exports = (db) => {
           return res.status(500).json({ erreur: "Erreur lors de l'enregistrement : " + insertErr.message });
         }
 
+        // 3. Insertion automatique dans la table factures existante
+        const nomComplet = `${nomClient} ${postNom || ''} ${prenomClient !== '-' ? prenomClient : ''}`.trim();
+        const queryInsertFacture = `
+          INSERT INTO factures (matricule, nom, typeFacture, montant, devise, dateCreation) 
+          VALUES (?, ?, ?, ?, ?, NOW())
+        `;
+
+        const valeursFacture = [
+          matricule,
+          nomComplet,
+          typeFacture || 'Loyers',
+          Number(montant) || 0,
+          devise || 'USD'
+        ];
+
+        db.query(queryInsertFacture, valeursFacture, (errFact) => {
+          if (errFact) {
+            console.error("Erreur lors de l'insertion dans la table factures :", errFact);
+          } else {
+            console.log("Facture enregistrée avec succès dans la table factures.");
+          }
+        });
+
         const clientCree = formaterClient({
           id: idDisponible, matricule, nom: nomClient, postNom, prenom: prenomClient,
           bail, dateBail, logement, adresse, pays, designation, typeClient,
