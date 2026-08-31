@@ -5,9 +5,11 @@ const cors = require('cors');
 // Importation des services
 const banqueService = require('./services/banqueService');
 const compteService = require('./services/compteService');
+const factureService = require('./services/factureService');
 
-// Importation du routeur clients
+// Importation des routeurs
 const clientsRoutes = require('./routes/clientsRoutes');
+const facturesRoutes = require('./routes/facturesRoutes');
 
 const app = express();
 const PORT = 5000;
@@ -91,6 +93,44 @@ db.connect((err) => {
   db.query(sqlClients, (errCli) => {
     if (errCli) console.error("Erreur lors de la création de la table clients :", errCli);
     else console.log("Table clients vérifiée/créée avec succès.");
+  });
+
+  // Table factures
+  const sqlFactures = `
+    CREATE TABLE IF NOT EXISTS factures (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      numero VARCHAR(50) NOT NULL,
+      bail VARCHAR(50) DEFAULT NULL,
+      dateBail DATE DEFAULT NULL,
+      clientCode VARCHAR(50) DEFAULT NULL,
+      nomLocataire VARCHAR(150) NOT NULL,
+      logement VARCHAR(100) DEFAULT NULL,
+      adresse TEXT DEFAULT NULL,
+      pays VARCHAR(50) DEFAULT 'RDC',
+      designation TEXT DEFAULT NULL,
+      typeFacture VARCHAR(50) DEFAULT 'Loyers',
+      modePaiement VARCHAR(50) DEFAULT 'Virement',
+      reference VARCHAR(100) DEFAULT NULL,
+      montant DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      moisFacture VARCHAR(50) DEFAULT NULL,
+      anneeFactureChiffre VARCHAR(10) DEFAULT NULL,
+      debutContrat DATE DEFAULT NULL,
+      finContrat DATE DEFAULT NULL,
+      dateComptable DATE DEFAULT NULL,
+      compteur VARCHAR(50) DEFAULT NULL,
+      imputation VARCHAR(50) DEFAULT NULL,
+      dernierNumero VARCHAR(50) DEFAULT NULL,
+      dernierMontant DECIMAL(12,2) DEFAULT NULL,
+      derniereDate DATE DEFAULT NULL,
+      statut VARCHAR(30) DEFAULT 'En attente',
+      supprime TINYINT(1) DEFAULT 0,
+      creeLe TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  db.query(sqlFactures, (errFac) => {
+    if (errFac) console.error("Erreur lors de la création de la table factures :", errFac);
+    else console.log("Table factures vérifiée/créée avec succès.");
   });
 
   // Table banques
@@ -184,6 +224,7 @@ app.get('/api/health', (req, res) => {
 // BRANCHEMENT DES ROUTEURS MODULAIRES
 // ==========================================
 app.use('/api/clients', clientsRoutes(db));
+app.use('/api/factures', facturesRoutes);
 
 // ==========================================
 // ROUTES API - BANQUES
