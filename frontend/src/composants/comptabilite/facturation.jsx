@@ -32,7 +32,15 @@ const BarreOnglets = styled.div`
   border-bottom: 2px solid ${THEME.bordure};
   margin-bottom: 0.5rem;
   flex-wrap: wrap;
-  padding-bottom: 0.8rem;
+  
+  /* Fixer les onglets en haut sur toute la largeur */
+  position: sticky;
+  top: 0;
+  width: 100%;
+  background-color: #0d0d0d;
+  z-index: 100;
+  padding: 1rem 0 0.8rem 0;
+  margin-top: -1rem; /* Compense un éventuel padding du conteneur parent */
 `;
 
 const BoutonOnglet = styled.button`
@@ -66,7 +74,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
   const [rechercheFacture, setRechercheFacture] = useState('');
   const [filtreDateExacte, setFiltreDateExacte] = useState('');
 
-  // États pour la modal de choix de mois et génération de facture
   const [clientPourFacture, setClientPourFacture] = useState(null);
   const [loadingGeneration, setLoadingGeneration] = useState(false);
 
@@ -121,7 +128,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
   }, [clientsEnregistres]);
 
   const facturesFiltreesGlobal = useMemo(() => {
-    // Si on est sur l'onglet 'creer', pas besoin de filtrer la liste des factures
     if (ongletActif === 'creer') return [];
 
     return listeFactures.filter(facture => {

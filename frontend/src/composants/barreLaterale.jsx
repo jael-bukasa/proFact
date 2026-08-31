@@ -13,6 +13,9 @@ const THEME = {
 
 const ConteneurBarreLaterale = styled.aside`
   width: 250px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
   flex-shrink: 0;
   background-color: ${THEME.fondSidebar};
   padding: 1.5rem 1rem;
@@ -20,6 +23,7 @@ const ConteneurBarreLaterale = styled.aside`
   flex-direction: column;
   border-right: 1px solid ${THEME.bordure};
   overflow-y: auto;
+  box-sizing: border-box;
 `;
 
 const SectionProfil = styled.div`
@@ -200,11 +204,9 @@ export default function BarreLaterale({
   const [profilOuvert, setProfilOuvert] = useState(false);
   const [enDeconnexion, setEnDeconnexion] = useState(false);
 
-  // Détermination sécurisée du rôle (Admin / Administrateur ou Facturier)
   const roleBrut = utilisateurConnecte?.role || 'Admin';
   const estAdmin = roleBrut.toLowerCase().includes('admin');
 
-  // Configuration des menus selon le rôle (Tableau de bord retiré pour le facturier)
   const configurationMenu = estAdmin ? [
     { 
       titre: 'GESTION LOCATIVE', 

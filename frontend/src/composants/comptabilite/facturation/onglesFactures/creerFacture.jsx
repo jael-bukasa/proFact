@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FiSave, FiCheckCircle } from 'react-icons/fi';
+import { FiSave, FiRotateCcw, FiCheckCircle } from 'react-icons/fi';
 
 import ModeSelection from './creerFature/modeSelection';
 import TypeClient from './creerFature/typeClient';
@@ -19,6 +19,13 @@ const rotationAnimation = keyframes`
   100% { transform: rotate(360deg); }
 `;
 
+// Effet distinct pour la réinitialisation : un balancement / rotation fluide et rapide de l'icône
+const spinResetAnimation = keyframes`
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(-180deg) scale(0.9); }
+  100% { transform: rotate(-360deg) scale(1); }
+`;
+
 const SpinnerChargement = styled.div`
   width: 18px;
   height: 18px;
@@ -26,6 +33,10 @@ const SpinnerChargement = styled.div`
   border-top: 3px solid #000000;
   border-radius: 50%;
   animation: ${rotationAnimation} 0.8s linear infinite;
+`;
+
+const IconeReinitialisationAnimee = styled(FiRotateCcw)`
+  animation: ${spinResetAnimation} 0.5s ease-in-out infinite;
 `;
 
 const ConteneurFormulaire = styled.div`
@@ -52,12 +63,30 @@ const TitreSection = styled.h2`
   padding-bottom: 0.8rem;
 `;
 
+// Effet visuel spécifique de transition vers le haut et fondu pour la réinitialisation
 const GrilleFormulaire = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.2rem;
   margin-bottom: 1.5rem;
-  transition: opacity 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  ${props => props.$reinitialisationEnCours && `
+    opacity: 0.2;
+    transform: translateY(-6px);
+    filter: blur(1px);
+  `}
+
+  ${props => props.$chargementSoumission && `
+    opacity: 0.5;
+  `}
+`;
+
+const ConteneurActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
 `;
 
 const BoutonSoumettre = styled.button`
@@ -74,11 +103,33 @@ const BoutonSoumettre = styled.button`
   justify-content: center;
   gap: 0.6rem;
   transition: all 0.2s ease;
-  width: 100%;
-  margin-top: 1rem;
+  width: auto;
+  min-width: 220px;
 
   &:hover { opacity: 0.9; transform: translateY(-1px); }
   &:disabled { opacity: 0.8; cursor: not-allowed; transform: none; }
+`;
+
+const BoutonReinitialiser = styled.button`
+  background-color: transparent;
+  color: ${THEME.textePrincipal};
+  border: 1px solid ${THEME.bordure};
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: ${THEME.textePrincipal};
+  }
+  &:disabled { opacity: 0.7; cursor: not-allowed; }
 `;
 
 export default function CreerFacture() {
@@ -88,7 +139,6 @@ export default function CreerFacture() {
   const [afficherSuggestions, setAfficherSuggestions] = useState(false);
   const [enCoursDeRecherche, setEnCoursDeRecherche] = useState(false);
   
-  // État pour gérer l'erreur visuelle directement dans le champ
   const [erreurValidationClient, setErreurValidationClient] = useState(false);
   
   const wrapperRef = useRef(null);
@@ -114,6 +164,7 @@ export default function CreerFacture() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [enTrainDeReinitialiser, setEnTrainDeReinitialiser] = useState(false);
   const [messageSucces, setMessageSucces] = useState('');
 
   useEffect(() => {
@@ -212,7 +263,7 @@ export default function CreerFacture() {
     setSaisieRechercheClient(valeur);
     setAfficherSuggestions(true);
     setEnCoursDeRecherche(true);
-    setErreurValidationClient(false); // Efface l'erreur dès que l'utilisateur tape
+    setErreurValidationClient(false);
 
     if (timeoutRechercheRef.current) clearTimeout(timeoutRechercheRef.current);
     timeoutRechercheRef.current = setTimeout(() => {
@@ -235,7 +286,7 @@ export default function CreerFacture() {
     }
 
     setSaisieRechercheClient(nomComplet);
-    setErreurValidationClient(false); // Efface l'erreur lors de la sélection
+    setErreurValidationClient(false);
     setFormData((prev) => ({
       ...prev,
       clientCode: cli.id || cli.matricule || '',
@@ -258,10 +309,32 @@ export default function CreerFacture() {
     });
   };
 
+  const handleReinitialiser = async () => {
+    setEnTrainDeReinitialiser(true);
+    setMessageSucces('');
+
+    // Effet de transition de nettoyage fluide (500ms)
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    setModeSelection('un');
+    setSaisieRechercheClient('');
+    setErreurValidationClient(false);
+    setFormData({
+      clientCode: '',
+      nomLocataire: '',
+      clientsCibles: [],
+      typeFacture: 'locataire',
+      typePeriode: 'mois',
+      choixPeriodeSpecifique: listeMoisEnLettres[moisCourantIndex],
+      anneeFactureChiffre: anneeCourante.toString()
+    });
+
+    setEnTrainDeReinitialiser(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation propre gérée directement dans l'interface (sans alert bloquant)
     if (modeSelection === 'un' && !formData.nomLocataire.trim()) {
       setErreurValidationClient(true);
       return;
@@ -346,7 +419,10 @@ export default function CreerFacture() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <GrilleFormulaire style={{ opacity: loading ? 0.5 : 1 }}>
+        <GrilleFormulaire 
+          $chargementSoumission={loading} 
+          $reinitialisationEnCours={enTrainDeReinitialiser}
+        >
           <ModeSelection 
             modeSelection={modeSelection} 
             onModeChange={handleModeChange} 
@@ -382,17 +458,24 @@ export default function CreerFacture() {
           />
         </GrilleFormulaire>
 
-        <BoutonSoumettre type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <SpinnerChargement /> Enregistrement en cours...
-            </>
-          ) : (
-            <>
-              <FiSave size={18} /> Enregistrer la facture
-            </>
-          )}
-        </BoutonSoumettre>
+        <ConteneurActions>
+          <BoutonReinitialiser type="button" onClick={handleReinitialiser} disabled={loading || enTrainDeReinitialiser}>
+            {enTrainDeReinitialiser ? <IconeReinitialisationAnimee size={16} /> : <FiRotateCcw size={16} />}
+            {enTrainDeReinitialiser ? "Nettoyage..." : "Réinitialiser"}
+          </BoutonReinitialiser>
+
+          <BoutonSoumettre type="submit" disabled={loading || enTrainDeReinitialiser}>
+            {loading ? (
+              <>
+                <SpinnerChargement /> Enregistrement...
+              </>
+            ) : (
+              <>
+                <FiSave size={18} /> Enregistrer la facture
+              </>
+            )}
+          </BoutonSoumettre>
+        </ConteneurActions>
       </form>
     </ConteneurFormulaire>
   );
