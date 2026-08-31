@@ -30,6 +30,13 @@ const SelectChamp = styled.select`
   outline: none;
   transition: border-color 0.2s;
   width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  cursor: pointer;
 
   &:focus {
     border-color: #AEEA00;
@@ -42,12 +49,14 @@ const SelectChamp = styled.select`
     color: #AEEA00;
     border-color: #333;
     font-weight: 600;
+    background-image: none;
+    padding-right: 0.75rem;
   }
 
   option {
     background-color: #121212;
     color: #FFFFFF;
-    padding: 6px;
+    padding: 8px;
   }
 `;
 
@@ -77,33 +86,43 @@ export default function PeriodeFacturation({
 }) {
   return (
     <GroupeChamp>
-      <LabelChamp>
+      <LabelChamp id="label-periode-facturation">
         3. Période de facturation {estVerrouille && <span style={{ color: '#AEEA00', fontWeight: 'normal' }}>(Client enregistré en paiement {typePeriode})</span>} *
       </LabelChamp>
-      <LignePeriode>
+      <LignePeriode role="group" aria-labelledby="label-periode-facturation">
         <SelectChamp 
+          id="type-periode-select"
           name="typePeriode" 
           value={typePeriode} 
           onChange={onChange}
           disabled={estVerrouille}
+          aria-label="Type de période"
         >
           <option value="mois">Par mois</option>
           <option value="trimestre">Trimestre</option>
           <option value="semestre">Semestre</option>
         </SelectChamp>
 
-        <SelectChamp name="choixPeriodeSpecifique" value={choixPeriodeSpecifique} onChange={onChange}>
+        <SelectChamp 
+          id="choix-periode-specifique-select"
+          name="choixPeriodeSpecifique" 
+          value={choixPeriodeSpecifique} 
+          onChange={onChange}
+          aria-label="Période spécifique"
+        >
           {optionsPeriodeSpecifique.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </SelectChamp>
 
         <InputChamp 
+          id="annee-facture-input"
           type="number" 
           name="anneeFactureChiffre" 
           placeholder="Année" 
           value={anneeFactureChiffre} 
           onChange={onChange}
+          aria-label="Année de facturation"
           required
         />
       </LignePeriode>

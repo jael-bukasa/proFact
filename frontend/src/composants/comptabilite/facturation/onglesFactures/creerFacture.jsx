@@ -88,6 +88,9 @@ export default function CreerFacture() {
   const [afficherSuggestions, setAfficherSuggestions] = useState(false);
   const [enCoursDeRecherche, setEnCoursDeRecherche] = useState(false);
   
+  // État pour gérer l'erreur visuelle directement dans le champ
+  const [erreurValidationClient, setErreurValidationClient] = useState(false);
+  
   const wrapperRef = useRef(null);
   const timeoutRechercheRef = useRef(null);
 
@@ -188,6 +191,7 @@ export default function CreerFacture() {
     const nouveauMode = e.target.value;
     setModeSelection(nouveauMode);
     setSaisieRechercheClient('');
+    setErreurValidationClient(false);
     
     let tousLesIds = [];
     if (nouveauMode === 'plusieurs') {
@@ -208,6 +212,7 @@ export default function CreerFacture() {
     setSaisieRechercheClient(valeur);
     setAfficherSuggestions(true);
     setEnCoursDeRecherche(true);
+    setErreurValidationClient(false); // Efface l'erreur dès que l'utilisateur tape
 
     if (timeoutRechercheRef.current) clearTimeout(timeoutRechercheRef.current);
     timeoutRechercheRef.current = setTimeout(() => {
@@ -230,6 +235,7 @@ export default function CreerFacture() {
     }
 
     setSaisieRechercheClient(nomComplet);
+    setErreurValidationClient(false); // Efface l'erreur lors de la sélection
     setFormData((prev) => ({
       ...prev,
       clientCode: cli.id || cli.matricule || '',
@@ -254,14 +260,18 @@ export default function CreerFacture() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation propre gérée directement dans l'interface (sans alert bloquant)
     if (modeSelection === 'un' && !formData.nomLocataire.trim()) {
-      alert("Veuillez sélectionner ou saisir un client valide.");
+      setErreurValidationClient(true);
       return;
     }
+    
     if (modeSelection === 'plusieurs' && formData.clientsCibles.length === 0) {
       alert("Aucun client trouvé dans cette catégorie pour effectuer la facturation en masse.");
       return;
     }
+    
     if (!formData.anneeFactureChiffre.trim()) {
       alert("Veuillez renseigner l'année.");
       return;
@@ -271,7 +281,6 @@ export default function CreerFacture() {
     setMessageSucces('');
 
     try {
-      // Simulation d'un délai visuel fluide d'une seconde pour apprécier l'animation du chargement
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const endpoint = modeSelection === 'un' 
@@ -294,8 +303,8 @@ export default function CreerFacture() {
 
       setMessageSucces(dataResult.message || "Facture(s) enregistrée(s) avec succès !");
       
-      // Réinitialisation fluide du formulaire
       setSaisieRechercheClient('');
+      setErreurValidationClient(false);
       setFormData({
         clientCode: '',
         nomLocataire: '',
@@ -360,6 +369,7 @@ export default function CreerFacture() {
             onSelectClient={handleSelectionClientUnique}
             clientsCibles={formData.clientsCibles}
             onCheckboxChange={handleCheckboxChange}
+            erreurValidation={erreurValidationClient}
           />
 
           <PeriodeFacturation 

@@ -1,10 +1,22 @@
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
-import { FiLoader, FiCheckSquare } from 'react-icons/fi';
+import styled, { keyframes, css } from 'styled-components';
+import { FiLoader, FiCheckSquare, FiAlertCircle } from 'react-icons/fi';
 
 const fadeInOut = keyframes`
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
+`;
+
+const clignotementErreur = keyframes`
+  0% { border-color: #ff5252; background-color: rgba(255, 82, 82, 0.15); }
+  50% { border-color: #2A2A2A; background-color: #121212; }
+  100% { border-color: #ff5252; background-color: rgba(255, 82, 82, 0.15); }
+`;
+
+const vibrationChamp = keyframes`
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
 `;
 
 const GroupeChamp = styled.div`
@@ -28,7 +40,7 @@ const ConteneurInputRecherche = styled.div`
 
 const InputChamp = styled.input`
   background-color: #121212;
-  border: 1px solid #2A2A2A;
+  border: 1px solid ${props => props.$erreur ? '#ff5252' : '#2A2A2A'};
   border-radius: 8px;
   padding: 0.75rem;
   padding-right: 2.5rem;
@@ -38,9 +50,26 @@ const InputChamp = styled.input`
   transition: border-color 0.2s;
   width: 100%;
 
+  ${props => props.$erreur ? css`
+    animation: ${vibrationChamp} 0.4s ease, ${clignotementErreur} 1s ease infinite;
+  ` : css`
+    animation: none;
+  `}
+
   &:focus {
-    border-color: #AEEA00;
+    border-color: ${props => props.$erreur ? '#ff5252' : '#AEEA00'};
   }
+`;
+
+const MessageErreurChamp = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #ff5252;
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-top: 2px;
+  animation: ${fadeInOut} 0.2s ease forwards;
 `;
 
 const IconeChargementRecherche = styled.div`
@@ -126,7 +155,8 @@ export default function RechercherClient({
   enCoursDeRecherche,
   clientsFiltresParRecherche,
   clientsFiltresParType,
-  onSelectClient
+  onSelectClient,
+  erreurValidation
 }) {
   const formaterTexteAvecSurlignage = (texteComplet, query) => {
     if (!query.trim()) return texteComplet;
@@ -150,15 +180,17 @@ export default function RechercherClient({
     <GroupeChamp>
       {modeSelection === 'un' ? (
         <>
-          <LabelChamp>Rechercher le client (Nom, Postnom, Prénom) *</LabelChamp>
+          <LabelChamp htmlFor="recherche-client-input">Rechercher le client (Nom, Postnom, Prénom) *</LabelChamp>
           <ConteneurInputRecherche>
             <InputChamp 
+              id="recherche-client-input"
               type="text" 
               placeholder="Cliquez ou tapez pour chercher un client..." 
               value={saisieRechercheClient} 
               onChange={onSaisieChange}
               onFocus={onFocusSuggestions}
-              required
+              autoComplete="off"
+              $erreur={erreurValidation}
             />
             {enCoursDeRecherche && (
               <IconeChargementRecherche>
@@ -166,6 +198,13 @@ export default function RechercherClient({
               </IconeChargementRecherche>
             )}
           </ConteneurInputRecherche>
+
+          {erreurValidation && (
+            <MessageErreurChamp>
+              <FiAlertCircle size={14} />
+              Veuillez renseigner ou sélectionner un client valide.
+            </MessageErreurChamp>
+          )}
 
           {afficherSuggestions && (
             <ListeSuggestions>
