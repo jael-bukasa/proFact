@@ -1,13 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiCalendar, FiX, FiCheck, FiPlusCircle } from 'react-icons/fi';
 
-import ListeFactures from './facturation/listeFactures';
+import FiltreClients from "../gestionLocative/clients/filtreClients";
+import CreerFacture from './facturation/onglesFactures/creerFacture';
+import FactureTous from './facturation/onglesFactures/factureTous';
+import FactureLocataire from './facturation/onglesFactures/factureLocataire';
+import FactureEau from './facturation/onglesFactures/factureEau';
+import FactureElectricite from './facturation/onglesFactures/factureElectricite';
+import { FactureDivers } from './facturation/onglesFactures/factureDivers';
 
 const THEME = {
   accentuation: '#AEEA00',
   textePrincipal: '#FFFFFF',
   texteSecondaire: '#888888',
-  bordure: '#2A2A2A'
+  bordure: '#2A2A2A',
+  fondChamp: '#121212'
 };
 
 const ConteneurFactures = styled.div`
@@ -19,29 +28,30 @@ const ConteneurFactures = styled.div`
 
 const BarreOnglets = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.8rem;
   border-bottom: 2px solid ${THEME.bordure};
   margin-bottom: 0.5rem;
   flex-wrap: wrap;
+  padding-bottom: 0.8rem;
 `;
 
 const BoutonOnglet = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0.8rem 1.5rem;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: ${props => (props.$actif ? THEME.accentuation : THEME.texteSecondaire)};
-  border-bottom: 3px solid ${props => (props.$actif ? THEME.accentuation : 'transparent')};
+  background-color: ${({ $actif }) => ($actif ? THEME.accentuation : THEME.fondChamp)};
+  color: ${({ $actif }) => ($actif ? '#000000' : THEME.textePrincipal)};
+  border: 1px solid ${({ $actif }) => ($actif ? THEME.accentuation : THEME.bordure)};
+  padding: 0.7rem 1.2rem;
+  border-radius: 10px;
+  font-weight: ${({ $actif }) => ($actif ? '700' : '500')};
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: -2px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: all 0.2s ease;
 
   &:hover {
-    color: ${THEME.textePrincipal};
+    border-color: ${THEME.accentuation};
+    opacity: 0.9;
   }
 
   svg {
@@ -52,27 +62,36 @@ const BoutonOnglet = styled.button`
 `;
 
 export default function Facturation({ formaterDateFr, clientsEnregistres = [] }) {
-  const [ongletActif, setOngletActif] = useState('liste');
+  const [ongletActif, setOngletActif] = useState('creer');
   const [rechercheFacture, setRechercheFacture] = useState('');
   const [filtreDateExacte, setFiltreDateExacte] = useState('');
-  const [ongletSousListe, setOngletSousListe] = useState('tous');
+
+  // États pour la modal de choix de mois et génération de facture
+  const [clientPourFacture, setClientPourFacture] = useState(null);
+  const [loadingGeneration, setLoadingGeneration] = useState(false);
 
   const reinitialiserFiltres = () => {
     setRechercheFacture('');
     setFiltreDateExacte('');
   };
 
-  // Transformation complète des clients enregistrés en objets factures avec détection rigoureuse du type
+  const onglets = [
+    { id: 'creer', label: 'Créer Facture', icone: <FiPlusCircle style={{ width: '16px', height: '16px' }} /> },
+    { id: 'tous', label: 'Tous', icone: <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg> },
+    { id: 'locataire', label: 'Locataire', icone: <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> },
+    { id: 'eau', label: 'Eau', icone: <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> },
+    { id: 'electricite', label: 'Électricité', icone: <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg> },
+    { id: 'divers', label: 'Divers', icone: <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg> }
+  ];
+
   const listeFactures = useMemo(() => {
     if (!clientsEnregistres || clientsEnregistres.length === 0) return [];
 
     return clientsEnregistres.map((cli, index) => {
       const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim();
-      
       const matriculeBrut = (cli.matricule || cli.numero || '').toUpperCase();
       let typeDetecte = (cli.type || cli.typeFacture || '').toLowerCase();
 
-      // Analyse rigoureuse du matricule pour catégoriser la facture si le type n'est pas explicite
       if (!typeDetecte || typeDetecte === 'locataire') {
         if (matriculeBrut.startsWith('DIV')) {
           typeDetecte = 'divers';
@@ -80,8 +99,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
           typeDetecte = 'eau';
         } else if (matriculeBrut.startsWith('ELE') || matriculeBrut.startsWith('ELEC')) {
           typeDetecte = 'electricite';
-        } else if (matriculeBrut.startsWith('LOY') || matriculeBrut.startsWith('LY') || cli.bail) {
-          typeDetecte = 'locataire';
         } else {
           typeDetecte = 'locataire';
         }
@@ -92,49 +109,261 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         numero: cli.bail || cli.numero || `FACT-${index + 1}`,
         client: nomComplet || cli.client || cli.locataire || 'Client Inconnu',
         locataire: nomComplet || cli.client || cli.locataire || 'Client Inconnu',
-        
         type: typeDetecte,
-        typeFacture: typeDetecte, // Garantit la compatibilité avec tous les filtres enfants
-        
+        typeFacture: typeDetecte,
         devise: cli.devise || 'USD',
         montant: parseFloat(cli.montant) || 0,
         dateFacture: cli.dateBail || cli.dateEnregistrement || cli.dateFacture || new Date().toISOString().split('T')[0],
         statut: cli.statut || 'En attente',
-        
         ...cli 
       };
     });
   }, [clientsEnregistres]);
 
-  const supprimerFacture = (id) => {
-    console.log("Suppression de la facture ID:", id);
+  const facturesFiltreesGlobal = useMemo(() => {
+    // Si on est sur l'onglet 'creer', pas besoin de filtrer la liste des factures
+    if (ongletActif === 'creer') return [];
+
+    return listeFactures.filter(facture => {
+      const matricule = (facture.matricule || facture.numero || '').toUpperCase();
+      const typeBrut = (facture.typeFacture || facture.type || '').toLowerCase();
+
+      let categorieReelle = 'locataire';
+      if (matricule.startsWith('DIV')) {
+        categorieReelle = 'divers';
+      } else if (matricule.startsWith('EAU')) {
+        categorieReelle = 'eau';
+      } else if (matricule.startsWith('ELE') || matricule.startsWith('ELEC')) {
+        categorieReelle = 'electricite';
+      } else if (matricule.startsWith('LOY') || matricule.startsWith('LY') || typeBrut.includes('loyer') || typeBrut.includes('locataire')) {
+        categorieReelle = 'locataire';
+      } else {
+        categorieReelle = typeBrut;
+      }
+
+      if (ongletActif !== 'tous' && categorieReelle !== ongletActif) {
+        return false;
+      }
+
+      if (rechercheFacture) {
+        const terme = rechercheFacture.toLowerCase();
+        const num = matricule.toLowerCase();
+        const clientNom = (facture.locataire || facture.client || facture.nom || '').toLowerCase();
+        if (!num.includes(terme) && !clientNom.includes(terme)) return false;
+      }
+
+      if (filtreDateExacte) {
+        const dateFacturePropre = facture.dateFacture ? facture.dateFacture.split('T')[0] : '';
+        if (dateFacturePropre !== filtreDateExacte) return false;
+      }
+
+      return true;
+    });
+  }, [listeFactures, ongletActif, rechercheFacture, filtreDateExacte]);
+
+  const RenduFactureActif = useMemo(() => {
+    switch (ongletActif) {
+      case 'creer': return CreerFacture;
+      case 'locataire': return FactureLocataire;
+      case 'eau': return FactureEau;
+      case 'electricite': return FactureElectricite;
+      case 'divers': return FactureDivers;
+      case 'tous':
+      default: return FactureTous;
+    }
+  }, [ongletActif]);
+
+  const handleOuvrirModalFacture = (cli) => {
+    setClientPourFacture(cli);
+  };
+
+  const handleValiderGeneration = async (moisSelectionne) => {
+    if (!clientPourFacture) return;
+    setLoadingGeneration(true);
+
+    try {
+      const payload = {
+        ...clientPourFacture,
+        moisFacture: moisSelectionne,
+        dateFacturation: new Date().toISOString().split('T')[0]
+      };
+
+      const response = await fetch('http://localhost:5000/api/factures', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la génération de la facture.");
+      }
+
+      alert(`Facture générée avec succès pour le mois : ${moisSelectionne} !`);
+      setClientPourFacture(null);
+    } catch (error) {
+      console.error("Erreur :", error);
+      alert("Erreur : " + error.message);
+    } finally {
+      setLoadingGeneration(false);
+    }
   };
 
   return (
     <ConteneurFactures>
       <BarreOnglets>
-        <BoutonOnglet $actif={ongletActif === 'liste'} onClick={() => setOngletActif('liste')}>
-          <svg viewBox="0 0 24 24">
-            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
-          </svg>
-          Liste des Factures ({listeFactures.length})
-        </BoutonOnglet>
+        {onglets.map((onglet) => (
+          <BoutonOnglet
+            key={onglet.id}
+            $actif={ongletActif === onglet.id}
+            onClick={() => setOngletActif(onglet.id)}
+            type="button"
+          >
+            {onglet.icone}
+            {onglet.label}
+          </BoutonOnglet>
+        ))}
       </BarreOnglets>
 
-      {ongletActif === 'liste' && (
-        <ListeFactures 
-          listeFactures={listeFactures} 
-          supprimerFacture={supprimerFacture}
-          formaterDateFr={formaterDateFr} 
-          rechercheFacture={rechercheFacture}
-          setRechercheFacture={setRechercheFacture}
-          filtreDateExacte={filtreDateExacte}
-          setFiltreDateExacte={setFiltreDateExacte}
-          reinitialiserFiltres={reinitialiserFiltres}
-          ongletActif={ongletSousListe}
-          setOngletActif={setOngletSousListe}
-        />
+      {ongletActif !== 'creer' && (
+        <div style={{ marginBottom: '0.5rem' }}>
+          <FiltreClients
+            rechercheTexte={rechercheFacture}
+            setRechercheTexte={setRechercheFacture}
+            filtreDateExacte={filtreDateExacte}
+            setFiltreDateExacte={setFiltreDateExacte}
+            reinitialiserFiltres={reinitialiserFiltres}
+          />
+        </div>
       )}
+
+      <RenduFactureActif
+        listeFactures={facturesFiltreesGlobal}
+        formaterDateFr={formaterDateFr}
+        onGenererFacture={handleOuvrirModalFacture}
+        clientsEnregistres={clientsEnregistres}
+      />
+
+      <ModalChoixMois 
+        isOpen={Boolean(clientPourFacture)}
+        onClose={() => setClientPourFacture(null)}
+        client={clientPourFacture}
+        onValider={handleValiderGeneration}
+        loading={loadingGeneration}
+      />
     </ConteneurFactures>
+  );
+}
+
+function ModalChoixMois({ isOpen, onClose, client, onValider, loading }) {
+  const [moisSelectionne, setMoisSelectionne] = useState(new Date().toISOString().slice(0, 7));
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: '1rem'
+      }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          style={{
+            backgroundColor: '#1E1E1E',
+            border: '1px solid #2A2A2A',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            width: '100%',
+            maxWidth: '400px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.2rem',
+            color: '#FFFFFF',
+            boxShadow: '0 15px 30px rgba(0,0,0,0.5)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiCalendar style={{ color: '#AEEA00' }} /> Choisir le mois de facturation
+            </h3>
+            <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: '1.2rem' }}>
+              <FiX />
+            </button>
+          </div>
+
+          <div style={{ fontSize: '0.82rem', color: '#888', background: '#121212', padding: '0.7rem', borderRadius: '8px', border: '1px solid #2A2A2A' }}>
+            Client : <strong style={{ color: '#FFF' }}>{client?.nom} {client?.prenom || client?.client}</strong><br />
+            Matricule : <strong style={{ color: '#AEEA00' }}>{client?.matricule || client?.numero}</strong>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#CCC' }}>
+              Mois cible :
+            </label>
+            <input 
+              type="month" 
+              value={moisSelectionne} 
+              onChange={(e) => setMoisSelectionne(e.target.value)}
+              style={{
+                backgroundColor: '#121212',
+                border: '1px solid #3A3A3A',
+                borderRadius: '8px',
+                padding: '0.7rem',
+                color: '#FFF',
+                fontSize: '0.9rem',
+                outline: 'none',
+                width: '100%'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button 
+              type="button" 
+              onClick={onClose}
+              style={{
+                backgroundColor: '#121212',
+                color: '#FFF',
+                border: '1px solid #3A3A3A',
+                padding: '0.55rem 1.1rem',
+                borderRadius: '8px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '0.82rem'
+              }}
+            >
+              Annuler
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => onValider(moisSelectionne)}
+              disabled={loading}
+              style={{
+                backgroundColor: '#AEEA00',
+                color: '#000',
+                border: '1px solid #3A3A3A',
+                padding: '0.55rem 1.2rem',
+                borderRadius: '8px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                opacity: loading ? 0.7 : 1
+              }}
+            >
+              <FiCheck /> {loading ? "Génération..." : "Générer"}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
   );
 }
