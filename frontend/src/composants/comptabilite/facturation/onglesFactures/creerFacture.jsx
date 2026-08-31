@@ -1,25 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { FiSave, FiCheckCircle, FiLoader } from 'react-icons/fi';
+import { FiSave, FiCheckCircle } from 'react-icons/fi';
+
+import ModeSelection from './creerFature/modeSelection';
+import TypeClient from './creerFature/typeClient';
+import RechercherClient from './creerFature/rechercherClient';
+import PeriodeFacturation from './creerFature/periodeFacturation';
 
 const THEME = {
   accentuation: '#AEEA00',
   textePrincipal: '#FFFFFF',
-  texteSecondaire: '#888888',
   bordure: '#2A2A2A',
-  fondChamp: '#121212',
   fondCarte: '#1E1E1E'
 };
 
-const fadeInOut = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+const rotationAnimation = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+const SpinnerChargement = styled.div`
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(0, 0, 0, 0.2);
+  border-top: 3px solid #000000;
+  border-radius: 50%;
+  animation: ${rotationAnimation} 0.8s linear infinite;
 `;
 
 const ConteneurFormulaire = styled.div`
@@ -51,154 +57,7 @@ const GrilleFormulaire = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.2rem;
   margin-bottom: 1.5rem;
-`;
-
-const GroupeChamp = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  position: relative;
-  grid-column: ${({ $plein }) => ($plein ? '1 / -1' : 'auto')};
-`;
-
-const LabelChamp = styled.label`
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #CCC;
-`;
-
-const SelectChamp = styled.select`
-  background-color: ${THEME.fondChamp};
-  border: 1px solid ${THEME.bordure};
-  border-radius: 8px;
-  padding: 0.75rem;
-  color: ${THEME.textePrincipal};
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color 0.2s;
-  width: 100%;
-
-  &:focus {
-    border-color: ${THEME.accentuation};
-  }
-
-  option {
-    background-color: ${THEME.fondChamp};
-    color: ${THEME.textePrincipal};
-    padding: 6px;
-  }
-`;
-
-const ConteneurInputRecherche = styled.div`
-  position: relative;
-  width: 100%;
-`;
-
-const InputChamp = styled.input`
-  background-color: ${THEME.fondChamp};
-  border: 1px solid ${THEME.bordure};
-  border-radius: 8px;
-  padding: 0.75rem;
-  padding-right: 2.5rem;
-  color: ${THEME.textePrincipal};
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color 0.2s;
-  width: 100%;
-
-  &:focus {
-    border-color: ${THEME.accentuation};
-  }
-`;
-
-const IconeChargementRecherche = styled.div`
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: ${THEME.accentuation};
-  display: flex;
-  align-items: center;
-  animation: rotation 1s linear infinite;
-
-  @keyframes rotation {
-    from { transform: translateY(-50%) rotate(0deg); }
-    to { transform: translateY(-50%) rotate(360deg); }
-  }
-`;
-
-const ListeSuggestions = styled.ul`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: ${THEME.fondChamp};
-  border: 1px solid ${THEME.bordure};
-  border-radius: 8px;
-  max-height: 180px;
-  overflow-y: auto;
-  list-style: none;
-  padding: 4px;
-  margin: 6px 0 0 0;
-  z-index: 10;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-  animation: ${fadeInOut} 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-`;
-
-const ElementSuggestion = styled.li`
-  padding: 0.7rem 0.9rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  color: ${THEME.textePrincipal};
-  border-radius: 6px;
-  transition: background-color 0.15s ease, color 0.15s ease;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  &:hover {
-    background-color: rgba(174, 234, 0, 0.12);
-    color: ${THEME.accentuation};
-  }
-`;
-
-const TexteSurligne = styled.span`
-  color: ${THEME.accentuation};
-  font-weight: 700;
-`;
-
-const LignePeriode = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.6rem;
-`;
-
-const ConteneurListeCases = styled.div`
-  background-color: ${THEME.fondChamp};
-  border: 1px solid ${THEME.bordure};
-  border-radius: 8px;
-  padding: 0.75rem;
-  max-height: 130px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const LabelCheckbox = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.9rem;
-  color: ${THEME.textePrincipal};
-  cursor: pointer;
-
-  input {
-    accent-color: ${THEME.accentuation};
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-  }
+  transition: opacity 0.3s ease;
 `;
 
 const BoutonSoumettre = styled.button`
@@ -213,19 +72,13 @@ const BoutonSoumettre = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: opacity 0.2s;
+  gap: 0.6rem;
+  transition: all 0.2s ease;
   width: 100%;
   margin-top: 1rem;
 
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  &:hover { opacity: 0.9; transform: translateY(-1px); }
+  &:disabled { opacity: 0.8; cursor: not-allowed; transform: none; }
 `;
 
 export default function CreerFacture() {
@@ -290,6 +143,13 @@ export default function CreerFacture() {
     return motsRecherche.every((mot) => texte.includes(mot));
   });
 
+  useEffect(() => {
+    if (modeSelection === 'plusieurs') {
+      const tousLesIds = clientsFiltresParType.map(cli => cli.id || cli.matricule).filter(Boolean);
+      setFormData(prev => ({ ...prev, clientsCibles: tousLesIds }));
+    }
+  }, [formData.typeFacture, clientsEnregistres, modeSelection]);
+
   let optionsPeriodeSpecifique = [];
   if (formData.typePeriode === 'mois') {
     optionsPeriodeSpecifique = listeMoisEnLettres.map((m) => ({ value: m, label: m }));
@@ -308,14 +168,16 @@ export default function CreerFacture() {
   }
 
   useEffect(() => {
-    if (formData.typePeriode === 'mois') {
-      setFormData((prev) => ({ ...prev, choixPeriodeSpecifique: listeMoisEnLettres[moisCourantIndex] }));
-    } else if (formData.typePeriode === 'trimestre') {
-      setFormData((prev) => ({ ...prev, choixPeriodeSpecifique: 'Janvier - Mars (T1)' }));
-    } else if (formData.typePeriode === 'semestre') {
-      setFormData((prev) => ({ ...prev, choixPeriodeSpecifique: 'Janvier - Juin (S1)' }));
+    if (modeSelection === 'plusieurs' || !formData.clientCode) {
+      if (formData.typePeriode === 'mois') {
+        setFormData((prev) => ({ ...prev, choixPeriodeSpecifique: listeMoisEnLettres[moisCourantIndex] }));
+      } else if (formData.typePeriode === 'trimestre') {
+        setFormData((prev) => ({ ...prev, choixPeriodeSpecifique: 'Janvier - Mars (T1)' }));
+      } else if (formData.typePeriode === 'semestre') {
+        setFormData((prev) => ({ ...prev, choixPeriodeSpecifique: 'Janvier - Juin (S1)' }));
+      }
     }
-  }, [formData.typePeriode]);
+  }, [formData.typePeriode, modeSelection]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -323,9 +185,22 @@ export default function CreerFacture() {
   };
 
   const handleModeChange = (e) => {
-    setModeSelection(e.target.value);
+    const nouveauMode = e.target.value;
+    setModeSelection(nouveauMode);
     setSaisieRechercheClient('');
-    setFormData((prev) => ({ ...prev, clientCode: '', nomLocataire: '', clientsCibles: [] }));
+    
+    let tousLesIds = [];
+    if (nouveauMode === 'plusieurs') {
+      tousLesIds = clientsFiltresParType.map(cli => cli.id || cli.matricule).filter(Boolean);
+    }
+
+    setFormData((prev) => ({ 
+      ...prev, 
+      clientCode: '', 
+      nomLocataire: '', 
+      clientsCibles: tousLesIds,
+      typePeriode: 'mois' 
+    }));
   };
 
   const handleSaisieRechercheChange = (e) => {
@@ -334,43 +209,34 @@ export default function CreerFacture() {
     setAfficherSuggestions(true);
     setEnCoursDeRecherche(true);
 
-    if (timeoutRechercheRef.current) {
-      clearTimeout(timeoutRechercheRef.current);
-    }
-
+    if (timeoutRechercheRef.current) clearTimeout(timeoutRechercheRef.current);
     timeoutRechercheRef.current = setTimeout(() => {
       setEnCoursDeRecherche(false);
     }, 300);
   };
 
-  const formaterTexteAvecSurlignage = (texteComplet, query) => {
-    if (!query.trim()) return texteComplet;
-    
-    const index = texteComplet.toLowerCase().indexOf(query.toLowerCase());
-    if (index === -1) return texteComplet;
-
-    const avant = texteComplet.substring(0, index);
-    const correspondance = texteComplet.substring(index, index + query.length);
-    const apres = texteComplet.substring(index + query.length);
-
-    return (
-      <>
-        {avant}
-        <TexteSurligne>{correspondance}</TexteSurligne>
-        {apres}
-      </>
-    );
-  };
-
   const handleSelectionClientUnique = (cli) => {
     const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim();
+    
+    let periodeFrequence = 'mois';
+    const brutePeriode = (cli.typePeriode || cli.periode || '').toLowerCase();
+    
+    if (brutePeriode.includes('trimestre')) {
+      periodeFrequence = 'trimestre';
+    } else if (brutePeriode.includes('semestre')) {
+      periodeFrequence = 'semestre';
+    } else {
+      periodeFrequence = 'mois';
+    }
+
     setSaisieRechercheClient(nomComplet);
     setFormData((prev) => ({
       ...prev,
       clientCode: cli.id || cli.matricule || '',
       nomLocataire: nomComplet,
       logement: cli.logement || '',
-      adresse: cli.adresse || ''
+      adresse: cli.adresse || '',
+      typePeriode: periodeFrequence 
     }));
     setAfficherSuggestions(false);
   };
@@ -379,15 +245,9 @@ export default function CreerFacture() {
     setFormData((prev) => {
       const exists = prev.clientsCibles.includes(identifiant);
       if (exists) {
-        return {
-          ...prev,
-          clientsCibles: prev.clientsCibles.filter((id) => id !== identifiant)
-        };
+        return { ...prev, clientsCibles: prev.clientsCibles.filter((id) => id !== identifiant) };
       } else {
-        return {
-          ...prev,
-          clientsCibles: [...prev.clientsCibles, identifiant]
-        };
+        return { ...prev, clientsCibles: [...prev.clientsCibles, identifiant] };
       }
     });
   };
@@ -399,7 +259,7 @@ export default function CreerFacture() {
       return;
     }
     if (modeSelection === 'plusieurs' && formData.clientsCibles.length === 0) {
-      alert("Veuillez cocher au moins un client dans la liste.");
+      alert("Aucun client trouvé dans cette catégorie pour effectuer la facturation en masse.");
       return;
     }
     if (!formData.anneeFactureChiffre.trim()) {
@@ -411,14 +271,14 @@ export default function CreerFacture() {
     setMessageSucces('');
 
     try {
+      // Simulation d'un délai visuel fluide d'une seconde pour apprécier l'animation du chargement
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       const endpoint = modeSelection === 'un' 
         ? 'http://localhost:5000/api/factures' 
         : 'http://localhost:5000/api/factures/masse';
       
-      const payload = {
-        ...formData,
-        moisFacture: formData.choixPeriodeSpecifique
-      };
+      const payload = { ...formData, moisFacture: formData.choixPeriodeSpecifique };
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -426,18 +286,26 @@ export default function CreerFacture() {
         body: JSON.stringify(payload),
       });
 
+      const dataResult = await response.json();
+
       if (!response.ok) {
-        throw new Error("Erreur lors de l'enregistrement dans la table factures.");
+        throw new Error(dataResult.erreur || "Erreur lors de l'enregistrement dans la table factures.");
       }
 
-      setMessageSucces("Facture(s) enregistrée(s) avec succès dans la table factures !");
+      setMessageSucces(dataResult.message || "Facture(s) enregistrée(s) avec succès !");
+      
+      // Réinitialisation fluide du formulaire
       setSaisieRechercheClient('');
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
         clientCode: '',
         nomLocataire: '',
-        clientsCibles: []
-      }));
+        clientsCibles: modeSelection === 'plusieurs' ? clientsFiltresParType.map(cli => cli.id || cli.matricule).filter(Boolean) : [],
+        typeFacture: formData.typeFacture,
+        typePeriode: 'mois',
+        choixPeriodeSpecifique: listeMoisEnLettres[moisCourantIndex],
+        anneeFactureChiffre: anneeCourante.toString()
+      });
+
     } catch (error) {
       console.error("Erreur:", error);
       alert("Erreur: " + error.message);
@@ -447,10 +315,8 @@ export default function CreerFacture() {
   };
 
   return (
-    <ConteneurFormulaire>
-      <TitreSection>
-        Générer et Enregistrer une Facture
-      </TitreSection>
+    <ConteneurFormulaire ref={wrapperRef}>
+      <TitreSection>Générer et Enregistrer une Facture</TitreSection>
 
       {messageSucces && (
         <div style={{
@@ -471,146 +337,51 @@ export default function CreerFacture() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <GrilleFormulaire>
-          {/* Champ 1 : Mode de sélection */}
-          <GroupeChamp>
-            <LabelChamp>1. Mode de sélection *</LabelChamp>
-            <SelectChamp value={modeSelection} onChange={handleModeChange}>
-              <option value="un">Un seul client</option>
-              <option value="plusieurs">Plusieurs clients</option>
-            </SelectChamp>
-          </GroupeChamp>
+        <GrilleFormulaire style={{ opacity: loading ? 0.5 : 1 }}>
+          <ModeSelection 
+            modeSelection={modeSelection} 
+            onModeChange={handleModeChange} 
+          />
 
-          {/* Champ 2 : Type de client / Catégorie */}
-          <GroupeChamp>
-            <LabelChamp>2. Type de client / Catégorie *</LabelChamp>
-            <SelectChamp 
-              name="typeFacture" 
-              value={formData.typeFacture} 
-              onChange={handleChange}
-            >
-              <option value="locataire">Locataire (Loyer)</option>
-              <option value="eau">Eau</option>
-              <option value="electricite">Électricité</option>
-              <option value="divers">Divers / Autre</option>
-            </SelectChamp>
-          </GroupeChamp>
+          <TypeClient 
+            typeFacture={formData.typeFacture} 
+            onChange={handleChange} 
+          />
 
-          {/* Champ 3 : Sélection du client avec affichage global au focus */}
-          <GroupeChamp $plein={true} ref={wrapperRef}>
-            {modeSelection === 'un' ? (
-              <>
-                <LabelChamp>Rechercher le client (Nom, Postnom, Prénom) *</LabelChamp>
-                <ConteneurInputRecherche>
-                  <InputChamp 
-                    type="text" 
-                    placeholder="Tapez le nom, postnom ou prénom..." 
-                    value={saisieRechercheClient} 
-                    onChange={handleSaisieRechercheChange}
-                    onFocus={() => setAfficherSuggestions(true)}
-                    required
-                  />
-                  {enCoursDeRecherche && (
-                    <IconeChargementRecherche>
-                      <FiLoader size={16} />
-                    </IconeChargementRecherche>
-                  )}
-                </ConteneurInputRecherche>
+          <RechercherClient 
+            modeSelection={modeSelection}
+            saisieRechercheClient={saisieRechercheClient}
+            onSaisieChange={handleSaisieRechercheChange}
+            afficherSuggestions={afficherSuggestions}
+            onFocusSuggestions={() => setAfficherSuggestions(true)}
+            enCoursDeRecherche={enCoursDeRecherche}
+            clientsFiltresParRecherche={clientsFiltresParRecherche}
+            clientsFiltresParType={clientsFiltresParType}
+            onSelectClient={handleSelectionClientUnique}
+            clientsCibles={formData.clientsCibles}
+            onCheckboxChange={handleCheckboxChange}
+          />
 
-                {/* MODIFICATION ICI : On affiche la liste dès que 'afficherSuggestions' est vrai, peu importe si le champ est vide */}
-                {afficherSuggestions && (
-                  <ListeSuggestions>
-                    {enCoursDeRecherche ? (
-                      <ElementSuggestion style={{ justifyContent: 'center', color: '#888' }}>
-                        Chargement des clients...
-                      </ElementSuggestion>
-                    ) : clientsFiltresParRecherche.length === 0 ? (
-                      <ElementSuggestion style={{ justifyContent: 'center', color: '#888', cursor: 'default' }}>
-                        Aucun client trouvé
-                      </ElementSuggestion>
-                    ) : (
-                      clientsFiltresParRecherche.map((cli, index) => {
-                        const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim();
-                        const texteAffichage = `${nomComplet} ${cli.matricule ? `(${cli.matricule})` : ''}`;
-                        return (
-                          <ElementSuggestion 
-                            key={cli.id || index}
-                            onClick={() => handleSelectionClientUnique(cli)}
-                          >
-                            <span>{formaterTexteAvecSurlignage(texteAffichage, saisieRechercheClient)}</span>
-                          </ElementSuggestion>
-                        );
-                      })
-                    )}
-                  </ListeSuggestions>
-                )}
-              </>
-            ) : (
-              <>
-                <LabelChamp>Cochez les clients correspondants à la catégorie *</LabelChamp>
-                <ConteneurListeCases>
-                  {clientsFiltresParType.length === 0 ? (
-                    <span style={{ color: '#888', fontSize: '0.85rem' }}>Aucun client trouvé pour cette catégorie.</span>
-                  ) : (
-                    clientsFiltresParType.map((cli, index) => {
-                      const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim();
-                      const identifiant = cli.id || cli.matricule || index;
-                      const estCoche = formData.clientsCibles.includes(identifiant);
-                      return (
-                        <LabelCheckbox key={identifiant}>
-                          <input 
-                            type="checkbox" 
-                            checked={estCoche} 
-                            onChange={() => handleCheckboxChange(identifiant)} 
-                          />
-                          {nomComplet} {cli.matricule ? `(${cli.matricule})` : ''}
-                        </LabelCheckbox>
-                      );
-                    })
-                  )}
-                </ConteneurListeCases>
-              </>
-            )}
-          </GroupeChamp>
-
-          {/* Champ 4 : Période de facturation */}
-          <GroupeChamp $plein={true}>
-            <LabelChamp>3. Période de facturation *</LabelChamp>
-            <LignePeriode>
-              <SelectChamp 
-                name="typePeriode" 
-                value={formData.typePeriode} 
-                onChange={handleChange}
-              >
-                <option value="mois">Par mois</option>
-                <option value="trimestre">Trimestre</option>
-                <option value="semestre">Semestre</option>
-              </SelectChamp>
-
-              <SelectChamp 
-                name="choixPeriodeSpecifique" 
-                value={formData.choixPeriodeSpecifique} 
-                onChange={handleChange}
-              >
-                {optionsPeriodeSpecifique.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </SelectChamp>
-
-              <InputChamp 
-                type="number" 
-                name="anneeFactureChiffre" 
-                placeholder="Année" 
-                value={formData.anneeFactureChiffre} 
-                onChange={handleChange}
-                required
-              />
-            </LignePeriode>
-          </GroupeChamp>
+          <PeriodeFacturation 
+            typePeriode={formData.typePeriode}
+            choixPeriodeSpecifique={formData.choixPeriodeSpecifique}
+            anneeFactureChiffre={formData.anneeFactureChiffre}
+            onChange={handleChange}
+            optionsPeriodeSpecifique={optionsPeriodeSpecifique}
+            estVerrouille={modeSelection === 'un' && Boolean(formData.clientCode)}
+          />
         </GrilleFormulaire>
 
         <BoutonSoumettre type="submit" disabled={loading}>
-          <FiSave size={18} /> {loading ? "Enregistrement..." : "Enregistrer la facture"}
+          {loading ? (
+            <>
+              <SpinnerChargement /> Enregistrement en cours...
+            </>
+          ) : (
+            <>
+              <FiSave size={18} /> Enregistrer la facture
+            </>
+          )}
         </BoutonSoumettre>
       </form>
     </ConteneurFormulaire>

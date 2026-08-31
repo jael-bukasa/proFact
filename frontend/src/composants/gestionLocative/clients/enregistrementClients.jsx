@@ -5,12 +5,25 @@ import BailETidentification from './enregistrementClients/bailETidentification';
 import DelaisFactureEtPeriode from './enregistrementClients/delaisFactureEtPeriode';
 import CompteursETsuivis from './enregistrementClients/compteursETsuivis';
 
-// Fonction utilitaire de génération de matricule intégrée côté frontend
+// Fonction utilitaire de génération de matricule à 10 chiffres mise à jour
 const genererMatricule10Chiffres = (id, typeClient, typeFacture, devise) => {
-  const prefixClient = typeClient === 'proprietaire' ? 'PR' : 'LOY';
-  const prefixDevise = devise === 'EUR' ? 'EU' : 'US';
-  const idFormate = String(id).padStart(6, '0');
-  return `${prefixClient}-${prefixDevise}-${idFormate}`;
+  let prefixe = 'LOY';
+  const typeClean = (typeClient || '').toLowerCase();
+  const deviseClean = (devise || '').toUpperCase();
+  const factureClean = (typeFacture || '').toLowerCase();
+
+  if (typeClean.includes('locat') || factureClean.includes('loyer')) {
+    prefixe = deviseClean.includes('CDF') ? 'LY' : 'LOY';
+  } else if (typeClean.includes('elect')) {
+    prefixe = 'ELE';
+  } else if (typeClean.includes('eau')) {
+    prefixe = 'EAU';
+  } else if (typeClean.includes('diver')) {
+    prefixe = 'DIV';
+  }
+
+  const numeroFormate = String(id || 1).padStart(10, '0');
+  return `${prefixe}-${numeroFormate}`;
 };
 
 export default function EnregistrementClients({ onClientAjoute }) {
@@ -20,7 +33,7 @@ export default function EnregistrementClients({ onClientAjoute }) {
     prenom: '',
     telephone: '',
     typeClient: 'locataire',
-    matricule: 'LOY-US-000001',
+    matricule: 'LOY-0000000001',
     bail: '',
     dateBail: '',
     logement: '',
@@ -154,7 +167,7 @@ export default function EnregistrementClients({ onClientAjoute }) {
       prenom: '',
       telephone: '',
       typeClient: 'locataire',
-      matricule: 'LOY-US-000001',
+      matricule: 'LOY-0000000001',
       bail: '',
       dateBail: '',
       logement: '',
@@ -190,7 +203,6 @@ export default function EnregistrementClients({ onClientAjoute }) {
     e.preventDefault();
     const nouvellesErreurs = {};
 
-    // Validation assouplie : seuls les champs critiques bloquent l'enregistrement s'ils sont vides
     if (!formulaire.nom || formulaire.nom.trim() === '') nouvellesErreurs.nom = 'Requis';
     if (!formulaire.prenom || formulaire.prenom.trim() === '') nouvellesErreurs.prenom = 'Requis';
     if (!formulaire.telephone || formulaire.telephone.trim() === '') nouvellesErreurs.telephone = 'Requis';

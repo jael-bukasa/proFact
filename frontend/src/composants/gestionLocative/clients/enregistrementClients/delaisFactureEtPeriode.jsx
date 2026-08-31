@@ -11,7 +11,6 @@ export default function DelaisFactureEtPeriode({
   limiteAtteinte, 
   MAX_CARACTERES_DESIGNATION 
 }) {
-  // Récupère la valeur du type de facture depuis le formulaire
   const typeFactureAffiche = formulaire.typeFacture || formulaire.typeClient || 'locataire';
 
   return (
@@ -30,7 +29,7 @@ export default function DelaisFactureEtPeriode({
             </span>
           </div>
           <textarea 
-            ref={el => refs.current.designation = el} 
+            ref={el => { if (refs?.current) refs.current.designation = el; }} 
             name="designation" 
             value={formulaire.designation ?? ''} 
             onChange={handleChange} 
@@ -45,7 +44,7 @@ export default function DelaisFactureEtPeriode({
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Type de Facture *</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <input 
-              ref={el => refs.current.typeFacture = el} 
+              ref={el => { if (refs?.current) refs.current.typeFacture = el; }} 
               name="typeFacture" 
               value={typeFactureAffiche} 
               readOnly 
@@ -59,7 +58,7 @@ export default function DelaisFactureEtPeriode({
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Devise</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <select 
-              ref={el => refs.current.devise = el} 
+              ref={el => { if (refs?.current) refs.current.devise = el; }} 
               name="devise" 
               value={formulaire.devise ?? 'USD'} 
               onChange={handleChange} 
@@ -77,7 +76,7 @@ export default function DelaisFactureEtPeriode({
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Montant * (&gt; 0)</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <input 
-              ref={el => refs.current.montant = el} 
+              ref={el => { if (refs?.current) refs.current.montant = el; }} 
               type="number" 
               step="any"
               min="0.0001"
@@ -97,7 +96,7 @@ export default function DelaisFactureEtPeriode({
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Mode de paiement</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <select 
-              ref={el => refs.current.modePaiement = el} 
+              ref={el => { if (refs?.current) refs.current.modePaiement = el; }} 
               name="modePaiement" 
               value={formulaire.modePaiement ?? 'Virement'} 
               onChange={handleChange} 
@@ -112,14 +111,16 @@ export default function DelaisFactureEtPeriode({
           </div>
         </div>
 
-        {/* Fréquence Période */}
+        {/* Fréquence Période (Mise à jour avec ref et onKeyDown) */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', gap: '0.2rem' }}>
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Fréquence Période *</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <select 
+              ref={el => { if (refs?.current) refs.current.typePeriode = el; }} 
               name="typePeriode" 
-              value={formulaire.typePeriode} 
+              value={formulaire.typePeriode ?? 'mois'} 
               onChange={handleChange} 
+              onKeyDown={gererToucheEntree} 
               style={{ width: '100%', backgroundColor: '#121212', border: '1px solid #2A2A2A', borderRadius: '6px', padding: '0.45rem 2.2rem 0.45rem 0.6rem', color: '#FFFFFF', fontSize: '0.8rem', outline: 'none', cursor: 'pointer' }}
             >
               <option value="mois">Par Mois</option>
@@ -134,7 +135,7 @@ export default function DelaisFactureEtPeriode({
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Début Contrat *</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <input 
-              ref={el => refs.current.debutContrat = el} 
+              ref={el => { if (refs?.current) refs.current.debutContrat = el; }} 
               type="date" 
               name="debutContrat" 
               max="9999-12-31" 
@@ -152,7 +153,7 @@ export default function DelaisFactureEtPeriode({
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Fin Contrat *</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <input 
-              ref={el => refs.current.finContrat = el} 
+              ref={el => { if (refs?.current) refs.current.finContrat = el; }} 
               type="date" 
               name="finContrat" 
               max="9999-12-31" 
@@ -170,7 +171,7 @@ export default function DelaisFactureEtPeriode({
           <label style={{ color: '#888888', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.1 }}>Date Comptable</label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
             <input 
-              ref={el => refs.current.dateComptable = el} 
+              ref={el => { if (refs?.current) refs.current.dateComptable = el; }} 
               type="date" 
               name="dateComptable" 
               max="9999-12-31" 

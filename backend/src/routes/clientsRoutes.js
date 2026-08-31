@@ -26,7 +26,7 @@ const formaterClient = (cli) => {
   }
 
   let matricule = cli.matricule;
-  if (!matricule || matricule === 'TEMP' || matricule.startsWith('LOC-') || matricule.startsWith('LOY-') || matricule.startsWith('LY-') || matricule.startsWith('ELE-') || matricule.startsWith('ELEC-') || matricule.startsWith('EAU-') || matricule.startsWith('DIV-')) {
+  if (!matricule || matricule === 'TEMP' || matricule.startsWith('LOC-') || matricule.startsWith('LOY-') || matricule.startsWith('LY-') || matricule.startsWith('ELE-') || matricule.startsWith('ELEC-') || matricule.startsWith('EAU-') || matricule.startsWith('DIV-') || matricule.startsWith('PR-')) {
     const typeFiltre = ((cli.typeFacture || '') + ' ' + (cli.typeClient || ''))
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -40,6 +40,8 @@ const formaterClient = (cli) => {
       prefixe = 'EAU-';
     } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
       prefixe = 'DIV-';
+    } else if (typeFiltre.includes('proprio') || typeFiltre.includes('proprietaire')) {
+      prefixe = 'PR-';
     } else if (typeFiltre.includes('locat') || typeFiltre.includes('loyer')) {
       prefixe = (cli.devise === 'CDF') ? 'LY-' : 'LOY-';
     }
@@ -65,7 +67,7 @@ const nettoyerDate = (valeur) => {
 
 module.exports = (db) => {
 
-  // 🌟 Route pour obtenir le prochain numéro indépendant selon le préfixe/type
+  // Route pour obtenir le prochain numéro indépendant selon le préfixe/type
   router.get('/prochain-id', (req, res) => {
     const typeClientReq = req.query.type || 'locataire';
     const typeFactureReq = req.query.typeFacture || '';
@@ -83,6 +85,8 @@ module.exports = (db) => {
       prefixeCible = 'EAU-';
     } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
       prefixeCible = 'DIV-';
+    } else if (typeFiltre.includes('proprio') || typeFiltre.includes('proprietaire')) {
+      prefixeCible = 'PR-';
     } else if (typeFiltre.includes('locat') || typeFiltre.includes('loyer')) {
       prefixeCible = (deviseReq === 'CDF') ? 'LY-' : 'LOY-';
     }
@@ -121,7 +125,7 @@ module.exports = (db) => {
     });
   });
 
-  // Récupérer uniquement les clients enregistrés (pour le tableau principal)
+  // Récupérer uniquement les clients enregistrés
   router.get('/enregistres', (req, res) => {
     const query = 'SELECT * FROM clients WHERE supprime = 0 AND enregistre = 1 ORDER BY id DESC';
     db.query(query, (err, results) => {
@@ -133,7 +137,7 @@ module.exports = (db) => {
     });
   });
 
-  // Récupérer TOUS les clients (actifs et non supprimés)
+  // Récupérer TOUS les clients
   router.get('/', (req, res) => {
     const query = 'SELECT * FROM clients WHERE supprime = 0 ORDER BY id ASC';
     db.query(query, (err, results) => {
@@ -151,7 +155,7 @@ module.exports = (db) => {
       nom = '', postNom = '', prenom = '', bail = '', dateBail = null,
       logement = '', adresse = '', pays = 'RDC', designation = '',
       typeClient = 'locataire', typeFacture = 'Loyers', devise = 'USD',
-      montant = 0, modePaiement = 'Virement', moisFacture = '',
+      montant = 0, modePaiement = 'Virement', typePeriode = '1 mois', moisFacture = '',
       debutContrat = null, finContrat = null, dateComptable = null,
       compteur = '', imputation = '', dernierNumero = '', dernierMontant = 0,
       derniereDate = null, telephone = '', email = '', enregistre = true
@@ -172,6 +176,8 @@ module.exports = (db) => {
       prefixe = 'EAU-';
     } else if (typeFiltre.includes('divers') || typeFiltre.includes('div')) {
       prefixe = 'DIV-';
+    } else if (typeFiltre.includes('proprio') || typeFiltre.includes('proprietaire')) {
+      prefixe = 'PR-';
     } else if (typeFiltre.includes('locat') || typeFiltre.includes('loyer')) {
       prefixe = (devise === 'CDF') ? 'LY-' : 'LOY-';
     }
@@ -184,7 +190,6 @@ module.exports = (db) => {
         return res.status(500).json({ erreur: "Erreur serveur lors de la préparation du matricule" });
       }
 
-      // 1. Déterminer le prochain incrément spécifique au préfixe
       let maxNumeroPrefixe = 0;
       results.forEach(row => {
         if (row.matricule && row.matricule.startsWith(prefixe)) {
@@ -198,7 +203,6 @@ module.exports = (db) => {
       const prochainNumero = maxNumeroPrefixe + 1;
       const matricule = `${prefixe}${String(prochainNumero).padStart(10, '0')}`;
 
-      // 2. Trouver le premier ID libre en base de données pour la clé primaire SQL
       const idsUtilises = new Set(results.map(r => r.id));
       let idDisponible = 1;
       while (idsUtilises.has(idDisponible)) {
@@ -211,8 +215,8 @@ module.exports = (db) => {
 
       const queryInsert = `
         INSERT INTO clients 
-        (id, matricule, nom, postNom, prenom, bail, dateBail, logement, adresse, pays, designation, typeClient, typeFacture, devise, montant, modePaiement, moisFacture, debutContrat, finContrat, dateComptable, compteur, imputation, dernierNumero, dernierMontant, derniereDate, telephone, email, dateEntree, statut, supprime, enregistre, creeLe) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, matricule, nom, postNom, prenom, bail, dateBail, logement, adresse, pays, designation, typeClient, typeFacture, devise, montant, modePaiement, typePeriode, moisFacture, debutContrat, finContrat, dateComptable, compteur, imputation, dernierNumero, dernierMontant, derniereDate, telephone, email, dateEntree, statut, supprime, enregistre, creeLe) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const valeurEnregistre = enregistre ? 1 : 0;
@@ -220,7 +224,7 @@ module.exports = (db) => {
       const valeurs = [
         idDisponible, matricule, nomClient, postNom, prenomClient, bail, 
         nettoyerDate(dateBail), logement, adresse, pays, designation, typeClient, 
-        typeFacture, devise, Number(montant) || 0, modePaiement, moisFacture, 
+        typeFacture, devise, Number(montant) || 0, modePaiement, typePeriode, moisFacture, 
         nettoyerDate(debutContrat), nettoyerDate(finContrat), nettoyerDate(dateComptable), 
         compteur, imputation, dernierNumero, Number(dernierMontant) || 0, 
         nettoyerDate(derniereDate), telephone, email, dateEntree, 'Actif', 0, 
@@ -233,7 +237,6 @@ module.exports = (db) => {
           return res.status(500).json({ erreur: "Erreur lors de l'enregistrement : " + insertErr.message });
         }
 
-        // 3. Insertion automatique dans la table factures existante
         const nomComplet = `${nomClient} ${postNom || ''} ${prenomClient !== '-' ? prenomClient : ''}`.trim();
         const queryInsertFacture = `
           INSERT INTO factures (matricule, nom, typeFacture, montant, devise, dateCreation) 
@@ -251,15 +254,13 @@ module.exports = (db) => {
         db.query(queryInsertFacture, valeursFacture, (errFact) => {
           if (errFact) {
             console.error("Erreur lors de l'insertion dans la table factures :", errFact);
-          } else {
-            console.log("Facture enregistrée avec succès dans la table factures.");
           }
         });
 
         const clientCree = formaterClient({
           id: idDisponible, matricule, nom: nomClient, postNom, prenom: prenomClient,
           bail, dateBail, logement, adresse, pays, designation, typeClient,
-          typeFacture, devise, montant, modePaiement, moisFacture, debutContrat,
+          typeFacture, devise, montant, modePaiement, typePeriode, moisFacture, debutContrat,
           finContrat, dateComptable, compteur, imputation, dernierNumero,
           dernierMontant, derniereDate, telephone, email, dateEntree,
           statut: 'Actif', supprime: 0, enregistre: valeurEnregistre, creeLe
@@ -286,20 +287,20 @@ module.exports = (db) => {
     const { id } = req.params;
     const { 
       nom, postNom, prenom, bail, dateBail, logement, adresse, pays, designation, 
-      typeClient, typeFacture, devise, montant, modePaiement, moisFacture, 
+      typeClient, typeFacture, devise, montant, modePaiement, typePeriode, moisFacture, 
       debutContrat, finContrat, dateComptable, compteur, imputation, 
       dernierNumero, dernierMontant, derniereDate, telephone, email 
     } = req.body;
 
     const query = `
       UPDATE clients 
-      SET nom = ?, postNom = ?, prenom = ?, bail = ?, dateBail = ?, logement = ?, adresse = ?, pays = ?, designation = ?, typeClient = ?, typeFacture = ?, devise = ?, montant = ?, modePaiement = ?, moisFacture = ?, debutContrat = ?, finContrat = ?, dateComptable = ?, compteur = ?, imputation = ?, dernierNumero = ?, dernierMontant = ?, derniereDate = ?, telephone = ?, email = ?
+      SET nom = ?, postNom = ?, prenom = ?, bail = ?, dateBail = ?, logement = ?, adresse = ?, pays = ?, designation = ?, typeClient = ?, typeFacture = ?, devise = ?, montant = ?, modePaiement = ?, typePeriode = ?, moisFacture = ?, debutContrat = ?, finContrat = ?, dateComptable = ?, compteur = ?, imputation = ?, dernierNumero = ?, dernierMontant = ?, derniereDate = ?, telephone = ?, email = ?
       WHERE id = ?
     `;
 
     const valeurs = [
       nom, postNom, prenom, bail, nettoyerDate(dateBail), logement, adresse, pays, designation, 
-      typeClient, typeFacture, devise, montant || 0, modePaiement, moisFacture, 
+      typeClient, typeFacture, devise, montant || 0, modePaiement, typePeriode, moisFacture, 
       nettoyerDate(debutContrat), nettoyerDate(finContrat), nettoyerDate(dateComptable), compteur, imputation, 
       dernierNumero, dernierMontant || 0, nettoyerDate(derniereDate), telephone, email, id
     ];

@@ -224,7 +224,7 @@ app.get('/api/health', (req, res) => {
 // BRANCHEMENT DES ROUTEURS MODULAIRES
 // ==========================================
 app.use('/api/clients', clientsRoutes(db));
-app.use('/api/factures', facturesRoutes);
+app.use('/api/factures', facturesRoutes(db));
 
 // ==========================================
 // ROUTES API - BANQUES
