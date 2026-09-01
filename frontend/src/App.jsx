@@ -111,6 +111,7 @@ export default function App() {
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [backendConnecte, setBackendConnecte] = useState(false);
 
+  // État centralisé des clients
   const [clientsEnregistres, setClientsEnregistres] = useState(() => {
     try {
       const sauvegarde = localStorage.getItem('proFact_clientsEnregistres');
@@ -119,6 +120,9 @@ export default function App() {
       return [];
     }
   });
+
+  // NOUVEAU : État centralisé des factures récupérées depuis le backend pour éviter les confusions avec les clients
+  const [facturesEnregistrees, setFacturesEnregistrees] = useState([]);
 
   const [facturiers, setFacturiers] = useState(() => {
     try {
@@ -130,6 +134,21 @@ export default function App() {
       return [];
     }
   });
+
+// Charger les factures depuis l'API globale au démarrage
+  useEffect(() => {
+    const chargerFacturesGlobal = async () => {
+      try {
+        const reponse = await axios.get('http://localhost:5000/api/factures');
+        if (reponse.data) {
+          setFacturesEnregistrees(reponse.data);
+        }
+      } catch (err) {
+        console.error("Impossible de récupérer les factures depuis l'API backend", err);
+      }
+    };
+    chargerFacturesGlobal();
+  }, []);
 
   useEffect(() => {
     try {
@@ -283,8 +302,9 @@ export default function App() {
       case 'Paiements':
         return (
           <Paiements 
-            listeFactures={clientsEnregistres} 
-            onMettreAJourPaiement={setClientsEnregistres} 
+            // CORRECTION MAJEURE ICI : On passe les factures et non les clients !
+            listeFactures={facturesEnregistrees} 
+            onMettreAJourPaiement={setFacturesEnregistrees} 
           />
         );
       case 'Rapports':

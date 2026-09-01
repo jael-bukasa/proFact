@@ -19,7 +19,6 @@ const rotationAnimation = keyframes`
   100% { transform: rotate(360deg); }
 `;
 
-// Effet distinct pour la réinitialisation : un balancement / rotation fluide et rapide de l'icône
 const spinResetAnimation = keyframes`
   0% { transform: rotate(0deg) scale(1); }
   50% { transform: rotate(-180deg) scale(0.9); }
@@ -63,7 +62,6 @@ const TitreSection = styled.h2`
   padding-bottom: 0.8rem;
 `;
 
-// Effet visuel spécifique de transition vers le haut et fondu pour la réinitialisation
 const GrilleFormulaire = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -145,7 +143,6 @@ export default function CreerFacture() {
   const timeoutRechercheRef = useRef(null);
 
   const dateActuelle = new Date();
-  const anneeCourante = dateActuelle.getFullYear();
   const moisCourantIndex = dateActuelle.getMonth();
 
   const listeMoisEnLettres = [
@@ -160,7 +157,7 @@ export default function CreerFacture() {
     typeFacture: 'locataire',
     typePeriode: 'mois',
     choixPeriodeSpecifique: listeMoisEnLettres[moisCourantIndex],
-    anneeFactureChiffre: anneeCourante.toString()
+    anneeFactureChiffre: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -313,7 +310,6 @@ export default function CreerFacture() {
     setEnTrainDeReinitialiser(true);
     setMessageSucces('');
 
-    // Effet de transition de nettoyage fluide (500ms)
     await new Promise(resolve => setTimeout(resolve, 500));
 
     setModeSelection('un');
@@ -326,7 +322,7 @@ export default function CreerFacture() {
       typeFacture: 'locataire',
       typePeriode: 'mois',
       choixPeriodeSpecifique: listeMoisEnLettres[moisCourantIndex],
-      anneeFactureChiffre: anneeCourante.toString()
+      anneeFactureChiffre: ''
     });
 
     setEnTrainDeReinitialiser(false);
@@ -354,13 +350,16 @@ export default function CreerFacture() {
     setMessageSucces('');
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       const endpoint = modeSelection === 'un' 
         ? 'http://localhost:5000/api/factures' 
         : 'http://localhost:5000/api/factures/masse';
       
-      const payload = { ...formData, moisFacture: formData.choixPeriodeSpecifique };
+      // Transmission explicite du mois et de l'année au backend
+      const payload = { 
+        ...formData, 
+        moisFacture: formData.choixPeriodeSpecifique,
+        anneeFacturee: formData.anneeFactureChiffre 
+      };
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -385,7 +384,7 @@ export default function CreerFacture() {
         typeFacture: formData.typeFacture,
         typePeriode: 'mois',
         choixPeriodeSpecifique: listeMoisEnLettres[moisCourantIndex],
-        anneeFactureChiffre: anneeCourante.toString()
+        anneeFactureChiffre: ''
       });
 
     } catch (error) {

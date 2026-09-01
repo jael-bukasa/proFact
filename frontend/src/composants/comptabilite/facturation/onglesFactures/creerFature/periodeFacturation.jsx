@@ -84,6 +84,20 @@ export default function PeriodeFacturation({
   optionsPeriodeSpecifique,
   estVerrouille = false
 }) {
+  // Fonction pour filtrer et limiter l'année à 4 chiffres maximum
+  const handleAnneeChange = (e) => {
+    const valeur = e.target.value.replace(/\D/g, ''); // Ne garde que les chiffres
+    if (valeur.length <= 4) {
+      // On simule un objet événement standard pour remonter la valeur modifiée au parent
+      onChange({
+        target: {
+          name: 'anneeFactureChiffre',
+          value: valeur
+        }
+      });
+    }
+  };
+
   return (
     <GroupeChamp>
       <LabelChamp id="label-periode-facturation">
@@ -117,11 +131,13 @@ export default function PeriodeFacturation({
 
         <InputChamp 
           id="annee-facture-input"
-          type="number" 
+          type="text" 
+          inputMode="numeric"
           name="anneeFactureChiffre" 
-          placeholder="Année" 
+          placeholder="Année (ex: 2026)" 
           value={anneeFactureChiffre} 
-          onChange={onChange}
+          onChange={handleAnneeChange}
+          maxLength={4}
           aria-label="Année de facturation"
           required
         />

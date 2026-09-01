@@ -1,7 +1,17 @@
 const factureService = {
+  // Récupérer toutes les factures
+  obtenirTous: (db, callback) => {
+    const query = `SELECT * FROM factures WHERE supprime = 0 OR supprime IS NULL`;
+    db.query(query, (err, results) => {
+      if (err) {
+        return callback(err);
+      }
+      callback(null, results);
+    });
+  },
+
   // Enregistrer une facture unique
   ajouter: (db, factureData, callback) => {
-    // Étape 1 : Récupérer le nombre total de factures pour déterminer le prochain numéro séquentiel
     const queryCount = `SELECT COUNT(*) as total FROM factures`;
 
     db.query(queryCount, (errCount, resultsCount) => {
@@ -9,18 +19,16 @@ const factureService = {
         return callback(errCount);
       }
 
-      // Génère le numéro séquentiel formaté sur 5 chiffres minimum (ex: 00001, 00002...)
       const prochainNumero = (resultsCount[0].total + 1).toString().padStart(5, '0');
 
-      // Si un clientCode est fourni mais que le montant ou le logement sont absents, on va les chercher dans la table clients
       const completerEtInserer = (dataClient = {}) => {
         const query = `
           INSERT INTO factures (
             numero, bail, dateBail, clientCode, nomLocataire, logement, adresse, 
             pays, designation, typeFacture, modePaiement, reference, montant, 
-            moisFacture, debutContrat, finContrat, dateComptable, compteur, 
+            moisFacture, anneeFacturee, debutContrat, finContrat, dateComptable, compteur, 
             imputation, dernierNumero, dernierMontant, derniereDate, statut, supprime
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const nettoyerDate = (valeur) => {
@@ -31,7 +39,7 @@ const factureService = {
         };
 
         const params = [
-          prochainNumero, // Utilisation du numéro automatique à 5 chiffres généré
+          prochainNumero,
           factureData.bail || dataClient.bail || '',
           nettoyerDate(factureData.dateBail || dataClient.dateBail),
           factureData.clientCode || dataClient.id || '',
@@ -45,6 +53,7 @@ const factureService = {
           factureData.reference || null,
           Number(factureData.montant !== undefined ? factureData.montant : dataClient.montant) || 0,
           factureData.moisFacture || factureData.choixPeriodeSpecifique || '',
+          Number(factureData.anneeFacturee || dataClient.anneeFacturee) || new Date().getFullYear(),
           nettoyerDate(factureData.debutContrat || dataClient.debutContrat),
           nettoyerDate(factureData.finContrat || dataClient.finContrat),
           nettoyerDate(factureData.dateComptable || dataClient.dateComptable),
@@ -61,12 +70,10 @@ const factureService = {
           if (errInsert) {
             return callback(errInsert);
           }
-          // On renvoie le résultat avec le numéro généré pour que la route puisse l'afficher dans la réponse
           callback(null, { ...result, numeroGenere: prochainNumero });
         });
       };
 
-      // Si on a un code client ou ID, on essaie de récupérer ses infos de base pour compléter la facture
       if (factureData.clientCode) {
         const qClient = `SELECT * FROM clients WHERE id = ? OR matricule = ? LIMIT 1`;
         db.query(qClient, [factureData.clientCode, factureData.clientCode], (err, rows) => {

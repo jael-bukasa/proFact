@@ -4,7 +4,18 @@ const factureService = require('../services/factureService');
 module.exports = function(db) {
   const router = express.Router();
 
-  // Route pour un client unique
+  // Route pour récupérer toutes les factures
+  router.get('/', (req, res) => {
+    factureService.obtenirTous(db, (err, factures) => {
+      if (err) {
+        console.error("Erreur récupération factures:", err);
+        return res.status(500).json({ erreur: err.sqlMessage || "Erreur lors de la récupération des factures." });
+      }
+      res.status(200).json(factures);
+    });
+  });
+
+  // Route pour un client unique (création)
   router.post('/', (req, res) => {
     factureService.ajouter(db, req.body, (err, result) => {
       if (err) {
@@ -67,6 +78,20 @@ module.exports = function(db) {
           }
         });
       });
+    });
+  });
+
+  // Route pour supprimer une facture
+  router.delete('/:id', (req, res) => {
+    const factureId = req.params.id;
+    const query = `DELETE FROM factures WHERE id = ?`;
+    
+    db.query(query, [factureId], (err, result) => {
+      if (err) {
+        console.error("Erreur suppression facture:", err);
+        return res.status(500).json({ erreur: "Erreur lors de la suppression de la facture." });
+      }
+      res.status(200).json({ message: "Facture supprimée avec succès." });
     });
   });
 

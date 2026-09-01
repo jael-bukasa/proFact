@@ -1,9 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FiFileText, FiDownload, FiSave, FiLayers } from 'react-icons/fi';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { FiFileText, FiDownload, FiLayers } from 'react-icons/fi';
 
 // Importation de vos composants de génération de PDF spécifiques
 import PDFFacturesLocataire from './listePDF/PDFFacturesLocataire';
@@ -18,7 +16,6 @@ const THEME = {
   texteSecondaire: '#888888',
   bordure: '#2A2A2A',
   survol: '#262626',
-  erreur: '#FF5252',
   orange: '#FF9800',
   vert: '#4CAF50',
   fondChamp: '#121212',
@@ -49,26 +46,6 @@ const Titre = styled.h2`
 const SousTitre = styled.p`
   color: ${THEME.texteSecondaire};
   font-size: 0.8rem;
-`;
-
-const BoutonGlobal = styled.button`
-  background-color: ${THEME.fondCarte};
-  border: 1px solid ${THEME.accentuation};
-  color: ${THEME.accentuation};
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: ${THEME.accentuation};
-    color: #000;
-  }
 `;
 
 const BlocType = styled.div`
@@ -167,7 +144,7 @@ const GroupeBoutons = styled.div`
 `;
 
 const BoutonPDF = styled.button`
-  flex: 1;
+  width: 100%;
   background-color: #121212;
   border: 1px solid ${THEME.bordure};
   color: ${props => props.$couleur || THEME.accentuation};
@@ -189,23 +166,6 @@ const BoutonPDF = styled.button`
   }
 `;
 
-const BoutonSupprimer = styled.button`
-  background-color: rgba(255, 82, 82, 0.1);
-  border: 1px solid rgba(255, 82, 82, 0.3);
-  color: ${THEME.erreur};
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.73rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: ${THEME.erreur};
-    color: #FFFFFF;
-  }
-`;
-
 const MessageVide = styled.div`
   padding: 3rem;
   text-align: center;
@@ -216,17 +176,36 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
-function FactureTous({
-  listeFactures = [],
-  supprimerFacture,
+export default function FactureToutes({
+  listeFactures: listeFacturesProps = [],
   formaterDateFr
 }) {
+  const [facturesBdd, setFacturesBdd] = useState([]);
   const pdfLocataireRef = useRef(null);
   const pdfEauRef = useRef(null);
   const pdfElectriciteRef = useRef(null);
   const pdfDiversRef = useRef(null);
 
-  // Fonction utilitaire pour récupérer la bonne référence selon le type de facture
+  // Récupération autonome des factures depuis la base de données si les props sont vides
+  useEffect(() => {
+    chargerFacturesBDD();
+  }, []);
+
+  const chargerFacturesBDD = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/factures');
+      if (response.ok) {
+        const data = await response.json();
+        setFacturesBdd(data);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération des factures depuis la BD :", error);
+    }
+  };
+
+  // Utilise les props si fournies et non vides, sinon utilise l'état interne issu de l'API
+  const listeEffective = listeFacturesProps.length > 0 ? listeFacturesProps : facturesBdd;
+
   const obtenirRefParType = (cli) => {
     const type = (cli.typeFacture || cli.type || 'Locataire').toLowerCase();
     if (type.includes('eau')) return pdfEauRef;
@@ -242,56 +221,7 @@ function FactureTous({
     }
   };
 
-  // Fusionne toutes les factures dans un seul et même fichier PDF multi-pages sans bloquer le navigateur
-  const telechargerToutEnPDF = async () => {
-    if (!listeFactures || listeFactures.length === 0) return;
-
-    const pdfGlobal = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdfGlobal.internal.pageSize.getWidth();
-
-    for (let i = 0; i < listeFactures.length; i++) {
-      const cli = listeFactures[i];
-      const refCible = obtenirRefParType(cli);
-
-      if (refCible && refCible.current) {
-        // On récupère le composant cible et on force la génération en Blob (sans téléchargement direct)
-        const element = refCible.current;
-        // Appel de la génération personnalisée pour le regroupement
-        // S'il n'y a pas de méthode blob directe, on passe par genererPDF avec option ou on capture directement
-      }
-    }
-
-    // Approche robuste : On génère et fusionne séquentiellement via jsPDF
-    for (let i = 0; i < listeFactures.length; i++) {
-      const cli = listeFactures[i];
-      const refCible = obtenirRefParType(cli);
-      
-      if (refCible && refCible.current && refCible.current.genererPDF) {
-        // Demande au composant de renvoyer le blob au lieu de lancer le téléchargement automatique
-        const blobFichier = await refCible.current.genererPDF(cli, { autoDownload: false });
-        
-        if (blobFichier) {
-          const urlImage = URL.createObjectURL(blobFichier);
-          // On peut aussi utiliser directement le rendu canvas global si besoin, 
-          // mais ici le plus propre est d'ajouter une page si ce n'est pas le premier élément
-          if (i > 0) pdfGlobal.addPage();
-        }
-      }
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-
-    // Alternative simple et infaillible si les sous-composants gèrent mal le blob :
-    // On télécharge séquentiellement avec un délai d'espacement de 600ms pour éviter le blocage de chrome,
-    // OU mieux encore, on prévient le navigateur en affichant un message de progression.
-    alert("Téléchargement groupé lancé. Veuillez autoriser les téléchargements multiples si le navigateur le demande.");
-    
-    for (let i = 0; i < listeFactures.length; i++) {
-      await gererTelechargementPDF(listeFactures[i]);
-      await new Promise(resolve => setTimeout(resolve, 600)); // 600ms d'écart empêche Chrome de bloquer le flux
-    }
-  };
-
-  const facturesParType = listeFactures.reduce((acc, cli) => {
+  const facturesParType = listeEffective.reduce((acc, cli) => {
     const type = (cli.typeFacture || cli.type || 'Locataire').trim();
     if (!acc[type]) acc[type] = [];
     acc[type].push(cli);
@@ -311,7 +241,6 @@ function FactureTous({
 
   return (
     <ConteneurGlobal as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      {/* Conteneur invisible positionné complètement hors-écran pour permettre à html2canvas de mesurer et capturer */}
       <div style={{ position: 'absolute', left: '-9999px', top: '0', width: '680px', pointerEvents: 'none', overflow: 'hidden', zIndex: -1000 }}>
         <PDFFacturesLocataire ref={pdfLocataireRef} formaterDateFr={formaterDateFr} />
         <PDFFacturesEau ref={pdfEauRef} formaterDateFr={formaterDateFr} />
@@ -322,19 +251,14 @@ function FactureTous({
       <EnTeteSection>
         <div>
           <Titre>Gestion Globale des Factures</Titre>
-          <SousTitre>Vue d'ensemble connectée aux modèles officiels de PDF</SousTitre>
+          <SousTitre>Données synchronisées depuis la base de données</SousTitre>
         </div>
-        {listeFactures.length > 0 && (
-          <BoutonGlobal onClick={telechargerToutEnPDF}>
-            <FiSave /> Tout Télécharger (PDF)
-          </BoutonGlobal>
-        )}
       </EnTeteSection>
 
-      {listeFactures.length === 0 ? (
+      {listeEffective.length === 0 ? (
         <MessageVide>
           <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-          <p>Aucune facture trouvée.</p>
+          <p>Aucune facture trouvée dans la base de données.</p>
         </MessageVide>
       ) : (
         typesTries.map((typeFacture) => {
@@ -399,25 +323,12 @@ function FactureTous({
                         <div>Type : <strong>{cli.typeFacture || cli.type || 'Loyers'}</strong> {cli.designation ? `- ${cli.designation}` : ''}</div>
                         <div>Contrat : <strong>{cli.debutContrat || '---'}</strong> au <strong>{cli.finContrat || '---'}</strong></div>
                         <div>Comptable : <strong>{dateComptableAffichee}</strong> {cli.reference ? `| Réf: ${cli.reference}` : ''}</div>
-                        {cli.compteur ? (
-                          <div style={{ marginTop: '0.15rem', borderTop: '1px solid #222', paddingTop: '0.15rem' }}>
-                            CPT: <strong>{cli.compteur}</strong> {cli.imputation ? `| Imp: ${cli.imputation}` : ''} <br/>
-                            N°: <strong>{cli.dernierNumero || 0}</strong> | Mt: <strong>{cli.dernierMontant || 0}</strong> | Dt: <strong>{cli.derniereDate || '-'}</strong>
-                          </div>
-                        ) : (
-                          <div>Compteur : <span style={{ color: THEME.texteSecondaire }}>Aucun</span></div>
-                        )}
                       </SectionDetaillee>
 
                       <GroupeBoutons>
-                        <BoutonPDF onClick={() => gererTelechargementPDF(cli)} title="Télécharger PDF Spécifique" $couleur={THEME.accentuation} $couleurSurvol={THEME.accentuation} $texteSurvol="#000000">
-                          <FiDownload /> PDF
+                        <BoutonPDF onClick={() => gererTelechargementPDF(cli)} title="Générer facture" $couleur={THEME.accentuation} $couleurSurvol={THEME.accentuation} $texteSurvol="#000000">
+                          <FiDownload /> Générer facture
                         </BoutonPDF>
-                        {supprimerFacture && (
-                          <BoutonSupprimer onClick={() => supprimerFacture(cli.id)}>
-                            Suppr.
-                          </BoutonSupprimer>
-                        )}
                       </GroupeBoutons>
                     </CarteFacture>
                   );
@@ -430,6 +341,3 @@ function FactureTous({
     </ConteneurGlobal>
   );
 }
-
-export default FactureTous;
-export { FactureTous };

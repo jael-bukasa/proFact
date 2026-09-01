@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiCalendar, FiX, FiCheck, FiPlusCircle } from 'react-icons/fi';
 
 import FiltreClients from "../gestionLocative/clients/filtreClients";
 import CreerFacture from './facturation/onglesFactures/creerFacture';
-import FactureTous from './facturation/onglesFactures/factureTous';
+import FactureTous from './facturation/onglesFactures/factureToutes';
 import FactureLocataire from './facturation/onglesFactures/factureLocataire';
 import FactureEau from './facturation/onglesFactures/factureEau';
 import FactureElectricite from './facturation/onglesFactures/factureElectricite';
@@ -33,14 +33,13 @@ const BarreOnglets = styled.div`
   margin-bottom: 0.5rem;
   flex-wrap: wrap;
   
-  /* Fixer les onglets en haut sur toute la largeur */
   position: sticky;
   top: 0;
   width: 100%;
   background-color: #0d0d0d;
   z-index: 100;
   padding: 1rem 0 0.8rem 0;
-  margin-top: -1rem; /* Compense un éventuel padding du conteneur parent */
+  margin-top: -1rem;
 `;
 
 const BoutonOnglet = styled.button`
@@ -76,6 +75,24 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
 
   const [clientPourFacture, setClientPourFacture] = useState(null);
   const [loadingGeneration, setLoadingGeneration] = useState(false);
+  const [listeFacturesAPI, setListeFacturesAPI] = useState([]);
+
+  // Récupération des factures depuis l'API au chargement du composant
+  useEffect(() => {
+    chargerFacturesAPI();
+  }, []);
+
+  const chargerFacturesAPI = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/factures');
+      if (response.ok) {
+        const data = await response.json();
+        setListeFacturesAPI(data);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des factures depuis l'API :", error);
+    }
+  };
 
   const reinitialiserFiltres = () => {
     setRechercheFacture('');
@@ -84,7 +101,7 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
 
   const onglets = [
     { id: 'creer', label: 'Créer Facture', icone: <FiPlusCircle style={{ width: '16px', height: '16px' }} /> },
-    { id: 'tous', label: 'Tous', icone: <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg> },
+    { id: 'toutes', label: 'Toutes', icone: <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg> },
     { id: 'locataire', label: 'Locataire', icone: <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> },
     { id: 'eau', label: 'Eau', icone: <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> },
     { id: 'electricite', label: 'Électricité', icone: <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg> },
@@ -92,9 +109,11 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
   ];
 
   const listeFactures = useMemo(() => {
-    if (!clientsEnregistres || clientsEnregistres.length === 0) return [];
+    // Utilisation exclusive des données provenant de l'API factures de la base de données
+    const source = listeFacturesAPI;
+    if (!source || source.length === 0) return [];
 
-    return clientsEnregistres.map((cli, index) => {
+    return source.map((cli, index) => {
       const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim();
       const matriculeBrut = (cli.matricule || cli.numero || '').toUpperCase();
       let typeDetecte = (cli.type || cli.typeFacture || '').toLowerCase();
@@ -120,12 +139,14 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         typeFacture: typeDetecte,
         devise: cli.devise || 'USD',
         montant: parseFloat(cli.montant) || 0,
+        moisFacture: cli.moisFacture || cli.periode || cli.mois_facture || '',
+        anneeFacturee: cli.anneeFacturee || cli.annee || '',
         dateFacture: cli.dateBail || cli.dateEnregistrement || cli.dateFacture || new Date().toISOString().split('T')[0],
         statut: cli.statut || 'En attente',
         ...cli 
       };
     });
-  }, [clientsEnregistres]);
+  }, [listeFacturesAPI]);
 
   const facturesFiltreesGlobal = useMemo(() => {
     if (ongletActif === 'creer') return [];
@@ -147,7 +168,7 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         categorieReelle = typeBrut;
       }
 
-      if (ongletActif !== 'tous' && categorieReelle !== ongletActif) {
+      if (ongletActif !== 'toutes' && categorieReelle !== ongletActif) {
         return false;
       }
 
@@ -174,7 +195,7 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
       case 'eau': return FactureEau;
       case 'electricite': return FactureElectricite;
       case 'divers': return FactureDivers;
-      case 'tous':
+      case 'toutes':
       default: return FactureTous;
     }
   }, [ongletActif]);
@@ -208,11 +229,25 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
 
       alert(`Facture générée avec succès pour le mois : ${moisSelectionne} !`);
       setClientPourFacture(null);
+      chargerFacturesAPI(); 
     } catch (error) {
       console.error("Erreur :", error);
       alert("Erreur : " + error.message);
     } finally {
       setLoadingGeneration(false);
+    }
+  };
+
+  const supprimerFacture = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/factures/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setListeFacturesAPI(prev => prev.filter(f => f.id !== id));
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression :", error);
     }
   };
 
@@ -248,6 +283,7 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         listeFactures={facturesFiltreesGlobal}
         formaterDateFr={formaterDateFr}
         onGenererFacture={handleOuvrirModalFacture}
+        supprimerFacture={supprimerFacture}
         clientsEnregistres={clientsEnregistres}
       />
 
