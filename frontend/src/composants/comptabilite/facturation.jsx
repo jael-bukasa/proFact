@@ -77,11 +77,11 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
   const [loadingGeneration, setLoadingGeneration] = useState(false);
   const [listeFacturesAPI, setListeFacturesAPI] = useState([]);
 
-  // Récupération des factures depuis l'API au chargement du composant
   useEffect(() => {
     chargerFacturesAPI();
   }, []);
 
+  // Interrogation directe de la base de données via l'API
   const chargerFacturesAPI = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/factures');
@@ -109,7 +109,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
   ];
 
   const listeFactures = useMemo(() => {
-    // Utilisation exclusive des données provenant de l'API factures de la base de données
     const source = listeFacturesAPI;
     if (!source || source.length === 0) return [];
 
@@ -140,7 +139,7 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         devise: cli.devise || 'USD',
         montant: parseFloat(cli.montant) || 0,
         moisFacture: cli.moisFacture || cli.periode || cli.mois_facture || '',
-        anneeFacturee: cli.anneeFacturee || cli.annee || '',
+        anneeFacturee: cli.anneeFacturee || cli.annee || (cli.moisFacture ? cli.moisFacture.split('-')[0] : new Date(cli.dateBail || cli.dateEnregistrement || Date.now()).getFullYear()),
         dateFacture: cli.dateBail || cli.dateEnregistrement || cli.dateFacture || new Date().toISOString().split('T')[0],
         statut: cli.statut || 'En attente',
         ...cli 
@@ -229,7 +228,9 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
 
       alert(`Facture générée avec succès pour le mois : ${moisSelectionne} !`);
       setClientPourFacture(null);
-      chargerFacturesAPI(); 
+      
+      // Force l'interrogation immédiate de la base de données pour actualiser les données fraîches
+      await chargerFacturesAPI(); 
     } catch (error) {
       console.error("Erreur :", error);
       alert("Erreur : " + error.message);
@@ -244,7 +245,8 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         method: 'DELETE',
       });
       if (response.ok) {
-        setListeFacturesAPI(prev => prev.filter(f => f.id !== id));
+        // Recharge directement les données depuis la base après suppression
+        await chargerFacturesAPI();
       }
     } catch (error) {
       console.error("Erreur lors de la suppression :", error);
@@ -279,7 +281,9 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         </div>
       )}
 
+      {/* La clé dynamique `${ongletActif}-${listeFacturesAPI.length}` force le rechargement immédiat de l'affichage */}
       <RenduFactureActif
+        key={`${ongletActif}-${listeFacturesAPI.length}`}
         listeFactures={facturesFiltreesGlobal}
         formaterDateFr={formaterDateFr}
         onGenererFacture={handleOuvrirModalFacture}

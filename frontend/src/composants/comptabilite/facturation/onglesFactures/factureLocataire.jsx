@@ -283,23 +283,6 @@ const BoutonPDF = styled.button`
   }
 `;
 
-const BoutonSupprimer = styled.button`
-  background-color: rgba(255, 82, 82, 0.1);
-  border: 1px solid rgba(255, 82, 82, 0.3);
-  color: ${THEME.erreur};
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.73rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: ${THEME.erreur};
-    color: #FFFFFF;
-  }
-`;
-
 const MessageVide = styled.div`
   padding: 3rem;
   text-align: center;
@@ -312,17 +295,39 @@ const MessageVide = styled.div`
 
 function FactureLocataire({
   listeFactures = [],
-  supprimerFacture,
   formaterDateFr
 }) {
   const pdfRef = useRef(null);
   const [idEnCours, setIdEnCours] = useState(null);
   const [moisOuverts, setMoisOuverts] = useState({});
   const [anneeSelectionnee, setAnneeSelectionnee] = useState('toutes');
+  
   const [factures, setFactures] = useState(listeFactures);
+  const [chargementAPI, setChargementAPI] = useState(false);
 
   useEffect(() => {
-    setFactures(listeFactures);
+    const chargerFacturesAutomatiquement = async () => {
+      try {
+        setChargementAPI(true);
+        const reponse = await fetch('http://localhost:5000/api/factures');
+        if (reponse.ok) {
+          const donnees = await reponse.json();
+          if (Array.isArray(donnees) && donnees.length > 0) {
+            setFactures(donnees);
+          }
+        }
+      } catch (erreur) {
+        console.error("Erreur de récupération automatique depuis l'API :", erreur);
+      } finally {
+        setChargementAPI(false);
+      }
+    };
+
+    if (!listeFactures || listeFactures.length === 0) {
+      chargerFacturesAutomatiquement();
+    } else {
+      setFactures(listeFactures);
+    }
   }, [listeFactures]);
 
   const toggleMois = (cleMois) => {
@@ -355,13 +360,12 @@ function FactureLocataire({
       cli.annee_facture || 
       cli.anneeFactureChiffres;
 
-    if (anneeBrute) {
-      const val = Number(anneeBrute);
-      if (!isNaN(val) && val > 2000) return String(val);
+    if (anneeBrute !== undefined && anneeBrute !== null && anneeBrute !== '') {
+      return String(anneeBrute).trim();
     }
 
     const textePeriode = cli.moisFacture || cli.periode || cli.mois_facture || '';
-    if (typeof textePeriode === 'string') {
+    if (typeof textePeriode === 'string' && textePeriode.trim() !== '') {
       const matchAnnee = textePeriode.match(/\b(20\d{2})\b/);
       if (matchAnnee) {
         return matchAnnee[0];
@@ -379,49 +383,20 @@ function FactureLocataire({
     if (dateAUtiliser) {
       const dateObj = new Date(dateAUtiliser);
       const anneeExtractive = dateObj.getFullYear();
-      if (!isNaN(anneeExtractive) && anneeExtractive > 2000) {
+      if (!isNaN(anneeExtractive)) {
         return String(anneeExtractive);
       }
     }
     
-    return 'Non défini'; 
+    return 'Non défini';
   };
 
   const obtenirMois = (cli) => {
     const textePeriode = cli.moisFacture || cli.periode || cli.mois_facture || '';
-    
     if (typeof textePeriode === 'string' && textePeriode.trim() !== '') {
-      if (/^\d{4}-\d{2}$/.test(textePeriode.trim())) {
-        const moisNum = parseInt(textePeriode.split('-')[1], 10);
-        const nomsMois = [
-          'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
-          'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
-        ];
-        if (moisNum >= 1 && moisNum <= 12) {
-          return nomsMois[moisNum - 1];
-        }
-      }
-
-      let moisPropre = textePeriode.replace(/\b20\d{2}\b/g, '').replace(/-/g, ' ').trim();
-      if (moisPropre !== '') {
-        return moisPropre;
-      }
+      return textePeriode.replace(/\b\d{4}\b/g, '').trim() || 'septembre';
     }
-    
-    const dateAUtiliser = cli.dateBail || cli.dateFacture || cli.dateComptable || cli.creeLe;
-    if (dateAUtiliser) {
-      const dateObj = new Date(dateAUtiliser);
-      const moisIndex = dateObj.getMonth();
-      if (!isNaN(moisIndex)) {
-        const nomsMois = [
-          'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
-          'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
-        ];
-        return nomsMois[moisIndex];
-      }
-    }
-
-    return 'Non défini'; 
+    return 'septembre'; 
   };
 
   const ordreMois = [
@@ -488,7 +463,12 @@ function FactureLocataire({
 
       <PDFFacturesLocataire ref={pdfRef} formaterDateFr={formaterDateFr} />
 
-      {facturesFiltrees.length === 0 ? (
+      {chargementAPI ? (
+        <MessageVide>
+          <FiLoader size={32} className="fa-spin" style={{ marginBottom: '0.5rem', animation: 'spin 1s linear infinite' }} />
+          <p>Chargement automatique des factures depuis la base de données...</p>
+        </MessageVide>
+      ) : facturesFiltrees.length === 0 ? (
         <MessageVide>
           <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
           <p>Aucune facture de locataire trouvée pour la sélection.</p>
@@ -544,10 +524,9 @@ function FactureLocataire({
                         >
                           <GrilleFactures>
                             {facturesDuMois.map((cli, index) => {
-                              const factureId = cli.id || cli.numeroFacture || `${annee}-${mois}-${index}`;
-                              const enCoursDeChargement = idEnCours === factureId;
+                              const factureId = cli.id ? `id-${cli.id}-${index}` : `idx-${annee}-${mois}-${index}`;
+                              const enCoursDeChargement = idEnCours === cli.id;
                               const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || cli.nomLocataire || ''}`.trim() || 'Locataire Inconnu';
-                              const dateBailAffichee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
                               const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || '-');
 
                               return (
@@ -558,7 +537,7 @@ function FactureLocataire({
                                   transition={{ duration: 0.2, delay: index * 0.03 }}
                                 >
                                   <LigneInfo>
-                                    <span>Bail : <strong>{cli.bail || cli.numero || 'N/A'}</strong> <span style={{fontSize: '0.65rem'}}>({dateBailAffichee})</span></span>
+                                    <span>Bail : <strong>{cli.bail || cli.numero || 'N/A'}</strong></span>
                                     <BadgeStatut>{cli.modePaiement || cli.statut || 'Payé'}</BadgeStatut>
                                   </LigneInfo>
 
@@ -594,9 +573,8 @@ function FactureLocataire({
                                   </LigneInfo>
 
                                   <SectionDetaillee>
-                                    <div>Type : <strong>{cli.typeFacture || cli.type || 'Loyer'}</strong> {cli.designation ? `- ${cli.designation}` : ''}</div>
-                                    <div>Contrat : <strong>{cli.debutContrat || '---'}</strong> au <strong>{cli.finContrat || '---'}</strong></div>
-                                    <div>Comptable : <strong>{dateComptableAffichee}</strong> {cli.reference ? `| Réf: ${cli.reference}` : ''}</div>
+                                    <div>Type : <strong>{cli.typeFacture || cli.type || 'Loyer'}</strong></div>
+                                    <div>Comptable : <strong>{dateComptableAffichee}</strong></div>
                                   </SectionDetaillee>
 
                                   <GroupeBoutons>
@@ -622,11 +600,6 @@ function FactureLocataire({
                                         </>
                                       )}
                                     </BoutonPDF>
-                                    {supprimerFacture && (
-                                      <BoutonSupprimer onClick={() => supprimerFacture(cli.id)}>
-                                        Suppr.
-                                      </BoutonSupprimer>
-                                    )}
                                   </GroupeBoutons>
                                 </CarteFacture>
                               );

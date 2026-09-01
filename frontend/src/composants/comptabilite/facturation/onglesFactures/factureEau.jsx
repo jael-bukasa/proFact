@@ -1,8 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { FiFileText, FiDownload, FiSave } from 'react-icons/fi';
-import PDFFacturesEau from './listePDF/PDFFacturesEau';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter } from 'react-icons/fi';
+import PDFFacturesElectricite from './listePDF/PDFFacturesElectricite';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -11,7 +11,6 @@ const THEME = {
   texteSecondaire: '#888888',
   bordure: '#2A2A2A',
   survol: '#262626',
-  erreur: '#FF5252',
   orange: '#FF9800',
   vert: '#4CAF50',
   fondChamp: '#121212'
@@ -43,27 +42,147 @@ const SousTitre = styled.p`
   font-size: 0.8rem;
 `;
 
-const BoutonGlobal = styled.button`
-  background-color: ${THEME.fondCarte};
-  border: 1px solid ${THEME.accentuation};
-  color: ${THEME.accentuation};
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
+const SelecteurAnneeConteneur = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  gap: 0.6rem;
+  background-color: #181818;
+  border: 1px solid ${THEME.bordure};
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  color: ${THEME.textePrincipal};
+  font-size: 0.85rem;
 
-  &:hover {
-    background-color: ${THEME.accentuation};
-    color: #000;
+  select {
+    background: transparent;
+    border: none;
+    color: ${THEME.accentuation};
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+
+    option {
+      background-color: #181818;
+      color: ${THEME.textePrincipal};
+    }
   }
 `;
 
-const GrilleFactures = styled(motion.div)`
+const BlocAnnee = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: #141414;
+  border: 1px solid ${THEME.bordure};
+  border-radius: 12px;
+  padding: 1.2rem;
+`;
+
+const TitreAnnee = styled.h3`
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: ${THEME.accentuation};
+  border-bottom: 1px solid ${THEME.bordure};
+  padding-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const BlocMois = styled.div`
+  background-color: #181818;
+  border: 1px solid ${THEME.bordure};
+  border-radius: 10px;
+  overflow: hidden;
+`;
+
+const EnTeteMois = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  background-color: #181818;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${THEME.survol};
+  }
+`;
+
+const GroupeInfosMois = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+`;
+
+const IconeFleche = styled(motion.div)`
+  color: ${THEME.texteSecondaire};
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+`;
+
+const NomMois = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${THEME.textePrincipal};
+  text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+`;
+
+const BadgeCompteur = styled.span`
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  background-color: rgba(174, 234, 0, 0.1);
+  color: ${THEME.accentuation};
+  border: 1px solid rgba(174, 234, 0, 0.2);
+`;
+
+const ActionsMois = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+`;
+
+const BoutonGenererMois = styled.button`
+  background-color: #121212;
+  border: 1px solid ${THEME.accentuation};
+  color: ${THEME.accentuation};
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: ${THEME.accentuation};
+    color: #000000;
+  }
+
+  &:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+  }
+`;
+
+const ContenuDepliable = styled(motion.div)`
+  padding: 0 1rem 1rem 1rem;
+  border-top: 1px dashed ${THEME.bordure};
+  margin-top: -0.2rem;
+  padding-top: 1rem;
+`;
+
+const GrilleFactures = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
@@ -130,14 +249,8 @@ const BadgeStatut = styled.span`
   color: ${THEME.orange};
 `;
 
-const GroupeBoutons = styled.div`
-  display: flex;
-  gap: 0.4rem;
-  margin-top: 0.2rem;
-`;
-
 const BoutonPDF = styled.button`
-  flex: 1;
+  width: 100%;
   background-color: #121212;
   border: 1px solid ${THEME.bordure};
   color: ${THEME.accentuation};
@@ -151,27 +264,18 @@ const BoutonPDF = styled.button`
   gap: 0.3rem;
   cursor: pointer;
   transition: all 0.2s;
+  margin-top: 0.2rem;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: ${THEME.accentuation};
     color: #000000;
+    border-color: ${THEME.accentuation};
   }
-`;
 
-const BoutonSupprimer = styled.button`
-  background-color: rgba(255, 82, 82, 0.1);
-  border: 1px solid rgba(255, 82, 82, 0.3);
-  color: ${THEME.erreur};
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.73rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: ${THEME.erreur};
-    color: #FFFFFF;
+  &:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    background-color: #181818;
   }
 `;
 
@@ -185,129 +289,341 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
-function FactureEau({
+function FactureElectricite({
   listeFactures = [],
-  supprimerFacture,
   formaterDateFr
 }) {
   const pdfRef = useRef(null);
+  const [bmjIdEnCours, setBmjIdEnCours] = useState(null);
+  const [bmjMoisOuverts, setBmjMoisOuverts] = useState({});
+  const [bmjAnneeSelectionnee, setBmjAnneeSelectionnee] = useState('toutes');
+  
+  const [bmjFactures, setBmjFactures] = useState(listeFactures);
+  const [bmjChargementAPI, setBmjChargementAPI] = useState(false);
 
-  const handleToutTelecharger = () => {
-    if (pdfRef.current && typeof pdfRef.current.telechargerTout === 'function') {
-      pdfRef.current.telechargerTout(listeFactures, formaterDateFr);
+  useEffect(() => {
+    const bmjChargerFacturesAutomatiquement = async () => {
+      try {
+        setBmjChargementAPI(true);
+        const bmjReponse = await fetch('http://localhost:5000/api/factures-electricite');
+        if (bmjReponse.ok) {
+          const bmjDonnees = await bmjReponse.json();
+          if (Array.isArray(bmjDonnees) && bmjDonnees.length > 0) {
+            setBmjFactures(bmjDonnees);
+          }
+        }
+      } catch (bmjErreur) {
+        console.error("Erreur de récupération automatique des factures d'électricité depuis l'API :", bmjErreur);
+      } finally {
+        setBmjChargementAPI(false);
+      }
+    };
+
+    if (!listeFactures || listeFactures.length === 0) {
+      bmjChargerFacturesAutomatiquement();
+    } else {
+      setBmjFactures(listeFactures);
     }
+  }, [listeFactures]);
+
+  const bmjToggleMois = (bmjCleMois) => {
+    setBmjMoisOuverts(bmjPrev => ({
+      ...bmjPrev,
+      [bmjCleMois]: !bmjPrev[bmjCleMois]
+    }));
   };
 
-  const handleTelechargerUnitaire = (cli) => {
+  const bmjHandleTelechargerUnitaire = async (bmjCli) => {
+    const bmjFactureId = bmjCli.id || bmjCli.numeroFacture;
     if (pdfRef.current && typeof pdfRef.current.genererPDF === 'function') {
-      pdfRef.current.genererPDF(cli, formaterDateFr);
+      try {
+        setBmjIdEnCours(bmjFactureId);
+        await pdfRef.current.genererPDF(bmjCli, formaterDateFr);
+      } catch (bmjError) {
+        console.error("Erreur lors du téléchargement :", bmjError);
+      } finally {
+        setBmjIdEnCours(null);
+      }
     }
   };
+
+  const bmjObtenirAnnee = (bmjCli) => {
+    const bmjAnneeBrute = 
+      bmjCli.anneeFacturee || 
+      bmjCli.anneeFactureChiffre || 
+      bmjCli.annee || 
+      bmjCli.anneeFacture || 
+      bmjCli.annee_facture || 
+      bmjCli.anneeFactureChiffres;
+
+    if (bmjAnneeBrute !== undefined && bmjAnneeBrute !== null && bmjAnneeBrute !== '') {
+      return String(bmjAnneeBrute).trim();
+    }
+
+    const bmjTextePeriode = bmjCli.moisFacture || bmjCli.periode || bmjCli.mois_facture || '';
+    if (typeof bmjTextePeriode === 'string' && bmjTextePeriode.trim() !== '') {
+      const bmjMatchAnnee = bmjTextePeriode.match(/\b(20\d{2})\b/);
+      if (bmjMatchAnnee) {
+        return bmjMatchAnnee[0];
+      }
+    }
+
+    const bmjDateAUtiliser = 
+      bmjCli.dateComptable || 
+      bmjCli.dateBail || 
+      bmjCli.dateFacture || 
+      bmjCli.creeLe || 
+      bmjCli.date_creation || 
+      bmjCli.created_at;
+
+    if (bmjDateAUtiliser) {
+      const bmjDateObj = new Date(bmjDateAUtiliser);
+      const bmjAnneeExtractive = bmjDateObj.getFullYear();
+      if (!isNaN(bmjAnneeExtractive)) {
+        return String(bmjAnneeExtractive);
+      }
+    }
+    
+    return 'Non défini';
+  };
+
+  const bmjObtenirMois = (bmjCli) => {
+    const bmjTextePeriode = bmjCli.moisFacture || bmjCli.periode || bmjCli.mois_facture || '';
+    if (typeof bmjTextePeriode === 'string' && bmjTextePeriode.trim() !== '') {
+      return bmjTextePeriode.replace(/\b\d{4}\b/g, '').trim() || 'septembre';
+    }
+    return 'septembre'; 
+  };
+
+  const bmjOrdreMois = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+  ];
+
+  const bmjObtenirIndexMois = (bmjNomMois) => {
+    if (!bmjNomMois) return 99;
+    const bmjPropre = bmjNomMois.toLowerCase().trim();
+    const bmjIndex = bmjOrdreMois.findIndex(m => bmjPropre === m || bmjPropre.includes(m));
+    return bmjIndex !== -1 ? bmjIndex : 99;
+  };
+
+  const bmjAnneesDisponibles = Array.from(
+    new Set(bmjFactures.map(bmjObtenirAnnee))
+  ).filter(a => a !== 'Non défini').sort((a, b) => b.localeCompare(a));
+
+  const bmjFacturesFiltrees = bmjAnneeSelectionnee === 'toutes' 
+    ? bmjFactures 
+    : bmjFactures.filter(bmjCli => bmjObtenirAnnee(bmjCli) === bmjAnneeSelectionnee);
+
+  const bmjDonneesGroupees = bmjFacturesFiltrees.reduce((bmjAcc, bmjCli) => {
+    const bmjAnnee = bmjObtenirAnnee(bmjCli);
+    const bmjMois = bmjObtenirMois(bmjCli);
+
+    if (!bmjAcc[bmjAnnee]) bmjAcc[bmjAnnee] = {};
+    if (!bmjAcc[bmjAnnee][bmjMois]) bmjAcc[bmjAnnee][bmjMois] = [];
+
+    bmjAcc[bmjAnnee][bmjMois].push(bmjCli);
+    return bmjAcc;
+  }, {});
+
+  const bmjAnneesTriees = Object.keys(bmjDonneesGroupees).sort((a, b) => {
+    if (a === 'Non défini') return 1;
+    if (b === 'Non défini') return -1;
+    return b.localeCompare(a);
+  });
 
   return (
     <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      {/* Composant PDF invisible pour gérer la génération */}
-      <PDFFacturesEau ref={pdfRef} />
+      <PDFFacturesElectricite ref={pdfRef} />
 
       <EnTeteSection>
         <div>
-          <Titre>Gestion des Factures d'Eau</Titre>
-          <SousTitre>Suivi détaillé des quittances et compteurs d'eau</SousTitre>
+          <Titre>Gestion des Factures d'Électricité</Titre>
+          <SousTitre>Suivi détaillé des quittances et compteurs d'électricité</SousTitre>
         </div>
-        {listeFactures.length > 0 && (
-          <BoutonGlobal onClick={handleToutTelecharger}>
-            <FiSave /> Tout Télécharger (PDF)
-          </BoutonGlobal>
-        )}
+
+        <div>
+          {bmjAnneesDisponibles.length > 0 && (
+            <SelecteurAnneeConteneur>
+              <FiFilter />
+              <span>Année :</span>
+              <select 
+                value={bmjAnneeSelectionnee} 
+                onChange={(e) => setBmjAnneeSelectionnee(e.target.value)}
+              >
+                <option value="toutes">Toutes les années</option>
+                {bmjAnneesDisponibles.map(bmjAnnee => (
+                  <option key={bmjAnnee} value={bmjAnnee}>{bmjAnnee}</option>
+                ))}
+              </select>
+            </SelecteurAnneeConteneur>
+          )}
+        </div>
       </EnTeteSection>
 
-      {listeFactures.length === 0 ? (
+      {bmjChargementAPI ? (
+        <MessageVide>
+          <FiLoader size={32} style={{ marginBottom: '0.5rem', animation: 'spin 1s linear infinite' }} />
+          <p>Chargement automatique des factures d'électricité depuis la base de données...</p>
+        </MessageVide>
+      ) : bmjFacturesFiltrees.length === 0 ? (
         <MessageVide>
           <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-          <p>Aucune facture d'eau trouvée.</p>
+          <p>Aucune facture d'électricité trouvée pour la sélection.</p>
         </MessageVide>
       ) : (
-        <GrilleFactures>
-          {listeFactures.map((cli, index) => {
-            const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
-            const dateBailAffichee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
-            const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || '-');
+        bmjAnneesTriees.map((bmjAnnee) => {
+          const bmjMoisDuGroupe = Object.keys(bmjDonneesGroupees[bmjAnnee]).sort((a, b) => bmjObtenirIndexMois(a) - bmjObtenirIndexMois(b));
 
-            return (
-              <CarteFacture 
-                key={cli.id || index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.04 }}
-              >
-                <LigneInfo>
-                  <span>Bail : <strong>{cli.bail || cli.numero || 'N/A'}</strong> <span style={{fontSize: '0.65rem'}}>({dateBailAffichee})</span></span>
-                  <BadgeStatut>{cli.modePaiement || cli.statut || 'En attente'}</BadgeStatut>
-                </LigneInfo>
+          return (
+            <BlocAnnee key={bmjAnnee}>
+              <TitreAnnee>
+                <FiCalendar /> Année {bmjAnnee}
+              </TitreAnnee>
 
-                <LigneInfo>
-                  <span>Matricule :</span>
-                  <strong style={{ color: THEME.accentuation }}>{cli.matricule || cli.numero || 'N/A'}</strong>
-                </LigneInfo>
+              {bmjMoisDuGroupe.map((bmjMois) => {
+                const bmjFacturesDuMois = bmjDonneesGroupees[bmjAnnee][bmjMois];
+                const bmjCleAccordeon = `${bmjAnnee}-${bmjMois}`;
+                const bmjEstOuvert = !!bmjMoisOuverts[bmjCleAccordeon];
 
-                <LigneInfo>
-                  <span>Locataire :</span>
-                  <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nomComplet}>
-                    {nomComplet}
-                  </strong>
-                </LigneInfo>
+                return (
+                  <BlocMois key={bmjMois}>
+                    <EnTeteMois onClick={() => bmjToggleMois(bmjCleAccordeon)}>
+                      <GroupeInfosMois>
+                        <IconeFleche animate={{ rotate: bmjEstOuvert ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                          <FiChevronDown />
+                        </IconeFleche>
+                        <NomMois>{bmjMois}</NomMois>
+                        <BadgeCompteur>{bmjFacturesDuMois.length} facture{bmjFacturesDuMois.length > 1 ? 's' : ''}</BadgeCompteur>
+                      </GroupeInfosMois>
 
-                <LigneInfo>
-                  <span>Logement :</span>
-                  <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${cli.logement || '-'} / ${cli.adresse || '-'}`}>
-                    {cli.logement || '-'} / {cli.adresse || '-'} <span style={{color: THEME.texteSecondaire}}>({cli.pays || 'RDC'})</span>
-                  </strong>
-                </LigneInfo>
+                      <ActionsMois>
+                        <BoutonGenererMois 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (bmjFacturesDuMois.length > 0) {
+                              bmjHandleTelechargerUnitaire(bmjFacturesDuMois[0]);
+                            }
+                          }}
+                          title={`Générer la facture du mois de ${bmjMois} ${bmjAnnee}`}
+                        >
+                          <FiDownload /> Générer le mois
+                        </BoutonGenererMois>
+                      </ActionsMois>
+                    </EnTeteMois>
 
-                <LigneInfo>
-                  <span>Montant :</span>
-                  <strong style={{ color: THEME.accentuation, fontSize: '0.9rem' }}>
-                    {cli.montant !== undefined ? `${cli.montant} ${cli.devise || 'USD'}` : '0 USD'}
-                  </strong>
-                </LigneInfo>
+                    <AnimatePresence>
+                      {bmjEstOuvert && (
+                        <ContenuDepliable
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25 }}
+                        >
+                          <GrilleFactures>
+                            {bmjFacturesDuMois.map((bmjCli, bmjIndex) => {
+                              const bmjFactureId = bmjCli.id ? `id-${bmjCli.id}-${bmjIndex}` : `idx-${bmjAnnee}-${bmjMois}-${bmjIndex}`;
+                              const bmjEnCoursDeChargement = bmjIdEnCours === (bmjCli.id || bmjCli.numeroFacture);
+                              const bmjNomComplet = `${bmjCli.nom || ''} ${bmjCli.postNom || ''} ${bmjCli.prenom || bmjCli.client || bmjCli.locataire || ''}`.trim() || 'Client Inconnu';
+                              const bmjDateBailAffichee = formaterDateFr && (bmjCli.dateBail || bmjCli.dateFacture) ? formaterDateFr(bmjCli.dateBail || bmjCli.dateFacture) : (bmjCli.dateBail || bmjCli.dateFacture || 'N/A');
+                              const bmjDateComptableAffichee = formaterDateFr && bmjCli.dateComptable ? formaterDateFr(bmjCli.dateComptable) : (bmjCli.dateComptable || bmjCli.dateEnregistrement || '-');
 
-                <LigneInfo>
-                  <span>Période :</span>
-                  <span>{cli.moisFacture || 'Mois en cours'}</span>
-                </LigneInfo>
+                              return (
+                                <CarteFacture 
+                                  key={bmjFactureId}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.2, delay: bmjIndex * 0.04 }}
+                                >
+                                  <LigneInfo>
+                                    <span>Bail : <strong>{bmjCli.bail || bmjCli.numero || 'N/A'}</strong> <span style={{fontSize: '0.65rem'}}>({bmjDateBailAffichee})</span></span>
+                                    <BadgeStatut>{bmjCli.modePaiement || bmjCli.statut || 'En attente'}</BadgeStatut>
+                                  </LigneInfo>
 
-                <SectionDetaillee>
-                  <div>Type : <strong>{cli.typeFacture || cli.type || 'Eau'}</strong> {cli.designation ? `- ${cli.designation}` : ''}</div>
-                  <div>Contrat : <strong>{cli.debutContrat || '---'}</strong> au <strong>{cli.finContrat || '---'}</strong></div>
-                  <div>Comptable : <strong>{dateComptableAffichee}</strong> {cli.reference ? `| Réf: ${cli.reference}` : ''}</div>
-                  {cli.compteur ? (
-                    <div style={{ marginTop: '0.15rem', borderTop: '1px solid #222', paddingTop: '0.15rem' }}>
-                      CPT: <strong>{cli.compteur}</strong> {cli.imputation ? `| Imp: ${cli.imputation}` : ''} <br/>
-                      N°: <strong>{cli.dernierNumero || 0}</strong> | Mt: <strong>{cli.dernierMontant || 0}</strong> | Dt: <strong>{cli.derniereDate || '-'}</strong>
-                    </div>
-                  ) : (
-                    <div>Compteur : <span style={{ color: THEME.texteSecondaire }}>Aucun</span></div>
-                  )}
-                </SectionDetaillee>
+                                  <LigneInfo>
+                                    <span>Matricule :</span>
+                                    <strong style={{ color: THEME.accentuation }}>{bmjCli.matricule || bmjCli.numero || 'N/A'}</strong>
+                                  </LigneInfo>
 
-                <GroupeBoutons>
-                  <BoutonPDF onClick={() => handleTelechargerUnitaire(cli)} title="Télécharger PDF">
-                    <FiDownload /> PDF
-                  </BoutonPDF>
-                  {supprimerFacture && (
-                    <BoutonSupprimer onClick={() => supprimerFacture(cli.id)}>
-                      Suppr.
-                    </BoutonSupprimer>
-                  )}
-                </GroupeBoutons>
-              </CarteFacture>
-            );
-          })}
-        </GrilleFactures>
+                                  <LigneInfo>
+                                    <span>Locataire :</span>
+                                    <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={bmjNomComplet}>
+                                      {bmjNomComplet}
+                                    </strong>
+                                  </LigneInfo>
+
+                                  <LigneInfo>
+                                    <span>Logement :</span>
+                                    <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${bmjCli.logement || '-'} / ${bmjCli.adresse || '-'}`}>
+                                      {bmjCli.logement || '-'} / {bmjCli.adresse || '-'} <span style={{color: THEME.texteSecondaire}}>({bmjCli.pays || 'RDC'})</span>
+                                    </strong>
+                                  </LigneInfo>
+
+                                  <LigneInfo>
+                                    <span>Montant :</span>
+                                    <strong style={{ color: THEME.accentuation, fontSize: '0.9rem' }}>
+                                      {bmjCli.montant !== undefined ? `${bmjCli.montant} ${bmjCli.devise || 'USD'}` : '0 USD'}
+                                    </strong>
+                                  </LigneInfo>
+
+                                  <LigneInfo>
+                                    <span>Période :</span>
+                                    <span>{bmjCli.moisFacture || bmjMois}</span>
+                                  </LigneInfo>
+
+                                  <SectionDetaillee>
+                                    <div>Type : <strong>{bmjCli.typeFacture || bmjCli.type || 'Électricité'}</strong> {bmjCli.designation ? `- ${bmjCli.designation}` : ''}</div>
+                                    <div>Contrat : <strong>{bmjCli.debutContrat || '---'}</strong> au <strong>{bmjCli.finContrat || '---'}</strong></div>
+                                    <div>Comptable : <strong>{bmjDateComptableAffichee}</strong> {bmjCli.reference ? `| Réf: ${bmjCli.reference}` : ''}</div>
+                                    {bmjCli.compteur ? (
+                                      <div style={{ marginTop: '0.15rem', borderTop: '1px solid #222', paddingTop: '0.15rem' }}>
+                                        CPT: <strong>{bmjCli.compteur}</strong> {bmjCli.imputation ? `| Imp: ${bmjCli.imputation}` : ''} <br/>
+                                        N°: <strong>{bmjCli.dernierNumero || 0}</strong> | Mt: <strong>{bmjCli.dernierMontant || 0}</strong> | Dt: <strong>{bmjCli.derniereDate || '-'}</strong>
+                                      </div>
+                                    ) : (
+                                      <div>Compteur : <span style={{ color: THEME.texteSecondaire }}>Aucun</span></div>
+                                    )}
+                                  </SectionDetaillee>
+
+                                  <BoutonPDF 
+                                    onClick={() => bmjHandleTelechargerUnitaire(bmjCli)} 
+                                    disabled={bmjEnCoursDeChargement}
+                                    title="Télécharger PDF"
+                                  >
+                                    {bmjEnCoursDeChargement ? (
+                                      <>
+                                        <motion.div 
+                                          animate={{ rotate: 360 }} 
+                                          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                                          style={{ display: 'flex', alignItems: 'center' }}
+                                        >
+                                          <FiLoader />
+                                        </motion.div>
+                                        Génération...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <FiDownload /> PDF
+                                      </>
+                                    )}
+                                  </BoutonPDF>
+                                </CarteFacture>
+                              );
+                            })}
+                          </GrilleFactures>
+                        </ContenuDepliable>
+                      )}
+                    </AnimatePresence>
+                  </BlocMois>
+                );
+              })}
+            </BlocAnnee>
+          );
+        })
       )}
     </ConteneurSection>
   );
 }
 
-export default FactureEau;
-export { FactureEau };
+export default FactureElectricite;
+export { FactureElectricite };
