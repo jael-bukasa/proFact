@@ -1,32 +1,24 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { nombreEnLettres, obtenirLibelleDevise, banquesParDefaut, chargerBanques, preparerColonnesBanques } from '../../../../../fonctions/fonctions';
 
 const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
   const elementRef = useRef(null);
   const [donneesFacture, setDonneesFacture] = useState(null);
-
-  const banquesParDefaut = [
-    { nomBanque: 'BCDC', numeroCompte: 'N° 00011-00130-00000856147-03', devise: 'CDF' },
-    { nomBanque: 'BCDC', numeroCompte: 'N° 00011-00130-00000856151-88', devise: 'USD' },
-    { nomBanque: 'RAWBANK', numeroCompte: 'N° 00016-05130-01002107502-77', devise: 'CDF' },
-    { nomBanque: 'RAWBANK', numeroCompte: 'N° 00016-05130-01002107501-80', devise: 'USD' },
-    { nomBanque: 'TMB', numeroCompte: 'N° 00017-25000-00015000000-87', devise: 'CDF' },
-    { nomBanque: 'TMB', numeroCompte: 'N° 00017-25000-00187750001-35', devise: 'USD' }
-  ];
-
   const [banques, setBanques] = useState(banquesParDefaut);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/banques')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setBanques(data);
-        }
-      })
-      .catch(err => console.error("Erreur chargement banques :", err));
+    chargerBanques().then(data => setBanques(data));
   }, []);
+
+  const formaterCompteBanque = (b) => {
+    return (
+      <React.Fragment>
+        <strong><span style={{ display: 'inline-block', width: '58px' }}>{b.nomBanque}</span></strong> {b.numeroCompte} {b.devise}
+      </React.Fragment>
+    );
+  };
 
   useImperativeHandle(ref, () => ({
     genererPDF: async (cli) => {
@@ -107,10 +99,9 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
   const deviseVal = cli.devise || 'USD';
   const montantFormate = Number(montantVal).toLocaleString('fr-FR', { minimumFractionDigits: 2 });
 
-  const styleNomBanque = { display: 'inline-block', width: '58px' };
-  const moitié = Math.ceil(banques.length / 2);
-  const banquesColonne1 = banques.slice(0, moitié);
-  const banquesColonne2 = banques.slice(moitié);
+  const montantEnLettres = `${nombreEnLettres(montantVal)} ${obtenirLibelleDevise(deviseVal)}`;
+
+  const { colonne1: banquesColonne1, colonne2: banquesColonne2 } = preparerColonnesBanques(banques);
 
   const bordurePrincipale = '2px solid #111827';
   const bordureInterne = '1.5px solid #374151';
@@ -130,15 +121,12 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
         boxSizing: 'border-box'
       }}
     >
-      {/* Titre de l'en-tête */}
       <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px', letterSpacing: '1px', color: '#1f2937' }}>
-        FACTURE CONSOMMATION EAU
+        FACTURE EAU
       </div>
 
-      {/* Tableau principal */}
       <table style={{ width: '100%', borderCollapse: 'collapse', border: bordurePrincipale, borderRadius: '4px', overflow: 'hidden' }}>
         <tbody>
-          {/* En-tête SNCC et Informations de facture */}
           <tr>
             <td colSpan="2" style={{ padding: '8px 10px', borderBottom: bordureInterne, borderRight: bordureInterne, verticalAlign: 'top', width: '55%', backgroundColor: '#f9fafb', textAlign: 'left', lineHeight: '1.4' }}>
               <strong style={{ fontSize: '11px', color: '#111827' }}>S.N.C.C S.A AVEC CONSEIL D'ADMINISTRATION</strong><br/>
@@ -155,7 +143,6 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* Référence, Client / Société, DOIT */}
           <tr>
             <td colSpan="3" style={{ padding: '8px 10px', borderBottom: bordureInterne, backgroundColor: '#fdfdfd' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -171,14 +158,12 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* En-têtes des colonnes */}
           <tr style={{ background: '#e5e7eb', textAlign: 'center', fontWeight: 'bold', color: '#1f2937' }}>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '6px', width: '15%' }}>Quantité</td>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '6px', width: '60%' }}>Désignation des prestations</td>
             <td style={{ borderBottom: bordureInterne, padding: '6px', width: '25%' }}>Montant</td>
           </tr>
 
-          {/* Ligne de prestation */}
           <tr>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '10px', textAlign: 'center', verticalAlign: 'top', height: '45px' }}>1</td>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '10px', textAlign: 'center', verticalAlign: 'top' }}>
@@ -190,7 +175,6 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* Montant total */}
           <tr>
             <td colSpan="2" style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '8px 10px', textAlign: 'right', fontWeight: 'bold' }}>
               Montant total de la facture :
@@ -200,15 +184,13 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* Arrêtée à la somme */}
           <tr>
             <td colSpan="3" style={{ padding: '8px 10px', borderBottom: bordureInterne, backgroundColor: '#fdfdfd', textAlign: 'center' }}>
               <span style={{ fontSize: '9px', color: '#6b7280' }}>Arrêtée la présente à la somme de :</span><br/>
-              <strong style={{ fontSize: '10.5px' }}>{montantFormate} {deviseVal}</strong>
+              <strong style={{ fontSize: '10.5px', textTransform: 'capitalize' }}>{montantEnLettres}</strong>
             </td>
           </tr>
 
-          {/* Conditions & Banques */}
           <tr>
             <td colSpan="3" style={{ padding: '12px 10px', borderBottom: bordureInterne, fontSize: '8.5px', color: '#374151', lineHeight: '1.4' }}>
               <div style={{ background: '#f3f4f6', padding: '10px 12px', borderRadius: '4px', marginBottom: '10px', border: '1px solid #d1d5db' }}>
@@ -226,14 +208,14 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
                     <td style={{ width: '50%', verticalAlign: 'top', paddingRight: '12px' }}>
                       {banquesColonne1.map((b, index) => (
                         <div key={index} style={{ marginBottom: '7px' }}>
-                          <strong><span style={styleNomBanque}>{b.nomBanque}</span></strong> {b.numeroCompte} {b.devise}
+                          {formaterCompteBanque(b)}
                         </div>
                       ))}
                     </td>
                     <td style={{ width: '50%', verticalAlign: 'top' }}>
                       {banquesColonne2.map((b, index) => (
                         <div key={index} style={{ marginBottom: '7px' }}>
-                          <strong><span style={styleNomBanque}>{b.nomBanque}</span></strong> {b.numeroCompte} {b.devise}
+                          {formaterCompteBanque(b)}
                         </div>
                       ))}
                     </td>
@@ -243,7 +225,6 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* Imputation */}
           <tr>
             <td colSpan="3" style={{ padding: '6px 10px', fontSize: '9px', color: '#4b5563' }}>
               <strong>Imputation :</strong> {cli.imputation || '4500 / L4227100000'}
@@ -252,7 +233,6 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
         </tbody>
       </table>
 
-      {/* Bloc Signatures */}
       <div 
         style={{ 
           display: 'flex', 

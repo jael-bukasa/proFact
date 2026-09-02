@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter, FiUser, FiHash, FiCreditCard, FiFolder, FiFile } from 'react-icons/fi';
-import PDFFacturesLocataire from './listePDF/PDFFacturesLocataire';
+import PDFFacturesLocataire from './listePDFFactures/PDFFacturesLocataire';
 
 const THEME = {
   fondCarte: '#181818',

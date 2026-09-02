@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter, FiHash, FiCreditCard, FiFolder, FiFile } from 'react-icons/fi';
-import PDFFacturesElectricite from './listePDF/PDFFacturesElectricite';
+import PDFFacturesElectricite from './listePDFFactures/PDFFacturesElectricite';
 
 const THEME = {
   fondCarte: '#181818',

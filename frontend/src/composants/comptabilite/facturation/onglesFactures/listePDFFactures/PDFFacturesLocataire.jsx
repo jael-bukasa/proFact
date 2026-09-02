@@ -1,36 +1,21 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { 
+  nombreEnLettres, 
+  obtenirLibelleDevise, 
+  banquesParDefaut, 
+  chargerBanques, 
+  preparerColonnesBanques 
+} from '../../../../../fonctions/fonctions';
 
 const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
   const elementRef = useRef(null);
   const [donneesFacture, setDonneesFacture] = useState(null);
-
-  const banquesParDefaut = [
-    { nomBanque: 'BCDC', numeroCompte: 'N° 00011-00130-00000856147-03', devise: 'CDF' },
-    { nomBanque: 'BCDC', numeroCompte: 'N° 00011-00130-00000856151-88', devise: 'USD' },
-    { nomBanque: 'RAWBANK', numeroCompte: 'N° 00016-05130-01002107502-77', devise: 'CDF' },
-    { nomBanque: 'RAWBANK', numeroCompte: 'N° 00016-05130-01002107501-80', devise: 'USD' },
-    { nomBanque: 'TMB', numeroCompte: 'N° 00017-25000-00015000000-87', devise: 'CDF' },
-    { nomBanque: 'TMB', numeroCompte: 'N° 00017-25000-00187750001-35', devise: 'USD' }
-  ];
-
   const [banques, setBanques] = useState(banquesParDefaut);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/banques')
-      .then(res => {
-        if (!res.ok) throw new Error("Erreur réseau");
-        return res.json();
-      })
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setBanques(data);
-        }
-      })
-      .catch(() => {
-        setBanques(banquesParDefaut);
-      });
+    chargerBanques().then(data => setBanques(data));
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -42,12 +27,16 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
       if (!element) return null;
 
       try {
+        element.style.display = 'block';
+
         const canvas = await html2canvas(element, {
           scale: 2,
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff'
         });
+
+        element.style.display = 'none';
 
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -66,6 +55,7 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
         return true;
       } catch (error) {
         console.error("Erreur génération PDF locataire :", error);
+        element.style.display = 'none';
         return null;
       }
     }
@@ -85,10 +75,10 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
   const deviseVal = cli.devise || 'USD';
   const montantFormate = Number(montantVal).toLocaleString('fr-FR', { minimumFractionDigits: 2 });
 
+  const montantEnLettres = `${nombreEnLettres(montantVal)} ${obtenirLibelleDevise(deviseVal)}`;
+
   const styleNomBanque = { display: 'inline-block', width: '58px' };
-  const moitié = Math.ceil(banques.length / 2);
-  const banquesColonne1 = banques.slice(0, moitié);
-  const banquesColonne2 = banques.slice(moitié);
+  const { colonne1: banquesColonne1, colonne2: banquesColonne2 } = preparerColonnesBanques(banques);
 
   const bordurePrincipale = '2px solid #111827';
   const bordureInterne = '1.5px solid #374151';
@@ -97,11 +87,7 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
     <div 
       ref={elementRef} 
       style={{ 
-        position: 'absolute',
-        top: '-10000px',
-        left: '-10000px',
-        opacity: 0,
-        pointerEvents: 'none',
+        display: 'none',
         width: '680px', 
         margin: '0 auto',
         background: '#ffffff', 
@@ -186,7 +172,7 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
           <tr>
             <td colSpan="3" style={{ padding: '8px 10px', borderBottom: bordureInterne, backgroundColor: '#fdfdfd', textAlign: 'center' }}>
               <span style={{ fontSize: '9px', color: '#6b7280' }}>Arrêtée la présente à la somme de :</span><br/>
-              <strong style={{ fontSize: '10.5px' }}>{montantFormate} {deviseVal}</strong>
+              <strong style={{ fontSize: '10.5px', textTransform: 'capitalize' }}>{montantEnLettres}</strong>
             </td>
           </tr>
 

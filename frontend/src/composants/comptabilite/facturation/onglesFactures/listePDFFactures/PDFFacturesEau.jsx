@@ -1,46 +1,30 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { 
+  nombreEnLettres, 
+  obtenirLibelleDevise, 
+  banquesParDefaut, 
+  chargerBanques, 
+  preparerColonnesBanques 
+} from '../../../../../fonctions/fonctions';
 
-const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
+const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
   const elementRef = useRef(null);
   const [donneesFacture, setDonneesFacture] = useState(null);
-
-  const banquesParDefaut = [
-    { nomBanque: 'BCDC', numeroCompte: 'N° 00011-00130-00000856147-03', devise: 'CDF' },
-    { nomBanque: 'BCDC', numeroCompte: 'N° 00011-00130-00000856151-88', devise: 'USD' },
-    { nomBanque: 'RAWBANK', numeroCompte: 'N° 00016-05130-01002107502-77', devise: 'CDF' },
-    { nomBanque: 'RAWBANK', numeroCompte: 'N° 00016-05130-01002107501-80', devise: 'USD' },
-    { nomBanque: 'TMB', numeroCompte: 'N° 00017-25000-00015000000-87', devise: 'CDF' },
-    { nomBanque: 'TMB', numeroCompte: 'N° 00017-25000-00187750001-35', devise: 'USD' }
-  ];
-
   const [banques, setBanques] = useState(banquesParDefaut);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/banques')
-      .then(res => {
-        if (!res.ok) throw new Error("Erreur réseau");
-        return res.json();
-      })
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setBanques(data);
-        }
-      })
-      .catch(() => {
-        // Utilisation silencieuse des banques par défaut si le serveur est injoignable
-        setBanques(banquesParDefaut);
-      });
+    chargerBanques().then(data => setBanques(data));
   }, []);
 
   useImperativeHandle(ref, () => ({
-    genererPDF: async (cli, options = { autoDownload: true }) => {
+    genererPDF: async (cli) => {
       setDonneesFacture(cli);
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       const element = elementRef.current;
-      if (!element) return null;
+      if (!element) return;
 
       try {
         element.style.display = 'block';
@@ -60,42 +44,63 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
-        
-        const nomFichier = `Facture_Electricite_${cli.matricule || cli.numero || cli.id || 'Client'}.pdf`;
-
-        if (options.autoDownload === false) {
-          return pdf.output('blob');
-        }
-
-        pdf.save(nomFichier);
-        return true;
+        pdf.save(`Facture_Eau_${cli.matricule || cli.numero || cli.id || 'Client'}.pdf`);
       } catch (error) {
-        console.error("Erreur génération PDF électricité :", error);
+        console.error("Erreur génération PDF eau :", error);
         element.style.display = 'none';
-        return null;
       }
+    },
+
+    telechargerTout: async (listeFactures) => {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+
+      for (let i = 0; i < listeFactures.length; i++) {
+        setDonneesFacture(listeFactures[i]);
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        const element = elementRef.current;
+        if (!element) continue;
+
+        element.style.display = 'block';
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+        element.style.display = 'none';
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+      }
+
+      pdf.save('Toutes_les_Factures_Eau.pdf');
     }
   }));
 
   const cli = donneesFacture || {};
-  const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/ELEC/2026`;
-  const codeClientVal = cli.matricule || cli.numero || `ELE-0000000009`;
+  const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/EAU/2026`;
+  const codeClientVal = cli.matricule || cli.numero || `EAU-0000000009`;
   const dateAffichage = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const nomClient = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
   const adresseClient = `${cli.adresse || 'B.P 98'} - ${cli.pays || 'Congo'}`;
   const moisAffichage = cli.moisFacture ? `POUR LE MOIS DE ${cli.moisFacture.toUpperCase()}` : 'POUR LE MOIS DE JUILLET 2026';
-  const objetAffichage = cli.designation || `CONSOMMATION D'ÉLECTRICITÉ ET ENTRETIEN`;
+  const objetAffichage = cli.designation || `CONSOMMATION EAU ET ENTRETIEN COMPTEUR`;
   const bailAffichage = cli.bail || cli.numeroBail || 'N/A';
-  const compteurInfo = cli.compteur ? `COMPTEUR N° : ${cli.compteur} (Index: ${cli.dernierNumero || cli.indexActuel || 0})` : 'COMPTEUR ÉLECTRICITÉ STANDARD';
+  const compteurInfo = cli.compteur ? `COMPTEUR N° : ${cli.compteur} (Index: ${cli.dernierNumero || cli.indexActuel || 0})` : 'COMPTEUR EAU STANDARD';
 
   const montantVal = cli.montant !== undefined ? cli.montant : 0;
   const deviseVal = cli.devise || 'USD';
   const montantFormate = Number(montantVal).toLocaleString('fr-FR', { minimumFractionDigits: 2 });
 
+  const montantEnLettres = `${nombreEnLettres(montantVal)} ${obtenirLibelleDevise(deviseVal)}`;
+
   const styleNomBanque = { display: 'inline-block', width: '58px' };
-  const moitié = Math.ceil(banques.length / 2);
-  const banquesColonne1 = banques.slice(0, moitié);
-  const banquesColonne2 = banques.slice(moitié);
+  const { colonne1: banquesColonne1, colonne2: banquesColonne2 } = preparerColonnesBanques(banques);
 
   const bordurePrincipale = '2px solid #111827';
   const bordureInterne = '1.5px solid #374151';
@@ -115,18 +120,15 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
         boxSizing: 'border-box'
       }}
     >
-      {/* Titre de l'en-tête */}
       <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px', letterSpacing: '1px', color: '#1f2937' }}>
-        FACTURE D'ÉLECTRICITÉ
+        FACTURE CONSOMMATION EAU
       </div>
 
-      {/* Tableau principal */}
       <table style={{ width: '100%', borderCollapse: 'collapse', border: bordurePrincipale, borderRadius: '4px', overflow: 'hidden' }}>
         <tbody>
-          {/* En-tête SNCC et Informations de facture */}
           <tr>
             <td colSpan="2" style={{ padding: '8px 10px', borderBottom: bordureInterne, borderRight: bordureInterne, verticalAlign: 'top', width: '55%', backgroundColor: '#f9fafb', textAlign: 'left', lineHeight: '1.4' }}>
-              <strong style={{ fontSize: '11px', color: '#111827' }}>S.N.C.C S.A - SERVICE ÉLECTRICITÉ</strong><br/>
+              <strong style={{ fontSize: '11px', color: '#111827' }}>S.N.C.C S.A AVEC CONSEIL D'ADMINISTRATION</strong><br/>
               SIÈGE SOCIAL : 115, PLACE DE LA GARE, AV. LUMUMBA, C/KAMPEMBA, LUBUMBASHI, B.P.297<br/>
               RCCM : CD/LSHI/RCCM/14-B-1702 | CAPITAL SOCIAL : 650.000.000 CDF<br/>
               N° ID.NAT : K09210W | N° IMPÔT : A 0700227 F<br/>
@@ -140,7 +142,6 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* Référence, Client / Société, DOIT */}
           <tr>
             <td colSpan="3" style={{ padding: '8px 10px', borderBottom: bordureInterne, backgroundColor: '#fdfdfd' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -148,7 +149,7 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
                 <div><strong>DOIT :</strong> <span style={{ color: '#1f2937', fontWeight: '600' }}>{moisAffichage}</span></div>
               </div>
               <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                <strong>Client / Abonné :</strong> <span style={{ color: '#111827', fontWeight: '600' }}>{nomClient}</span><br/>
+                <strong>Client / Société :</strong> <span style={{ color: '#111827', fontWeight: '600' }}>{nomClient}</span><br/>
                 <span style={{ color: '#4b5563' }}>{adresseClient}</span>
               </div>
               <div style={{ textAlign: 'center', marginTop: '4px' }}><strong>Objet :</strong> {objetAffichage}</div>
@@ -156,14 +157,12 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* En-têtes des colonnes */}
           <tr style={{ background: '#e5e7eb', textAlign: 'center', fontWeight: 'bold', color: '#1f2937' }}>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '6px', width: '15%' }}>Quantité</td>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '6px', width: '60%' }}>Désignation des prestations</td>
             <td style={{ borderBottom: bordureInterne, padding: '6px', width: '25%' }}>Montant</td>
           </tr>
 
-          {/* Ligne de prestation */}
           <tr>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '10px', textAlign: 'center', verticalAlign: 'top', height: '45px' }}>1</td>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '10px', textAlign: 'center', verticalAlign: 'top' }}>
@@ -175,7 +174,6 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* Montant total */}
           <tr>
             <td colSpan="2" style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '8px 10px', textAlign: 'right', fontWeight: 'bold' }}>
               Montant total de la facture :
@@ -185,20 +183,18 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* Arrêtée à la somme */}
           <tr>
             <td colSpan="3" style={{ padding: '8px 10px', borderBottom: bordureInterne, backgroundColor: '#fdfdfd', textAlign: 'center' }}>
               <span style={{ fontSize: '9px', color: '#6b7280' }}>Arrêtée la présente à la somme de :</span><br/>
-              <strong style={{ fontSize: '10.5px' }}>{montantFormate} {deviseVal}</strong>
+              <strong style={{ fontSize: '10.5px', textTransform: 'capitalize' }}>{montantEnLettres}</strong>
             </td>
           </tr>
 
-          {/* Conditions & Banques */}
           <tr>
             <td colSpan="3" style={{ padding: '12px 10px', borderBottom: bordureInterne, fontSize: '8.5px', color: '#374151', lineHeight: '1.4' }}>
               <div style={{ background: '#f3f4f6', padding: '10px 12px', borderRadius: '4px', marginBottom: '10px', border: '1px solid #d1d5db' }}>
                 <div style={{ marginBottom: '6px' }}>
-                  <strong>Conditions de paiement :</strong> Payable comptant dès réception. Tout retard entraînera la coupure immédiate de la fourniture d'électricité et l'application des pénalités prévues sur le cours bancaire du jour en Dollars US.
+                  <strong>Conditions de paiement :</strong> Nos factures sont payables suivant les clauses du contrat. Tout retard entraînera l'application des pénalités prévues et le paiement d'intérêts sur le cours bancaire du jour, soit en Dollars US.
                 </div>
                 <div>
                   <strong>Modalité de paiement :</strong> Le montant est à verser exclusivement dans l'un de nos comptes bancaires officiels ci-dessous ou directement au bureau des recettes agréé muni de la pièce contre bordereau.
@@ -228,7 +224,6 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
             </td>
           </tr>
 
-          {/* Imputation */}
           <tr>
             <td colSpan="3" style={{ padding: '6px 10px', fontSize: '9px', color: '#4b5563' }}>
               <strong>Imputation :</strong> {cli.imputation || '4500 / L4227100000'}
@@ -237,7 +232,6 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
         </tbody>
       </table>
 
-      {/* Bloc Signatures */}
       <div 
         style={{ 
           display: 'flex', 
@@ -248,7 +242,7 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
       >
         <div style={{ textAlign: 'center', width: '45%' }}>
           <div style={{ fontSize: '9.5px', fontWeight: 'bold', marginBottom: '45px', color: '#111827' }}>
-            Le Chef de Service Électricité
+            Le Chef de service Facturation
           </div>
           <div style={{ borderBottom: '1px dotted #4b5563', width: '75%', margin: '0 auto' }}></div>
         </div>
@@ -264,4 +258,4 @@ const PDFFacturesElectricite = forwardRef(({ formaterDateFr }, ref) => {
   );
 });
 
-export default PDFFacturesElectricite;
+export default PDFFacturesEau;

@@ -3,10 +3,10 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiDownload, FiLayers, FiLoader, FiFolder, FiChevronDown, FiFile, FiCreditCard, FiHash } from 'react-icons/fi';
 
-import PDFFacturesLocataire from './listePDF/PDFFacturesLocataire';
-import PDFFacturesEau from './listePDF/PDFFacturesEau';
-import PDFFacturesElectricite from './listePDF/PDFFacturesElectricite';
-import PDFFacturesDivers from './listePDF/PDFFacturesDivers';
+import PDFFacturesLocataire from './listePDFFactures/PDFFacturesLocataire';
+import PDFFacturesEau from './listePDFFactures/PDFFacturesEau';
+import PDFFacturesElectricite from './listePDFFactures/PDFFacturesElectricite';
+import PDFFacturesDivers from './listePDFFactures/PDFFacturesDivers';
 
 const bmjTheme = {
   fondCarte: '#181818',

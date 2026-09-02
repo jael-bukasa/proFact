@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter, FiSave, FiFile, FiCreditCard, FiHash } from 'react-icons/fi';
-import PDFFacturesDivers from './listePDF/PDFFacturesDivers';
+import PDFFacturesDivers from './listePDFFactures/PDFFacturesDivers';
 
 const bmjTheme = {
   fondCarte: '#181818',
