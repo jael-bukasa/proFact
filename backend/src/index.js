@@ -227,6 +227,19 @@ app.use('/api/clients', clientsRoutes(db));
 app.use('/api/factures', facturesRoutes(db));
 
 // ==========================================
+// ROUTE SPÉCIFIQUE - FACTURES ÉLECTRICITÉ (Résout l'erreur 404 du frontend)
+// ==========================================
+app.get('/api/factures-electricite', (req, res) => {
+  factureService.obtenirParType(db, 'Électricité', (err, results) => {
+    if (err) {
+      console.error("Erreur récupération factures électricité :", err);
+      return res.status(500).json({ erreur: "Erreur serveur lors de la récupération des factures d'électricité" });
+    }
+    res.json(results);
+  });
+});
+
+// ==========================================
 // ROUTES API - BANQUES
 // ==========================================
 app.get('/api/banques', (req, res) => {

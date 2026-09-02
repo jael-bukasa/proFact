@@ -130,13 +130,12 @@ const BoutonReinitialiser = styled.button`
   &:disabled { opacity: 0.7; cursor: not-allowed; }
 `;
 
-export default function CreerFacture() {
+export default function CreerFacture({ onFactureCreee }) {
   const [modeSelection, setModeSelection] = useState('un');
   const [clientsEnregistres, setClientsEnregistres] = useState([]);
   const [saisieRechercheClient, setSaisieRechercheClient] = useState('');
   const [afficherSuggestions, setAfficherSuggestions] = useState(false);
   const [enCoursDeRecherche, setEnCoursDeRecherche] = useState(false);
-  
   const [erreurValidationClient, setErreurValidationClient] = useState(false);
   
   const wrapperRef = useRef(null);
@@ -247,11 +246,7 @@ export default function CreerFacture() {
     }
 
     setFormData((prev) => ({ 
-      ...prev, 
-      clientCode: '', 
-      nomLocataire: '', 
-      clientsCibles: tousLesIds,
-      typePeriode: 'mois' 
+      ...prev, clientCode: '', nomLocataire: '', clientsCibles: tousLesIds, typePeriode: 'mois' 
     }));
   };
 
@@ -270,7 +265,6 @@ export default function CreerFacture() {
 
   const handleSelectionClientUnique = (cli) => {
     const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim();
-    
     let periodeFrequence = 'mois';
     const brutePeriode = (cli.typePeriode || cli.periode || '').toLowerCase();
     
@@ -278,8 +272,6 @@ export default function CreerFacture() {
       periodeFrequence = 'trimestre';
     } else if (brutePeriode.includes('semestre')) {
       periodeFrequence = 'semestre';
-    } else {
-      periodeFrequence = 'mois';
     }
 
     setSaisieRechercheClient(nomComplet);
@@ -354,7 +346,6 @@ export default function CreerFacture() {
         ? 'http://localhost:5000/api/factures' 
         : 'http://localhost:5000/api/factures/masse';
       
-      // Transmission explicite du mois et de l'année au backend
       const payload = { 
         ...formData, 
         moisFacture: formData.choixPeriodeSpecifique,
@@ -374,6 +365,10 @@ export default function CreerFacture() {
       }
 
       setMessageSucces(dataResult.message || "Facture(s) enregistrée(s) avec succès !");
+      
+      if (typeof onFactureCreee === 'function') {
+        onFactureCreee();
+      }
       
       setSaisieRechercheClient('');
       setErreurValidationClient(false);
@@ -401,37 +396,18 @@ export default function CreerFacture() {
 
       {messageSucces && (
         <div style={{
-          backgroundColor: 'rgba(174, 234, 0, 0.1)',
-          border: '1px solid #AEEA00',
-          color: '#AEEA00',
-          padding: '0.75rem',
-          borderRadius: '8px',
-          marginBottom: '1.2rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontSize: '0.85rem',
-          fontWeight: 600
+          backgroundColor: 'rgba(174, 234, 0, 0.1)', border: '1px solid #AEEA00',
+          color: '#AEEA00', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.2rem',
+          display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600
         }}>
           <FiCheckCircle size={18} /> {messageSucces}
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
-        <GrilleFormulaire 
-          $chargementSoumission={loading} 
-          $reinitialisationEnCours={enTrainDeReinitialiser}
-        >
-          <ModeSelection 
-            modeSelection={modeSelection} 
-            onModeChange={handleModeChange} 
-          />
-
-          <TypeClient 
-            typeFacture={formData.typeFacture} 
-            onChange={handleChange} 
-          />
-
+        <GrilleFormulaire $chargementSoumission={loading} $reinitialisationEnCours={enTrainDeReinitialiser}>
+          <ModeSelection modeSelection={modeSelection} onModeChange={handleModeChange} />
+          <TypeClient typeFacture={formData.typeFacture} onChange={handleChange} />
           <RechercherClient 
             modeSelection={modeSelection}
             saisieRechercheClient={saisieRechercheClient}
@@ -446,7 +422,6 @@ export default function CreerFacture() {
             onCheckboxChange={handleCheckboxChange}
             erreurValidation={erreurValidationClient}
           />
-
           <PeriodeFacturation 
             typePeriode={formData.typePeriode}
             choixPeriodeSpecifique={formData.choixPeriodeSpecifique}

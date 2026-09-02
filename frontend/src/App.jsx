@@ -121,7 +121,7 @@ export default function App() {
     }
   });
 
-  // NOUVEAU : État centralisé des factures récupérées depuis le backend pour éviter les confusions avec les clients
+  // État centralisé des factures récupérées depuis le backend
   const [facturesEnregistrees, setFacturesEnregistrees] = useState([]);
 
   const [facturiers, setFacturiers] = useState(() => {
@@ -135,7 +135,7 @@ export default function App() {
     }
   });
 
-// Charger les factures depuis l'API globale au démarrage
+  // Charger les factures depuis l'API globale au démarrage
   useEffect(() => {
     const chargerFacturesGlobal = async () => {
       try {
@@ -295,6 +295,8 @@ export default function App() {
             clientSelectionne={clientSelectionne} 
             clientsEnregistres={clientsEnregistres}
             setClientsEnregistres={setClientsEnregistres}
+            listeFacturesAPI={facturesEnregistrees}
+            setListeFacturesAPI={setFacturesEnregistrees}
             formaterDateFr={formaterDateFr}
             onRetour={() => setOngletActif(estAdmin ? 'Tableau de bord' : 'Clients')} 
           />
@@ -302,7 +304,6 @@ export default function App() {
       case 'Paiements':
         return (
           <Paiements 
-            // CORRECTION MAJEURE ICI : On passe les factures et non les clients !
             listeFactures={facturesEnregistrees} 
             onMettreAJourPaiement={setFacturesEnregistrees} 
           />

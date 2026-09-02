@@ -32,7 +32,6 @@ const BarreOnglets = styled.div`
   border-bottom: 2px solid ${THEME.bordure};
   margin-bottom: 0.5rem;
   flex-wrap: wrap;
-  
   position: sticky;
   top: 0;
   width: 100%;
@@ -81,7 +80,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
     chargerFacturesAPI();
   }, []);
 
-  // Interrogation directe de la base de données via l'API
   const chargerFacturesAPI = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/factures');
@@ -189,7 +187,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
 
   const RenduFactureActif = useMemo(() => {
     switch (ongletActif) {
-      case 'creer': return CreerFacture;
       case 'locataire': return FactureLocataire;
       case 'eau': return FactureEau;
       case 'electricite': return FactureElectricite;
@@ -216,9 +213,7 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
 
       const response = await fetch('http://localhost:5000/api/factures', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
@@ -228,8 +223,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
 
       alert(`Facture générée avec succès pour le mois : ${moisSelectionne} !`);
       setClientPourFacture(null);
-      
-      // Force l'interrogation immédiate de la base de données pour actualiser les données fraîches
       await chargerFacturesAPI(); 
     } catch (error) {
       console.error("Erreur :", error);
@@ -245,7 +238,6 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         method: 'DELETE',
       });
       if (response.ok) {
-        // Recharge directement les données depuis la base après suppression
         await chargerFacturesAPI();
       }
     } catch (error) {
@@ -281,15 +273,21 @@ export default function Facturation({ formaterDateFr, clientsEnregistres = [] })
         </div>
       )}
 
-      {/* La clé dynamique `${ongletActif}-${listeFacturesAPI.length}` force le rechargement immédiat de l'affichage */}
-      <RenduFactureActif
-        key={`${ongletActif}-${listeFacturesAPI.length}`}
-        listeFactures={facturesFiltreesGlobal}
-        formaterDateFr={formaterDateFr}
-        onGenererFacture={handleOuvrirModalFacture}
-        supprimerFacture={supprimerFacture}
-        clientsEnregistres={clientsEnregistres}
-      />
+      {ongletActif === 'creer' ? (
+        <CreerFacture 
+          onFactureCreee={chargerFacturesAPI} 
+          clientsEnregistres={clientsEnregistres} 
+        />
+      ) : (
+        <RenduFactureActif
+          key={`${ongletActif}-${listeFacturesAPI.length}`}
+          listeFactures={facturesFiltreesGlobal}
+          formaterDateFr={formaterDateFr}
+          onGenererFacture={handleOuvrirModalFacture}
+          supprimerFacture={supprimerFacture}
+          clientsEnregistres={clientsEnregistres}
+        />
+      )}
 
       <ModalChoixMois 
         isOpen={Boolean(clientPourFacture)}
@@ -320,17 +318,10 @@ function ModalChoixMois({ isOpen, onClose, client, onValider, loading }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           style={{
-            backgroundColor: '#1E1E1E',
-            border: '1px solid #2A2A2A',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            width: '100%',
-            maxWidth: '400px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.2rem',
-            color: '#FFFFFF',
-            boxShadow: '0 15px 30px rgba(0,0,0,0.5)'
+            backgroundColor: '#1E1E1E', border: '1px solid #2A2A2A',
+            borderRadius: '12px', padding: '1.5rem', width: '100%',
+            maxWidth: '400px', display: 'flex', flexDirection: 'column',
+            gap: '1.2rem', color: '#FFFFFF', boxShadow: '0 15px 30px rgba(0,0,0,0.5)'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -348,22 +339,15 @@ function ModalChoixMois({ isOpen, onClose, client, onValider, loading }) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#CCC' }}>
-              Mois cible :
-            </label>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#CCC' }}>Mois cible :</label>
             <input 
               type="month" 
               value={moisSelectionne} 
               onChange={(e) => setMoisSelectionne(e.target.value)}
               style={{
-                backgroundColor: '#121212',
-                border: '1px solid #3A3A3A',
-                borderRadius: '8px',
-                padding: '0.7rem',
-                color: '#FFF',
-                fontSize: '0.9rem',
-                outline: 'none',
-                width: '100%'
+                backgroundColor: '#121212', border: '1px solid #3A3A3A',
+                borderRadius: '8px', padding: '0.7rem', color: '#FFF',
+                fontSize: '0.9rem', outline: 'none', width: '100%'
               }}
             />
           </div>
@@ -373,36 +357,20 @@ function ModalChoixMois({ isOpen, onClose, client, onValider, loading }) {
               type="button" 
               onClick={onClose}
               style={{
-                backgroundColor: '#121212',
-                color: '#FFF',
-                border: '1px solid #3A3A3A',
-                padding: '0.55rem 1.1rem',
-                borderRadius: '8px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '0.82rem'
+                backgroundColor: '#121212', color: '#FFF', border: '1px solid #3A3A3A',
+                padding: '0.55rem 1.1rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '0.82rem'
               }}
             >
               Annuler
             </button>
-
             <button 
               type="button" 
               onClick={() => onValider(moisSelectionne)}
               disabled={loading}
               style={{
-                backgroundColor: '#AEEA00',
-                color: '#000',
-                border: '1px solid #3A3A3A',
-                padding: '0.55rem 1.2rem',
-                borderRadius: '8px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                opacity: loading ? 0.7 : 1
+                backgroundColor: '#AEEA00', color: '#000', border: '1px solid #3A3A3A',
+                padding: '0.55rem 1.2rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer',
+                fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: loading ? 0.7 : 1
               }}
             >
               <FiCheck /> {loading ? "Génération..." : "Générer"}

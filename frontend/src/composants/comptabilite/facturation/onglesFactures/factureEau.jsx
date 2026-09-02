@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter } from 'react-icons/fi';
-import PDFFacturesElectricite from './listePDF/PDFFacturesElectricite';
+import PDFFacturesEau from './listePDF/PDFFacturesEau';
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -289,42 +289,45 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
-function FactureElectricite({
-  listeFactures = [],
-  formaterDateFr
-}) {
-  const pdfRef = useRef(null);
+function FactureEau({ formaterDateFr }) {
+  const bmjPdfRef = useRef(null);
   const [bmjIdEnCours, setBmjIdEnCours] = useState(null);
   const [bmjMoisOuverts, setBmjMoisOuverts] = useState({});
   const [bmjAnneeSelectionnee, setBmjAnneeSelectionnee] = useState('toutes');
   
-  const [bmjFactures, setBmjFactures] = useState(listeFactures);
-  const [bmjChargementAPI, setBmjChargementAPI] = useState(false);
+  const [bmjFactures, setBmjFactures] = useState([]);
+  const [bmjChargementAPI, setBmjChargementAPI] = useState(true);
 
   useEffect(() => {
     const bmjChargerFacturesAutomatiquement = async () => {
       try {
         setBmjChargementAPI(true);
-        const bmjReponse = await fetch('http://localhost:5000/api/factures-electricite');
+        let bmjReponse = await fetch('http://localhost:5000/api/factures-eau');
+        
+        if (!bmjReponse.ok) {
+          bmjReponse = await fetch('http://localhost:5000/api/factures');
+        }
+
         if (bmjReponse.ok) {
           const bmjDonnees = await bmjReponse.json();
-          if (Array.isArray(bmjDonnees) && bmjDonnees.length > 0) {
-            setBmjFactures(bmjDonnees);
-          }
+          const bmjListe = Array.isArray(bmjDonnees) ? bmjDonnees : (bmjDonnees.data || bmjDonnees.factures || []);
+          
+          const bmjFacturesEauFiltrees = bmjListe.filter(bmjItem => {
+            const bmjType = (bmjItem.typeFacture || bmjItem.type || '').toLowerCase();
+            return bmjType.includes('eau') || bmjType.includes('water');
+          });
+
+          setBmjFactures(bmjFacturesEauFiltrees.length > 0 ? bmjFacturesEauFiltrees : bmjListe);
         }
       } catch (bmjErreur) {
-        console.error("Erreur de récupération automatique des factures d'électricité depuis l'API :", bmjErreur);
+        console.error("Erreur de récupération automatique des factures d'eau depuis l'API :", bmjErreur);
       } finally {
         setBmjChargementAPI(false);
       }
     };
 
-    if (!listeFactures || listeFactures.length === 0) {
-      bmjChargerFacturesAutomatiquement();
-    } else {
-      setBmjFactures(listeFactures);
-    }
-  }, [listeFactures]);
+    bmjChargerFacturesAutomatiquement();
+  }, []);
 
   const bmjToggleMois = (bmjCleMois) => {
     setBmjMoisOuverts(bmjPrev => ({
@@ -335,10 +338,10 @@ function FactureElectricite({
 
   const bmjHandleTelechargerUnitaire = async (bmjCli) => {
     const bmjFactureId = bmjCli.id || bmjCli.numeroFacture;
-    if (pdfRef.current && typeof pdfRef.current.genererPDF === 'function') {
+    if (bmjPdfRef.current && typeof bmjPdfRef.current.genererPDF === 'function') {
       try {
         setBmjIdEnCours(bmjFactureId);
-        await pdfRef.current.genererPDF(bmjCli, formaterDateFr);
+        await bmjPdfRef.current.genererPDF(bmjCli, formaterDateFr);
       } catch (bmjError) {
         console.error("Erreur lors du téléchargement :", bmjError);
       } finally {
@@ -434,12 +437,12 @@ function FactureElectricite({
 
   return (
     <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <PDFFacturesElectricite ref={pdfRef} />
+      <PDFFacturesEau ref={bmjPdfRef} />
 
       <EnTeteSection>
         <div>
-          <Titre>Gestion des Factures d'Électricité</Titre>
-          <SousTitre>Suivi détaillé des quittances et compteurs d'électricité</SousTitre>
+          <Titre>Gestion des Factures d'Eau</Titre>
+          <SousTitre>Suivi détaillé des quittances et compteurs d'eau</SousTitre>
         </div>
 
         <div>
@@ -464,12 +467,12 @@ function FactureElectricite({
       {bmjChargementAPI ? (
         <MessageVide>
           <FiLoader size={32} style={{ marginBottom: '0.5rem', animation: 'spin 1s linear infinite' }} />
-          <p>Chargement automatique des factures d'électricité depuis la base de données...</p>
+          <p>Chargement automatique des factures d'eau depuis la base de données...</p>
         </MessageVide>
       ) : bmjFacturesFiltrees.length === 0 ? (
         <MessageVide>
           <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-          <p>Aucune facture d'électricité trouvée pour la sélection.</p>
+          <p>Aucune facture d'eau trouvée pour la sélection.</p>
         </MessageVide>
       ) : (
         bmjAnneesTriees.map((bmjAnnee) => {
@@ -572,7 +575,7 @@ function FactureElectricite({
                                   </LigneInfo>
 
                                   <SectionDetaillee>
-                                    <div>Type : <strong>{bmjCli.typeFacture || bmjCli.type || 'Électricité'}</strong> {bmjCli.designation ? `- ${bmjCli.designation}` : ''}</div>
+                                    <div>Type : <strong>{bmjCli.typeFacture || bmjCli.type || 'Eau'}</strong> {bmjCli.designation ? `- ${bmjCli.designation}` : ''}</div>
                                     <div>Contrat : <strong>{bmjCli.debutContrat || '---'}</strong> au <strong>{bmjCli.finContrat || '---'}</strong></div>
                                     <div>Comptable : <strong>{bmjDateComptableAffichee}</strong> {bmjCli.reference ? `| Réf: ${bmjCli.reference}` : ''}</div>
                                     {bmjCli.compteur ? (
@@ -625,5 +628,5 @@ function FactureElectricite({
   );
 }
 
-export default FactureElectricite;
-export { FactureElectricite };
+export default FactureEau;
+export { FactureEau };

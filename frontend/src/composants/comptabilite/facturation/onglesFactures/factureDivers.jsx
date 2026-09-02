@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter, FiSave } from 'react-icons/fi';
 import PDFFacturesDivers from './listePDF/PDFFacturesDivers';
 
-const THEME = {
+const bmjTheme = {
   fondCarte: '#1E1E1E',
   accentuation: '#AEEA00',
   textePrincipal: '#FFFFFF',
@@ -17,14 +17,14 @@ const THEME = {
   fondChamp: '#121212'
 };
 
-const ConteneurSection = styled.div`
+const BmjConteneurSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
 `;
 
-const EnTeteSection = styled.div`
+const BmjEnTeteSection = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -32,32 +32,32 @@ const EnTeteSection = styled.div`
   gap: 1rem;
 `;
 
-const Titre = styled.h2`
+const BmjTitre = styled.h2`
   font-size: 1.3rem;
   font-weight: 700;
-  color: ${THEME.textePrincipal};
+  color: ${bmjTheme.textePrincipal};
 `;
 
-const SousTitre = styled.p`
-  color: ${THEME.texteSecondaire};
+const BmjSousTitre = styled.p`
+  color: ${bmjTheme.texteSecondaire};
   font-size: 0.8rem;
 `;
 
-const SelecteurAnneeConteneur = styled.div`
+const BmjSelecteurAnneeConteneur = styled.div`
   display: flex;
   align-items: center;
   gap: 0.6rem;
   background-color: #181818;
-  border: 1px solid ${THEME.bordure};
+  border: 1px solid ${bmjTheme.bordure};
   padding: 0.4rem 0.8rem;
   border-radius: 8px;
-  color: ${THEME.textePrincipal};
+  color: ${bmjTheme.textePrincipal};
   font-size: 0.85rem;
 
   select {
     background: transparent;
     border: none;
-    color: ${THEME.accentuation};
+    color: ${bmjTheme.accentuation};
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
@@ -65,15 +65,15 @@ const SelecteurAnneeConteneur = styled.div`
 
     option {
       background-color: #181818;
-      color: ${THEME.textePrincipal};
+      color: ${bmjTheme.textePrincipal};
     }
   }
 `;
 
-const BoutonGlobal = styled.button`
-  background-color: ${THEME.fondCarte};
-  border: 1px solid ${THEME.accentuation};
-  color: ${THEME.accentuation};
+const BmjBoutonGlobal = styled.button`
+  background-color: ${bmjTheme.fondCarte};
+  border: 1px solid ${bmjTheme.accentuation};
+  color: ${bmjTheme.accentuation};
   padding: 0.6rem 1rem;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -85,40 +85,40 @@ const BoutonGlobal = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: ${THEME.accentuation};
+    background-color: ${bmjTheme.accentuation};
     color: #000;
   }
 `;
 
-const BlocAnnee = styled.div`
+const BmjBlocAnnee = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
   background-color: #141414;
-  border: 1px solid ${THEME.bordure};
+  border: 1px solid ${bmjTheme.bordure};
   border-radius: 12px;
   padding: 1.2rem;
 `;
 
-const TitreAnnee = styled.h3`
+const BmjTitreAnnee = styled.h3`
   font-size: 1.15rem;
   font-weight: 700;
-  color: ${THEME.accentuation};
-  border-bottom: 1px solid ${THEME.bordure};
+  color: ${bmjTheme.accentuation};
+  border-bottom: 1px solid ${bmjTheme.bordure};
   padding-bottom: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 `;
 
-const BlocMois = styled.div`
+const BmjBlocMois = styled.div`
   background-color: #181818;
-  border: 1px solid ${THEME.bordure};
+  border: 1px solid ${bmjTheme.bordure};
   border-radius: 10px;
   overflow: hidden;
 `;
 
-const EnTeteMois = styled.div`
+const BmjEnTeteMois = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -129,52 +129,52 @@ const EnTeteMois = styled.div`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: ${THEME.survol};
+    background-color: ${bmjTheme.survol};
   }
 `;
 
-const GroupeInfosMois = styled.div`
+const BmjGroupeInfosMois = styled.div`
   display: flex;
   align-items: center;
   gap: 0.8rem;
 `;
 
-const IconeFleche = styled(motion.div)`
-  color: ${THEME.texteSecondaire};
+const BmjIconeFleche = styled(motion.div)`
+  color: ${bmjTheme.texteSecondaire};
   display: flex;
   align-items: center;
   font-size: 1.1rem;
 `;
 
-const NomMois = styled.h4`
+const BmjNomMois = styled.h4`
   font-size: 1rem;
   font-weight: 600;
-  color: ${THEME.textePrincipal};
+  color: ${bmjTheme.textePrincipal};
   text-transform: capitalize;
   display: flex;
   align-items: center;
   gap: 0.4rem;
 `;
 
-const BadgeCompteur = styled.span`
+const BmjBadgeCompteur = styled.span`
   font-size: 0.7rem;
   padding: 0.15rem 0.5rem;
   border-radius: 10px;
   background-color: rgba(174, 234, 0, 0.1);
-  color: ${THEME.accentuation};
+  color: ${bmjTheme.accentuation};
   border: 1px solid rgba(174, 234, 0, 0.2);
 `;
 
-const ActionsMois = styled.div`
+const BmjActionsMois = styled.div`
   display: flex;
   align-items: center;
   gap: 0.8rem;
 `;
 
-const BoutonGenererMois = styled.button`
+const BmjBoutonGenererMois = styled.button`
   background-color: #121212;
-  border: 1px solid ${THEME.accentuation};
-  color: ${THEME.accentuation};
+  border: 1px solid ${bmjTheme.accentuation};
+  color: ${bmjTheme.accentuation};
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
   font-size: 0.73rem;
@@ -186,7 +186,7 @@ const BoutonGenererMois = styled.button`
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    background-color: ${THEME.accentuation};
+    background-color: ${bmjTheme.accentuation};
     color: #000000;
   }
 
@@ -196,14 +196,14 @@ const BoutonGenererMois = styled.button`
   }
 `;
 
-const ContenuDepliable = styled(motion.div)`
+const BmjContenuDepliable = styled(motion.div)`
   padding: 0 1rem 1rem 1rem;
-  border-top: 1px dashed ${THEME.bordure};
+  border-top: 1px dashed ${bmjTheme.bordure};
   margin-top: -0.2rem;
   padding-top: 1rem;
 `;
 
-const GrilleFactures = styled.div`
+const BmjGrilleFactures = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
@@ -217,9 +217,9 @@ const GrilleFactures = styled.div`
   }
 `;
 
-const CarteFacture = styled(motion.div)`
-  background-color: ${THEME.fondCarte};
-  border: 1px solid ${THEME.bordure};
+const BmjCarteFacture = styled(motion.div)`
+  background-color: ${bmjTheme.fondCarte};
+  border: 1px solid ${bmjTheme.bordure};
   border-radius: 10px;
   padding: 0.9rem;
   display: flex;
@@ -228,59 +228,59 @@ const CarteFacture = styled(motion.div)`
   transition: border-color 0.2s;
 
   &:hover {
-    border-color: ${THEME.accentuation};
+    border-color: ${bmjTheme.accentuation};
   }
 `;
 
-const LigneInfo = styled.div`
+const BmjLigneInfo = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.77rem;
-  color: ${THEME.texteSecondaire};
+  color: ${bmjTheme.texteSecondaire};
 
   strong {
-    color: ${THEME.textePrincipal};
+    color: ${bmjTheme.textePrincipal};
     font-weight: 600;
   }
 `;
 
-const SectionDetaillee = styled.div`
+const BmjSectionDetaillee = styled.div`
   background-color: #141414;
-  border: 1px solid ${THEME.bordure};
+  border: 1px solid ${bmjTheme.bordure};
   border-radius: 6px;
   padding: 0.5rem;
   font-size: 0.7rem;
-  color: ${THEME.texteSecondaire};
+  color: ${bmjTheme.texteSecondaire};
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 
   strong {
-    color: ${THEME.textePrincipal};
+    color: ${bmjTheme.textePrincipal};
   }
 `;
 
-const BadgeStatut = styled.span`
+const BmjBadgeStatut = styled.span`
   font-size: 0.68rem;
   padding: 0.15rem 0.45rem;
   border-radius: 8px;
   font-weight: 600;
   background-color: rgba(255, 152, 0, 0.15);
-  color: ${THEME.orange};
+  color: ${bmjTheme.orange};
 `;
 
-const GroupeBoutons = styled.div`
+const BmjGroupeBoutons = styled.div`
   display: flex;
   gap: 0.4rem;
   margin-top: 0.2rem;
 `;
 
-const BoutonPDF = styled.button`
+const BmjBoutonPDF = styled.button`
   flex: 1;
   background-color: #121212;
-  border: 1px solid ${THEME.bordure};
-  color: ${THEME.accentuation};
+  border: 1px solid ${bmjTheme.bordure};
+  color: ${bmjTheme.accentuation};
   padding: 0.4rem;
   border-radius: 6px;
   font-size: 0.73rem;
@@ -293,9 +293,9 @@ const BoutonPDF = styled.button`
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    background-color: ${THEME.accentuation};
+    background-color: ${bmjTheme.accentuation};
     color: #000000;
-    border-color: ${THEME.accentuation};
+    border-color: ${bmjTheme.accentuation};
   }
 
   &:disabled {
@@ -305,13 +305,13 @@ const BoutonPDF = styled.button`
   }
 `;
 
-const MessageVide = styled.div`
+const BmjMessageVide = styled.div`
   padding: 3rem;
   text-align: center;
-  color: ${THEME.texteSecondaire};
+  color: ${bmjTheme.texteSecondaire};
   font-size: 0.9rem;
-  background-color: ${THEME.fondCarte};
-  border: 1px solid ${THEME.bordure};
+  background-color: ${bmjTheme.fondCarte};
+  border: 1px solid ${bmjTheme.bordure};
   border-radius: 12px;
 `;
 
@@ -319,318 +319,317 @@ function FactureDivers({
   listeFactures = [],
   formaterDateFr
 }) {
-  const pdfRef = useRef(null);
-  const [idEnCours, setIdEnCours] = useState(null);
-  const [moisOuverts, setMoisOuverts] = useState({});
-  const [anneeSelectionnee, setAnneeSelectionnee] = useState('toutes');
+  const bmjPdfRef = useRef(null);
+  const [bmjIdEnCours, setBmjIdEnCours] = useState(null);
+  const [bmjMoisOuverts, setBmjMoisOuverts] = useState({});
+  const [bmjAnneeSelectionnee, setBmjAnneeSelectionnee] = useState('toutes');
   
-  const [factures, setFactures] = useState(listeFactures);
-  const [chargementAPI, setChargementAPI] = useState(false);
+  const [bmjFactures, setBmjFactures] = useState(listeFactures);
+  const [bmjChargementAPI, setBmjChargementAPI] = useState(false);
 
   useEffect(() => {
-    const chargerFacturesAutomatiquement = async () => {
+    const bmjChargerFacturesAutomatiquement = async () => {
       try {
-        setChargementAPI(true);
-        const reponse = await fetch('http://localhost:5000/api/factures-divers');
-        if (reponse.ok) {
-          const donnees = await reponse.json();
-          if (Array.isArray(donnees) && donnees.length > 0) {
-            setFactures(donnees);
+        setBmjChargementAPI(true);
+        const bmjReponse = await fetch('http://localhost:5000/api/factures-divers');
+        if (bmjReponse.ok) {
+          const bmjDonnees = await bmjReponse.json();
+          if (Array.isArray(bmjDonnees) && bmjDonnees.length > 0) {
+            setBmjFactures(bmjDonnees);
           }
         }
-      } catch (erreur) {
-        console.error("Erreur de récupération automatique des factures diverses depuis l'API :", erreur);
+      } catch (bmjErreur) {
+        console.error("Erreur de récupération automatique des factures diverses depuis l'API :", bmjErreur);
       } finally {
-        setChargementAPI(false);
+        setBmjChargementAPI(false);
       }
     };
 
     if (!listeFactures || listeFactures.length === 0) {
-      chargerFacturesAutomatiquement();
+      bmjChargerFacturesAutomatiquement();
     } else {
-      setFactures(listeFactures);
+      setBmjFactures(listeFactures);
     }
   }, [listeFactures]);
 
-  const toggleMois = (cleMois) => {
-    setMoisOuverts(prev => ({
-      ...prev,
-      [cleMois]: !prev[cleMois]
+  const bmjToggleMois = (bmjCleMois) => {
+    setBmjMoisOuverts(bmjPrev => ({
+      ...bmjPrev,
+      [bmjCleMois]: !bmjPrev[bmjCleMois]
     }));
   };
 
-  const handleToutTelecharger = () => {
-    if (pdfRef.current && typeof pdfRef.current.telechargerTout === 'function') {
-      pdfRef.current.telechargerTout(facturesFiltrees, formaterDateFr);
+  const bmjHandleToutTelecharger = () => {
+    if (bmjPdfRef.current && typeof bmjPdfRef.current.telechargerTout === 'function') {
+      bmjPdfRef.current.telechargerTout(bmjFacturesFiltrees, formaterDateFr);
     }
   };
 
-  const handleTelechargerUnitaire = async (cli) => {
-    const factureId = cli.id || cli.numeroFacture;
-    if (pdfRef.current && typeof pdfRef.current.genererPDF === 'function') {
+  const bmjHandleTelechargerUnitaire = async (bmjCli) => {
+    const bmjFactureId = bmjCli.id || bmjCli.numeroFacture;
+    if (bmjPdfRef.current && typeof bmjPdfRef.current.genererPDF === 'function') {
       try {
-        setIdEnCours(factureId);
-        await pdfRef.current.genererPDF(cli, formaterDateFr);
-      } catch (error) {
-        console.error("Erreur lors du téléchargement :", error);
+        setBmjIdEnCours(bmjFactureId);
+        await bmjPdfRef.current.genererPDF(bmjCli, formaterDateFr);
+      } catch (bmjError) {
+        console.error("Erreur lors du téléchargement :", bmjError);
       } finally {
-        setIdEnCours(null);
+        setBmjIdEnCours(null);
       }
     }
   };
 
-  const obtenirAnnee = (cli) => {
-    const anneeBrute = 
-      cli.anneeFacturee || 
-      cli.anneeFactureChiffre || 
-      cli.annee || 
-      cli.anneeFacture || 
-      cli.annee_facture || 
-      cli.anneeFactureChiffres;
+  const bmjObtenirAnnee = (bmjCli) => {
+    const bmjAnneeBrute = 
+      bmjCli.anneeFacturee || 
+      bmjCli.anneeFactureChiffre || 
+      bmjCli.annee || 
+      bmjCli.anneeFacture || 
+      bmjCli.annee_facture || 
+      bmjCli.anneeFactureChiffres;
 
-    if (anneeBrute !== undefined && anneeBrute !== null && anneeBrute !== '') {
-      return String(anneeBrute).trim();
+    if (bmjAnneeBrute !== undefined && bmjAnneeBrute !== null && bmjAnneeBrute !== '') {
+      return String(bmjAnneeBrute).trim();
     }
 
-    const textePeriode = cli.moisFacture || cli.periode || cli.mois_facture || '';
-    if (typeof textePeriode === 'string' && textePeriode.trim() !== '') {
-      const matchAnnee = textePeriode.match(/\b(20\d{2})\b/);
-      if (matchAnnee) {
-        return matchAnnee[0];
+    const bmjTextePeriode = bmjCli.moisFacture || bmjCli.periode || bmjCli.mois_facture || '';
+    if (typeof bmjTextePeriode === 'string' && bmjTextePeriode.trim() !== '') {
+      const bmjMatchAnnee = bmjTextePeriode.match(/\b(20\d{2})\b/);
+      if (bmjMatchAnnee) {
+        return bmjMatchAnnee[0];
       }
     }
 
-    const dateAUtiliser = 
-      cli.dateComptable || 
-      cli.dateBail || 
-      cli.dateFacture || 
-      cli.creeLe || 
-      cli.date_creation || 
-      cli.created_at;
+    const bmjDateAUtiliser = 
+      bmjCli.dateComptable || 
+      bmjCli.dateBail || 
+      bmjCli.dateFacture || 
+      bmjCli.creeLe || 
+      bmjCli.date_creation || 
+      bmjCli.created_at;
 
-    if (dateAUtiliser) {
-      const dateObj = new Date(dateAUtiliser);
-      const anneeExtractive = dateObj.getFullYear();
-      if (!isNaN(anneeExtractive)) {
-        return String(anneeExtractive);
+    if (bmjDateAUtiliser) {
+      const bmjDateObj = new Date(bmjDateAUtiliser);
+      const bmjAnneeExtractive = bmjDateObj.getFullYear();
+      if (!isNaN(bmjAnneeExtractive)) {
+        return String(bmjAnneeExtractive);
       }
     }
     
     return 'Non défini';
   };
 
-  const obtenirMois = (cli) => {
-    const textePeriode = cli.moisFacture || cli.periode || cli.mois_facture || '';
-    if (typeof textePeriode === 'string' && textePeriode.trim() !== '') {
-      return textePeriode.replace(/\b\d{4}\b/g, '').trim() || 'septembre';
+  const bmjObtenirMois = (bmjCli) => {
+    const bmjTextePeriode = bmjCli.moisFacture || bmjCli.periode || bmjCli.mois_facture || '';
+    if (typeof bmjTextePeriode === 'string' && bmjTextePeriode.trim() !== '') {
+      return bmjTextePeriode.replace(/\b\d{4}\b/g, '').trim() || 'septembre';
     }
     return 'septembre'; 
   };
 
-  const ordreMois = [
+  const bmjOrdreMois = [
     'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
     'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
   ];
 
-  const obtenirIndexMois = (nomMois) => {
-    if (!nomMois) return 99;
-    const propre = nomMois.toLowerCase().trim();
-    const index = ordreMois.findIndex(m => propre === m || propre.includes(m));
-    return index !== -1 ? index : 99;
+  const bmjObtenirIndexMois = (bmjNomMois) => {
+    if (!bmjNomMois) return 99;
+    const bmjPropre = bmjNomMois.toLowerCase().trim();
+    const bmjIndex = bmjOrdreMois.findIndex(bmjM => bmjPropre === bmjM || bmjPropre.includes(bmjM));
+    return bmjIndex !== -1 ? bmjIndex : 99;
   };
 
-  const anneesDisponibles = Array.from(
-    new Set(factures.map(obtenirAnnee))
-  ).filter(a => a !== 'Non défini').sort((a, b) => b.localeCompare(a));
+  const bmjAnneesDisponibles = Array.from(
+    new Set(bmjFactures.map(bmjObtenirAnnee))
+  ).filter(bmjA => bmjA !== 'Non défini').sort((bmjA, bmjB) => bmjB.localeCompare(bmjA));
 
-  const facturesFiltrees = anneeSelectionnee === 'toutes' 
-    ? factures 
-    : factures.filter(cli => obtenirAnnee(cli) === anneeSelectionnee);
+  const bmjFacturesFiltrees = bmjAnneeSelectionnee === 'toutes' 
+    ? bmjFactures 
+    : bmjFactures.filter(bmjCli => bmjObtenirAnnee(bmjCli) === bmjAnneeSelectionnee);
 
-  const donneesGroupees = facturesFiltrees.reduce((acc, cli) => {
-    const annee = obtenirAnnee(cli);
-    const mois = obtenirMois(cli);
+  const bmjDonneesGroupees = bmjFacturesFiltrees.reduce((bmjAcc, bmjCli) => {
+    const bmjAnnee = bmjObtenirAnnee(bmjCli);
+    const bmjMois = bmjObtenirMois(bmjCli);
 
-    if (!acc[annee]) acc[annee] = {};
-    if (!acc[annee][mois]) acc[annee][mois] = [];
+    if (!bmjAcc[bmjAnnee]) bmjAcc[bmjAnnee] = {};
+    if (!bmjAcc[bmjAnnee][bmjMois]) bmjAcc[bmjAnnee][bmjMois] = [];
 
-    acc[annee][mois].push(cli);
-    return acc;
+    bmjAcc[bmjAnnee][bmjMois].push(bmjCli);
+    return bmjAcc;
   }, {});
 
-  const anneesTriees = Object.keys(donneesGroupees).sort((a, b) => {
-    if (a === 'Non défini') return 1;
-    if (b === 'Non défini') return -1;
-    return b.localeCompare(a);
+  const bmjAnneesTriees = Object.keys(bmjDonneesGroupees).sort((bmjA, bmjB) => {
+    if (bmjA === 'Non défini') return 1;
+    if (bmjB === 'Non défini') return -1;
+    return bmjB.localeCompare(bmjA);
   });
 
   return (
-    <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      {/* Intégration du composant PDF externe */}
-      <PDFFacturesDivers ref={pdfRef} formaterDateFr={formaterDateFr} />
+    <BmjConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      <PDFFacturesDivers ref={bmjPdfRef} formaterDateFr={formaterDateFr} />
 
-      <EnTeteSection>
+      <BmjEnTeteSection>
         <div>
-          <Titre>Gestion des Factures Diverses</Titre>
-          <SousTitre>Suivi global des quittances, charges et prestations diverses</SousTitre>
+          <BmjTitre>Gestion des Factures Diverses</BmjTitre>
+          <BmjSousTitre>Suivi global des quittances, charges et prestations diverses</BmjSousTitre>
         </div>
 
         <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {anneesDisponibles.length > 0 && (
-            <SelecteurAnneeConteneur>
+          {bmjAnneesDisponibles.length > 0 && (
+            <BmjSelecteurAnneeConteneur>
               <FiFilter />
               <span>Année :</span>
               <select 
-                value={anneeSelectionnee} 
-                onChange={(e) => setAnneeSelectionnee(e.target.value)}
+                value={bmjAnneeSelectionnee} 
+                onChange={(e) => setBmjAnneeSelectionnee(e.target.value)}
               >
                 <option value="toutes">Toutes les années</option>
-                {anneesDisponibles.map(annee => (
-                  <option key={annee} value={annee}>{annee}</option>
+                {bmjAnneesDisponibles.map(bmjAnnee => (
+                  <option key={bmjAnnee} value={bmjAnnee}>{bmjAnnee}</option>
                 ))}
               </select>
-            </SelecteurAnneeConteneur>
+            </BmjSelecteurAnneeConteneur>
           )}
 
-          {factures.length > 0 && typeof pdfRef.current?.telechargerTout === 'function' && (
-            <BoutonGlobal onClick={handleToutTelecharger}>
+          {bmjFactures.length > 0 && typeof bmjPdfRef.current?.telechargerTout === 'function' && (
+            <BmjBoutonGlobal onClick={bmjHandleToutTelecharger}>
               <FiSave /> Tout Télécharger (PDF)
-            </BoutonGlobal>
+            </BmjBoutonGlobal>
           )}
         </div>
-      </EnTeteSection>
+      </BmjEnTeteSection>
 
-      {chargementAPI ? (
-        <MessageVide>
+      {bmjChargementAPI ? (
+        <BmjMessageVide>
           <FiLoader size={32} className="fa-spin" style={{ marginBottom: '0.5rem', animation: 'spin 1s linear infinite' }} />
           <p>Chargement automatique des factures diverses depuis la base de données...</p>
-        </MessageVide>
-      ) : facturesFiltrees.length === 0 ? (
-        <MessageVide>
+        </BmjMessageVide>
+      ) : bmjFacturesFiltrees.length === 0 ? (
+        <BmjMessageVide>
           <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
           <p>Aucune facture diverse trouvée pour la sélection.</p>
-        </MessageVide>
+        </BmjMessageVide>
       ) : (
-        anneesTriees.map((annee) => {
-          const moisDuGroupe = Object.keys(donneesGroupees[annee]).sort((a, b) => obtenirIndexMois(a) - obtenirIndexMois(b));
+        bmjAnneesTriees.map((bmjAnnee) => {
+          const bmjMoisDuGroupe = Object.keys(bmjDonneesGroupees[bmjAnnee]).sort((bmjA, bmjB) => bmjObtenirIndexMois(bmjA) - bmjObtenirIndexMois(bmjB));
 
           return (
-            <BlocAnnee key={annee}>
-              <TitreAnnee>
-                <FiCalendar /> Année {annee}
-              </TitreAnnee>
+            <BmjBlocAnnee key={bmjAnnee}>
+              <BmjTitreAnnee>
+                <FiCalendar /> Année {bmjAnnee}
+              </BmjTitreAnnee>
 
-              {moisDuGroupe.map((mois) => {
-                const facturesDuMois = donneesGroupees[annee][mois];
-                const cleAccordeon = `${annee}-${mois}`;
-                const estOuvert = !!moisOuverts[cleAccordeon];
+              {bmjMoisDuGroupe.map((bmjMois) => {
+                const bmjFacturesDuMois = bmjDonneesGroupees[bmjAnnee][bmjMois];
+                const bmjCleAccordeon = `${bmjAnnee}-${bmjMois}`;
+                const bmjEstOuvert = !!bmjMoisOuverts[bmjCleAccordeon];
 
                 return (
-                  <BlocMois key={mois}>
-                    <EnTeteMois onClick={() => toggleMois(cleAccordeon)}>
-                      <GroupeInfosMois>
-                        <IconeFleche animate={{ rotate: estOuvert ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <BmjBlocMois key={bmjMois}>
+                    <BmjEnTeteMois onClick={() => bmjToggleMois(bmjCleAccordeon)}>
+                      <BmjGroupeInfosMois>
+                        <BmjIconeFleche animate={{ rotate: bmjEstOuvert ? 180 : 0 }} transition={{ duration: 0.2 }}>
                           <FiChevronDown />
-                        </IconeFleche>
-                        <NomMois>{mois}</NomMois>
-                        <BadgeCompteur>{facturesDuMois.length} facture{facturesDuMois.length > 1 ? 's' : ''}</BadgeCompteur>
-                      </GroupeInfosMois>
+                        </BmjIconeFleche>
+                        <BmjNomMois>{bmjMois}</BmjNomMois>
+                        <BmjBadgeCompteur>{bmjFacturesDuMois.length} facture{bmjFacturesDuMois.length > 1 ? 's' : ''}</BmjBadgeCompteur>
+                      </BmjGroupeInfosMois>
 
-                      <ActionsMois>
-                        <BoutonGenererMois 
+                      <BmjActionsMois>
+                        <BmjBoutonGenererMois 
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (facturesDuMois.length > 0) {
-                              handleTelechargerUnitaire(facturesDuMois[0]);
+                            if (bmjFacturesDuMois.length > 0) {
+                              bmjHandleTelechargerUnitaire(bmjFacturesDuMois[0]);
                             }
                           }}
-                          title={`Générer la facture du mois de ${mois} ${annee}`}
+                          title={`Générer la facture du mois de ${bmjMois} ${bmjAnnee}`}
                         >
                           <FiDownload /> Générer le mois
-                        </BoutonGenererMois>
-                      </ActionsMois>
-                    </EnTeteMois>
+                        </BmjBoutonGenererMois>
+                      </BmjActionsMois>
+                    </BmjEnTeteMois>
 
                     <AnimatePresence>
-                      {estOuvert && (
-                        <ContenuDepliable
+                      {bmjEstOuvert && (
+                        <BmjContenuDepliable
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.25 }}
                         >
-                          <GrilleFactures>
-                            {facturesDuMois.map((cli, index) => {
-                              const factureId = cli.id ? `id-${cli.id}-${index}` : `idx-${annee}-${mois}-${index}`;
-                              const enCoursDeChargement = idEnCours === (cli.id || cli.numeroFacture);
-                              const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
-                              const dateBailAffichee = formaterDateFr && (cli.dateBail || cli.dateFacture) ? formaterDateFr(cli.dateBail || cli.dateFacture) : (cli.dateBail || cli.dateFacture || 'N/A');
-                              const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || '-');
+                          <BmjGrilleFactures>
+                            {bmjFacturesDuMois.map((bmjCli, bmjIndex) => {
+                              const bmjFactureId = bmjCli.id ? `id-${bmjCli.id}-${bmjIndex}` : `idx-${bmjAnnee}-${bmjMois}-${bmjIndex}`;
+                              const bmjEnCoursDeChargement = bmjIdEnCours === (bmjCli.id || bmjCli.numeroFacture);
+                              const bmjNomComplet = `${bmjCli.nom || ''} ${bmjCli.postNom || ''} ${bmjCli.prenom || bmjCli.client || bmjCli.locataire || ''}`.trim() || 'Client Inconnu';
+                              const bmjDateBailAffichee = formaterDateFr && (bmjCli.dateBail || bmjCli.dateFacture) ? formaterDateFr(bmjCli.dateBail || bmjCli.dateFacture) : (bmjCli.dateBail || bmjCli.dateFacture || 'N/A');
+                              const bmjDateComptableAffichee = formaterDateFr && bmjCli.dateComptable ? formaterDateFr(bmjCli.dateComptable) : (bmjCli.dateComptable || bmjCli.dateEnregistrement || '-');
 
                               return (
-                                <CarteFacture 
-                                  key={factureId}
+                                <BmjCarteFacture 
+                                  key={bmjFactureId}
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.2, delay: index * 0.04 }}
+                                  transition={{ duration: 0.2, delay: bmjIndex * 0.04 }}
                                 >
-                                  <LigneInfo>
-                                    <span>Bail : <strong>{cli.bail || cli.numero || 'N/A'}</strong> <span style={{fontSize: '0.65rem'}}>({dateBailAffichee})</span></span>
-                                    <BadgeStatut>{cli.modePaiement || cli.statut || 'En attente'}</BadgeStatut>
-                                  </LigneInfo>
+                                  <BmjLigneInfo>
+                                    <span>Bail : <strong>{bmjCli.bail || bmjCli.numero || 'N/A'}</strong> <span style={{fontSize: '0.65rem'}}>({bmjDateBailAffichee})</span></span>
+                                    <BmjBadgeStatut>{bmjCli.modePaiement || bmjCli.statut || 'En attente'}</BmjBadgeStatut>
+                                  </BmjLigneInfo>
 
-                                  <LigneInfo>
+                                  <BmjLigneInfo>
                                     <span>Matricule :</span>
-                                    <strong style={{ color: THEME.accentuation }}>{cli.matricule || cli.numero || 'N/A'}</strong>
-                                  </LigneInfo>
+                                    <strong style={{ color: bmjTheme.accentuation }}>{bmjCli.matricule || bmjCli.numero || 'N/A'}</strong>
+                                  </BmjLigneInfo>
 
-                                  <LigneInfo>
+                                  <BmjLigneInfo>
                                     <span>Locataire :</span>
-                                    <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nomComplet}>
-                                      {nomComplet}
+                                    <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={bmjNomComplet}>
+                                      {bmjNomComplet}
                                     </strong>
-                                  </LigneInfo>
+                                  </BmjLigneInfo>
 
-                                  <LigneInfo>
+                                  <BmjLigneInfo>
                                     <span>Logement :</span>
-                                    <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${cli.logement || '-'} / ${cli.adresse || '-'}`}>
-                                      {cli.logement || '-'} / {cli.adresse || '-'} <span style={{color: THEME.texteSecondaire}}>({cli.pays || 'RDC'})</span>
+                                    <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${bmjCli.logement || '-'} / ${bmjCli.adresse || '-'}`}>
+                                      {bmjCli.logement || '-'} / {bmjCli.adresse || '-'} <span style={{color: bmjTheme.texteSecondaire}}>({bmjCli.pays || 'RDC'})</span>
                                     </strong>
-                                  </LigneInfo>
+                                  </BmjLigneInfo>
 
-                                  <LigneInfo>
+                                  <BmjLigneInfo>
                                     <span>Montant :</span>
-                                    <strong style={{ color: THEME.accentuation, fontSize: '0.9rem' }}>
-                                      {cli.montant !== undefined ? `${cli.montant} ${cli.devise || 'USD'}` : '0 USD'}
+                                    <strong style={{ color: bmjTheme.accentuation, fontSize: '0.9rem' }}>
+                                      {bmjCli.montant !== undefined ? `${bmjCli.montant} ${bmjCli.devise || 'USD'}` : '0 USD'}
                                     </strong>
-                                  </LigneInfo>
+                                  </BmjLigneInfo>
 
-                                  <LigneInfo>
+                                  <BmjLigneInfo>
                                     <span>Période :</span>
-                                    <span>{cli.moisFacture || mois}</span>
-                                  </LigneInfo>
+                                    <span>{bmjCli.moisFacture || bmjMois}</span>
+                                  </BmjLigneInfo>
 
-                                  <SectionDetaillee>
-                                    <div>Type : <strong>{cli.typeFacture || cli.type || 'Divers'}</strong> {cli.designation ? `- ${cli.designation}` : ''}</div>
-                                    <div>Contrat : <strong>{cli.debutContrat || '---'}</strong> au <strong>{cli.finContrat || '---'}</strong></div>
-                                    <div>Comptable : <strong>{dateComptableAffichee}</strong> {cli.reference ? `| Réf: ${cli.reference}` : ''}</div>
-                                    {cli.compteur ? (
+                                  <BmjSectionDetaillee>
+                                    <div>Type : <strong>{bmjCli.typeFacture || bmjCli.type || 'Divers'}</strong> {bmjCli.designation ? `- ${bmjCli.designation}` : ''}</div>
+                                    <div>Contrat : <strong>{bmjCli.debutContrat || '---'}</strong> au <strong>{bmjCli.finContrat || '---'}</strong></div>
+                                    <div>Comptable : <strong>{bmjDateComptableAffichee}</strong> {bmjCli.reference ? `| Réf: ${bmjCli.reference}` : ''}</div>
+                                    {bmjCli.compteur ? (
                                       <div style={{ marginTop: '0.15rem', borderTop: '1px solid #222', paddingTop: '0.15rem' }}>
-                                        CPT: <strong>{cli.compteur}</strong> {cli.imputation ? `| Imp: ${cli.imputation}` : ''} <br/>
-                                        N°: <strong>{cli.dernierNumero || 0}</strong> | Mt: <strong>{cli.dernierMontant || 0}</strong> | Dt: <strong>{cli.derniereDate || '-'}</strong>
+                                        CPT: <strong>{bmjCli.compteur}</strong> {bmjCli.imputation ? `| Imp: ${bmjCli.imputation}` : ''} <br/>
+                                        N°: <strong>{bmjCli.dernierNumero || 0}</strong> | Mt: <strong>{bmjCli.dernierMontant || 0}</strong> | Dt: <strong>{bmjCli.derniereDate || '-'}</strong>
                                       </div>
                                     ) : (
-                                      <div>Compteur : <span style={{ color: THEME.texteSecondaire }}>Aucun</span></div>
+                                      <div>Compteur : <span style={{ color: bmjTheme.texteSecondaire }}>Aucun</span></div>
                                     )}
-                                  </SectionDetaillee>
+                                  </BmjSectionDetaillee>
 
-                                  <GroupeBoutons>
-                                    <BoutonPDF 
-                                      onClick={() => handleTelechargerUnitaire(cli)} 
-                                      disabled={enCoursDeChargement}
+                                  <BmjGroupeBoutons>
+                                    <BmjBoutonPDF 
+                                      onClick={() => bmjHandleTelechargerUnitaire(bmjCli)} 
+                                      disabled={bmjEnCoursDeChargement}
                                       title="Télécharger PDF"
                                     >
-                                      {enCoursDeChargement ? (
+                                      {bmjEnCoursDeChargement ? (
                                         <>
                                           <motion.div 
                                             animate={{ rotate: 360 }} 
@@ -646,23 +645,23 @@ function FactureDivers({
                                           <FiDownload /> PDF
                                         </>
                                       )}
-                                    </BoutonPDF>
-                                  </GroupeBoutons>
-                                </CarteFacture>
+                                    </BmjBoutonPDF>
+                                  </BmjGroupeBoutons>
+                                </BmjCarteFacture>
                               );
                             })}
-                          </GrilleFactures>
-                        </ContenuDepliable>
+                          </BmjGrilleFactures>
+                        </BmjContenuDepliable>
                       )}
                     </AnimatePresence>
-                  </BlocMois>
+                  </BmjBlocMois>
                 );
               })}
-            </BlocAnnee>
+            </BmjBlocAnnee>
           );
         })
       )}
-    </ConteneurSection>
+    </BmjConteneurSection>
   );
 }
 

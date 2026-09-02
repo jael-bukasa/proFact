@@ -10,6 +10,17 @@ const factureService = {
     });
   },
 
+  // Récupérer les factures par type (ex: Électricité)
+  obtenirParType: (db, typeFacture, callback) => {
+    const query = `SELECT * FROM factures WHERE (typeFacture = ? OR typeFacture = 'Electricite' OR typeFacture = 'Électricité') AND (supprime = 0 OR supprime IS NULL)`;
+    db.query(query, [typeFacture], (err, results) => {
+      if (err) {
+        return callback(err);
+      }
+      callback(null, results);
+    });
+  },
+
   // Enregistrer une facture unique
   ajouter: (db, factureData, callback) => {
     const queryCount = `SELECT COUNT(*) as total FROM factures`;

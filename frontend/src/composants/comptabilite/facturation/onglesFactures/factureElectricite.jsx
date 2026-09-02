@@ -2,7 +2,9 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter } from 'react-icons/fi';
-import PDFFacturesElectricite from './listePDF/PDFFacturesElectricite';
+
+// Correction du chemin et du nom de l'import PDF basé sur le modèle facture eau
+import PDFFactureElectricite from './listePDF/PDFFacturesElectricite'; // Ajuste le chemin selon ton arborescence
 
 const THEME = {
   fondCarte: '#1E1E1E',
@@ -295,47 +297,57 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
+const MessageErreurAPI = styled.div`
+  padding: 1rem;
+  background-color: rgba(255, 82, 82, 0.1);
+  border: 1px solid ${THEME.erreur};
+  color: ${THEME.erreur};
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  text-align: center;
+`;
+
 const ORDRE_MOIS = [
   'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 
   'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
 ];
 
-function FactureElectricite({
-  listeFactures = [],
-  formaterDateFr
-}) {
+function FactureElectricite({ formaterDateFr }) {
   const pdfRef = useRef(null);
   const [idEnCours, setIdEnCours] = useState(null);
   const [moisOuverts, setMoisOuverts] = useState({});
   const [anneeSelectionnee, setAnneeSelectionnee] = useState('toutes');
   
-  const [factures, setFactures] = useState(listeFactures);
+  const [factures, setFactures] = useState([]);
   const [chargementAPI, setChargementAPI] = useState(false);
+  const [erreurApi, setErreurApi] = useState(null);
 
   useEffect(() => {
-    const chargerFacturesAutomatiquement = async () => {
+    const chargerFactures = async () => {
       try {
         setChargementAPI(true);
+        setErreurApi(null);
+        // Correction de l'URL API ciblée sur l'électricité
         const reponse = await fetch('http://localhost:5000/api/factures-electricite');
         if (reponse.ok) {
           const donnees = await reponse.json();
-          if (Array.isArray(donnees) && donnees.length > 0) {
+          if (Array.isArray(donnees)) {
             setFactures(donnees);
           }
+        } else {
+          setErreurApi(`Erreur serveur (${reponse.status}) : Impossible de joindre l'API sur http://localhost:5000/api/factures-electricite`);
         }
       } catch (erreur) {
-        console.error("Erreur de récupération automatique des factures d'électricité depuis l'API :", erreur);
+        console.error("Erreur de récupération des factures d'électricité :", erreur);
+        setErreurApi("Impossible de se connecter au serveur backend (Vérifie qu'il est bien démarré sur le port 5000).");
       } finally {
         setChargementAPI(false);
       }
     };
 
-    if (!listeFactures || listeFactures.length === 0) {
-      chargerFacturesAutomatiquement();
-    } else {
-      setFactures(listeFactures);
-    }
-  }, [listeFactures]);
+    chargerFactures();
+  }, []);
 
   const toggleMois = useCallback((cleMois) => {
     setMoisOuverts(prev => ({
@@ -433,22 +445,27 @@ function FactureElectricite({
   }, [donneesGroupees]);
 
   const handleTelechargerUnitaire = async (cli) => {
-    const factureId = cli.id || cli.numeroFacture;
+    const factureId = cli.id || cli.numeroFacture || Math.random();
+
     if (pdfRef.current && typeof pdfRef.current.genererPDF === 'function') {
       try {
         setIdEnCours(factureId);
         await pdfRef.current.genererPDF(cli, formaterDateFr);
       } catch (error) {
-        console.error("Erreur lors du téléchargement :", error);
+        console.error("Erreur critique lors de la génération du PDF :", error);
       } finally {
         setIdEnCours(null);
       }
+    } else {
+      console.warn("Attention: la référence du composant PDF (pdfRef.current.genererPDF) n'est pas disponible.");
+      setIdEnCours(null);
     }
   };
 
   return (
     <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <PDFFacturesElectricite ref={pdfRef} formaterDateFr={formaterDateFr} />
+      {/* Utilisation du composant de génération PDF correct */}
+      <PDFFactureElectricite ref={pdfRef} formaterDateFr={formaterDateFr} />
 
       <EnTeteSection>
         <div>
@@ -475,15 +492,17 @@ function FactureElectricite({
         </div>
       </EnTeteSection>
 
+      {erreurApi && <MessageErreurAPI>{erreurApi}</MessageErreurAPI>}
+
       {chargementAPI ? (
         <MessageVide>
           <FiLoader size={32} style={{ marginBottom: '0.5rem', animation: 'spin 1s linear infinite' }} />
-          <p>Chargement automatique des factures d'électricité depuis la base de données...</p>
+          <p>Chargement des factures d'électricité...</p>
         </MessageVide>
       ) : facturesFiltrees.length === 0 ? (
         <MessageVide>
           <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-          <p>Aucune facture d'électricité trouvée pour la sélection.</p>
+          <p>Aucune facture d'électricité trouvée.</p>
         </MessageVide>
       ) : (
         anneesTriees.map((annee) => {
@@ -642,4 +661,3 @@ function FactureElectricite({
 }
 
 export default FactureElectricite;
-export { FactureElectricite };

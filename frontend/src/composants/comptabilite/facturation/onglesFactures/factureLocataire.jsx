@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter } from 'react-icons/fi';
@@ -293,42 +293,11 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
-function FactureLocataire({
-  listeFactures = [],
-  formaterDateFr
-}) {
+export default function FactureLocataire({ listeFactures = [], formaterDateFr }) {
   const pdfRef = useRef(null);
   const [idEnCours, setIdEnCours] = useState(null);
   const [moisOuverts, setMoisOuverts] = useState({});
   const [anneeSelectionnee, setAnneeSelectionnee] = useState('toutes');
-  
-  const [factures, setFactures] = useState(listeFactures);
-  const [chargementAPI, setChargementAPI] = useState(false);
-
-  useEffect(() => {
-    const chargerFacturesAutomatiquement = async () => {
-      try {
-        setChargementAPI(true);
-        const reponse = await fetch('http://localhost:5000/api/factures');
-        if (reponse.ok) {
-          const donnees = await reponse.json();
-          if (Array.isArray(donnees) && donnees.length > 0) {
-            setFactures(donnees);
-          }
-        }
-      } catch (erreur) {
-        console.error("Erreur de récupération automatique depuis l'API :", erreur);
-      } finally {
-        setChargementAPI(false);
-      }
-    };
-
-    if (!listeFactures || listeFactures.length === 0) {
-      chargerFacturesAutomatiquement();
-    } else {
-      setFactures(listeFactures);
-    }
-  }, [listeFactures]);
 
   const toggleMois = (cleMois) => {
     setMoisOuverts(prev => ({
@@ -352,14 +321,7 @@ function FactureLocataire({
   };
 
   const obtenirAnnee = (cli) => {
-    const anneeBrute = 
-      cli.anneeFacturee || 
-      cli.anneeFactureChiffre || 
-      cli.annee || 
-      cli.anneeFacture || 
-      cli.annee_facture || 
-      cli.anneeFactureChiffres;
-
+    const anneeBrute = cli.anneeFacturee || cli.anneeFactureChiffre || cli.annee || cli.anneeFacture || cli.annee_facture;
     if (anneeBrute !== undefined && anneeBrute !== null && anneeBrute !== '') {
       return String(anneeBrute).trim();
     }
@@ -367,25 +329,13 @@ function FactureLocataire({
     const textePeriode = cli.moisFacture || cli.periode || cli.mois_facture || '';
     if (typeof textePeriode === 'string' && textePeriode.trim() !== '') {
       const matchAnnee = textePeriode.match(/\b(20\d{2})\b/);
-      if (matchAnnee) {
-        return matchAnnee[0];
-      }
+      if (matchAnnee) return matchAnnee[0];
     }
 
-    const dateAUtiliser = 
-      cli.dateComptable || 
-      cli.dateBail || 
-      cli.dateFacture || 
-      cli.creeLe || 
-      cli.date_creation || 
-      cli.created_at;
-
+    const dateAUtiliser = cli.dateComptable || cli.dateBail || cli.dateFacture || cli.creeLe;
     if (dateAUtiliser) {
-      const dateObj = new Date(dateAUtiliser);
-      const anneeExtractive = dateObj.getFullYear();
-      if (!isNaN(anneeExtractive)) {
-        return String(anneeExtractive);
-      }
+      const anneeExtractive = new Date(dateAUtiliser).getFullYear();
+      if (!isNaN(anneeExtractive)) return String(anneeExtractive);
     }
     
     return 'Non défini';
@@ -412,12 +362,12 @@ function FactureLocataire({
   };
 
   const anneesDisponibles = Array.from(
-    new Set(factures.map(obtenirAnnee))
+    new Set(listeFactures.map(obtenirAnnee))
   ).filter(a => a !== 'Non défini').sort((a, b) => b.localeCompare(a));
 
   const facturesFiltrees = anneeSelectionnee === 'toutes' 
-    ? factures 
-    : factures.filter(cli => obtenirAnnee(cli) === anneeSelectionnee);
+    ? listeFactures 
+    : listeFactures.filter(cli => obtenirAnnee(cli) === anneeSelectionnee);
 
   const donneesGroupees = facturesFiltrees.reduce((acc, cli) => {
     const annee = obtenirAnnee(cli);
@@ -448,10 +398,7 @@ function FactureLocataire({
           <SelecteurAnneeConteneur>
             <FiFilter />
             <span>Année :</span>
-            <select 
-              value={anneeSelectionnee} 
-              onChange={(e) => setAnneeSelectionnee(e.target.value)}
-            >
+            <select value={anneeSelectionnee} onChange={(e) => setAnneeSelectionnee(e.target.value)}>
               <option value="toutes">Toutes les années</option>
               {anneesDisponibles.map(annee => (
                 <option key={annee} value={annee}>{annee}</option>
@@ -463,12 +410,7 @@ function FactureLocataire({
 
       <PDFFacturesLocataire ref={pdfRef} formaterDateFr={formaterDateFr} />
 
-      {chargementAPI ? (
-        <MessageVide>
-          <FiLoader size={32} className="fa-spin" style={{ marginBottom: '0.5rem', animation: 'spin 1s linear infinite' }} />
-          <p>Chargement automatique des factures depuis la base de données...</p>
-        </MessageVide>
-      ) : facturesFiltrees.length === 0 ? (
+      {facturesFiltrees.length === 0 ? (
         <MessageVide>
           <FiFileText size={32} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
           <p>Aucune facture de locataire trouvée pour la sélection.</p>
@@ -503,11 +445,8 @@ function FactureLocataire({
                         <BoutonGenererMois 
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (facturesDuMois.length > 0) {
-                              handleTelechargerPDF(facturesDuMois[0]);
-                            }
+                            if (facturesDuMois.length > 0) handleTelechargerPDF(facturesDuMois[0]);
                           }}
-                          title={`Générer la facture du mois de ${mois} ${annee}`}
                         >
                           <FiDownload /> Générer le mois
                         </BoutonGenererMois>
@@ -526,16 +465,11 @@ function FactureLocataire({
                             {facturesDuMois.map((cli, index) => {
                               const factureId = cli.id ? `id-${cli.id}-${index}` : `idx-${annee}-${mois}-${index}`;
                               const enCoursDeChargement = idEnCours === cli.id;
-                              const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || cli.nomLocataire || ''}`.trim() || 'Locataire Inconnu';
-                              const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || cli.dateEnregistrement || '-');
+                              const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Locataire Inconnu';
+                              const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || '-');
 
                               return (
-                                <CarteFacture 
-                                  key={factureId}
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.2, delay: index * 0.03 }}
-                                >
+                                <CarteFacture key={factureId}>
                                   <LigneInfo>
                                     <span>Bail : <strong>{cli.bail || cli.numero || 'N/A'}</strong></span>
                                     <BadgeStatut>{cli.modePaiement || cli.statut || 'Payé'}</BadgeStatut>
@@ -554,22 +488,10 @@ function FactureLocataire({
                                   </LigneInfo>
 
                                   <LigneInfo>
-                                    <span>Logement :</span>
-                                    <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${cli.logement || '-'} / ${cli.adresse || '-'}`}>
-                                      {cli.logement || '-'} / {cli.adresse || '-'}
-                                    </strong>
-                                  </LigneInfo>
-
-                                  <LigneInfo>
                                     <span>Montant :</span>
                                     <strong style={{ color: THEME.accentuation, fontSize: '0.9rem' }}>
                                       {cli.montant !== undefined ? `${cli.montant} ${cli.devise || 'USD'}` : '0 USD'}
                                     </strong>
-                                  </LigneInfo>
-
-                                  <LigneInfo>
-                                    <span>Période :</span>
-                                    <span>{cli.moisFacture || mois}</span>
                                   </LigneInfo>
 
                                   <SectionDetaillee>
@@ -578,27 +500,8 @@ function FactureLocataire({
                                   </SectionDetaillee>
 
                                   <GroupeBoutons>
-                                    <BoutonPDF 
-                                      onClick={() => handleTelechargerPDF(cli)} 
-                                      disabled={enCoursDeChargement}
-                                      title="Télécharger PDF"
-                                    >
-                                      {enCoursDeChargement ? (
-                                        <>
-                                          <motion.div 
-                                            animate={{ rotate: 360 }} 
-                                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                                            style={{ display: 'flex', alignItems: 'center' }}
-                                          >
-                                            <FiLoader />
-                                          </motion.div>
-                                          Génération...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <FiDownload /> PDF
-                                        </>
-                                      )}
+                                    <BoutonPDF onClick={() => handleTelechargerPDF(cli)} disabled={enCoursDeChargement}>
+                                      {enCoursDeChargement ? <><FiLoader /> Génération...</> : <><FiDownload /> PDF</>}
                                     </BoutonPDF>
                                   </GroupeBoutons>
                                 </CarteFacture>
@@ -618,5 +521,3 @@ function FactureLocataire({
     </ConteneurSection>
   );
 }
-
-export default FactureLocataire;

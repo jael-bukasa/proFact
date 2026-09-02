@@ -15,6 +15,29 @@ module.exports = function(db) {
     });
   });
 
+  // Route spécifique pour les factures d'électricité (gère /api/factures/electricite)
+  router.get('/electricite', (req, res) => {
+    factureService.obtenirParType(db, 'Électricité', (err, factures) => {
+      if (err) {
+        console.error("Erreur récupération factures électricité:", err);
+        return res.status(500).json({ erreur: "Erreur lors de la récupération des factures d'électricité." });
+      }
+      res.status(200).json(factures);
+    });
+  });
+
+  // Route spécifique avec un tiret pour correspondre exactement à l'appel frontend /api/factures-electricite 
+  // (si tu montes ce routeur avec app.use('/api', facturesRoutes))
+  router.get('/factures-electricite', (req, res) => {
+    factureService.obtenirParType(db, 'Électricité', (err, factures) => {
+      if (err) {
+        console.error("Erreur récupération factures électricité:", err);
+        return res.status(500).json({ erreur: "Erreur lors de la récupération des factures d'électricité." });
+      }
+      res.status(200).json(factures);
+    });
+  });
+
   // Route pour un client unique (création)
   router.post('/', (req, res) => {
     factureService.ajouter(db, req.body, (err, result) => {
