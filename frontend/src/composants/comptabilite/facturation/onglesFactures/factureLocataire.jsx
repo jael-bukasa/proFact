@@ -1,17 +1,18 @@
 import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter } from 'react-icons/fi';
+import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter, FiUser, FiHash, FiCreditCard, FiFolder, FiFile } from 'react-icons/fi';
 import PDFFacturesLocataire from './listePDF/PDFFacturesLocataire';
 
 const THEME = {
-  fondCarte: '#1E1E1E',
+  fondCarte: '#181818',
+  fondFichier: '#141414',
   accentuation: '#AEEA00',
   textePrincipal: '#FFFFFF',
   texteSecondaire: '#888888',
   bordure: '#2A2A2A',
-  survol: '#262626',
-  erreur: '#FF5252',
+  bordureClaire: '#3A3A3A',
+  survol: '#222222',
   vert: '#4CAF50',
 };
 
@@ -181,94 +182,132 @@ const ContenuDepliable = styled(motion.div)`
   padding-top: 1rem;
 `;
 
+/* --- FORCÉ STRICTEMENT À 5 PAR LIGNE --- */
 const GrilleFactures = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
-  align-items: start;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+  align-items: stretch;
+  width: 100%;
 `;
 
-const CarteFacture = styled(motion.div)`
-  background-color: ${THEME.fondCarte};
+const CarteFactureFichier = styled(motion.div)`
+  background-color: ${THEME.fondFichier};
   border: 1px solid ${THEME.bordure};
-  border-radius: 10px;
-  padding: 0.9rem;
+  border-radius: 8px;
+  padding: 0.65rem;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 0.5rem;
-  transition: border-color 0.2s;
+  position: relative;
+  min-width: 0;
+  transition: all 0.2s ease-in-out;
 
   &:hover {
     border-color: ${THEME.accentuation};
+    background-color: ${THEME.survol};
+    transform: translateY(-2px);
   }
 `;
 
-const LigneInfo = styled.div`
+const EnTeteFichier = styled.div`
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  font-size: 0.77rem;
-  color: ${THEME.texteSecondaire};
+  gap: 0.3rem;
 
-  strong {
-    color: ${THEME.textePrincipal};
+  .icone-doc {
+    color: ${THEME.accentuation};
+    font-size: 0.9rem;
+    background: rgba(174, 234, 0, 0.08);
+    padding: 0.3rem;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .badge-statut {
+    font-size: 0.5rem;
+    color: ${THEME.vert};
+    background: rgba(76, 175, 80, 0.1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
     font-weight: 600;
+    text-transform: uppercase;
   }
 `;
 
-const SectionDetaillee = styled.div`
-  background-color: #141414;
-  border: 1px solid ${THEME.bordure};
-  border-radius: 6px;
-  padding: 0.5rem;
-  font-size: 0.7rem;
-  color: ${THEME.texteSecondaire};
+const CorpsFichier = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
+  min-width: 0;
 
-  strong {
+  .nom-locataire {
+    font-size: 0.74rem;
+    font-weight: 600;
     color: ${THEME.textePrincipal};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .meta-infos {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.62rem;
+    color: ${THEME.texteSecondaire};
+    min-width: 0;
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 `;
 
-const BadgeStatut = styled.span`
-  font-size: 0.68rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 8px;
-  font-weight: 600;
-  background-color: rgba(76, 175, 80, 0.15);
-  color: ${THEME.vert};
-`;
-
-const GroupeBoutons = styled.div`
+const PiedFichier = styled.div`
   display: flex;
-  gap: 0.4rem;
-  margin-top: 0.2rem;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid ${THEME.bordure};
+  padding-top: 0.4rem;
+  margin-top: 0.1rem;
+  gap: 0.3rem;
+
+  .montant {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: ${THEME.accentuation};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
-const BoutonPDF = styled.button`
-  flex: 1;
-  background-color: #121212;
-  border: 1px solid ${THEME.bordure};
+const BoutonTelechargerFichier = styled.button`
+  background-color: #1C1C1C;
+  border: 1px solid ${THEME.bordureClaire};
   color: ${THEME.accentuation};
-  padding: 0.4rem;
-  border-radius: 6px;
-  font-size: 0.73rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 5px;
+  font-size: 0.6rem;
   font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
+  gap: 0.2rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 
   &:hover:not(:disabled) {
     background-color: ${THEME.accentuation};
@@ -277,9 +316,8 @@ const BoutonPDF = styled.button`
   }
 
   &:disabled {
-    opacity: 0.75;
+    opacity: 0.6;
     cursor: not-allowed;
-    background-color: #181818;
   }
 `;
 
@@ -390,8 +428,8 @@ export default function FactureLocataire({ listeFactures = [], formaterDateFr })
     <ConteneurSection as={motion.div} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <EnTeteSection>
         <div>
-          <Titre>Gestion des Factures & Loyers Locataires</Titre>
-          <SousTitre>Visualisez et filtrez les factures par année et par mois</SousTitre>
+          <Titre>Gestion des Factures &amp; Loyers Locataires</Titre>
+          <SousTitre>Visualisez et filtrez les factures sous forme de fichiers répertoriés</SousTitre>
         </div>
 
         {anneesDisponibles.length > 0 && (
@@ -437,8 +475,8 @@ export default function FactureLocataire({ listeFactures = [], formaterDateFr })
                         <IconeFleche animate={{ rotate: estOuvert ? 180 : 0 }} transition={{ duration: 0.2 }}>
                           <FiChevronDown />
                         </IconeFleche>
-                        <NomMois>{mois}</NomMois>
-                        <BadgeCompteur>{facturesDuMois.length} facture{facturesDuMois.length > 1 ? 's' : ''}</BadgeCompteur>
+                        <NomMois><FiFolder /> {mois}</NomMois>
+                        <BadgeCompteur>{facturesDuMois.length} fichier{facturesDuMois.length > 1 ? 's' : ''}</BadgeCompteur>
                       </GroupeInfosMois>
 
                       <ActionsMois>
@@ -448,7 +486,7 @@ export default function FactureLocataire({ listeFactures = [], formaterDateFr })
                             if (facturesDuMois.length > 0) handleTelechargerPDF(facturesDuMois[0]);
                           }}
                         >
-                          <FiDownload /> Générer le mois
+                          <FiDownload /> Tout générer (Mois)
                         </BoutonGenererMois>
                       </ActionsMois>
                     </EnTeteMois>
@@ -469,42 +507,37 @@ export default function FactureLocataire({ listeFactures = [], formaterDateFr })
                               const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || '-');
 
                               return (
-                                <CarteFacture key={factureId}>
-                                  <LigneInfo>
-                                    <span>Bail : <strong>{cli.bail || cli.numero || 'N/A'}</strong></span>
-                                    <BadgeStatut>{cli.modePaiement || cli.statut || 'Payé'}</BadgeStatut>
-                                  </LigneInfo>
+                                <CarteFactureFichier key={factureId}>
+                                  <div>
+                                    <EnTeteFichier>
+                                      <div className="icone-doc">
+                                        <FiFile />
+                                      </div>
+                                      <span className="badge-statut">{cli.modePaiement || cli.statut || 'Payé'}</span>
+                                    </EnTeteFichier>
 
-                                  <LigneInfo>
-                                    <span>Matricule :</span>
-                                    <strong style={{ color: THEME.accentuation }}>{cli.matricule || cli.clientCode || cli.numero || 'N/A'}</strong>
-                                  </LigneInfo>
+                                    <CorpsFichier style={{ marginTop: '0.4rem' }}>
+                                      <span className="nom-locataire" title={nomComplet}>{nomComplet}</span>
+                                      <div className="meta-infos">
+                                        <span><FiCreditCard size={9} /> Bail: {cli.bail || cli.numero || 'N/A'}</span>
+                                        <span><FiHash size={9} /> {cli.matricule || cli.clientCode || 'Matricule N/A'}</span>
+                                        <span>📅 {dateComptableAffichee}</span>
+                                      </div>
+                                    </CorpsFichier>
+                                  </div>
 
-                                  <LigneInfo>
-                                    <span>Locataire :</span>
-                                    <strong style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nomComplet}>
-                                      {nomComplet}
-                                    </strong>
-                                  </LigneInfo>
-
-                                  <LigneInfo>
-                                    <span>Montant :</span>
-                                    <strong style={{ color: THEME.accentuation, fontSize: '0.9rem' }}>
+                                  <PiedFichier>
+                                    <span className="montant" title={`${cli.montant !== undefined ? cli.montant : 0} ${cli.devise || 'USD'}`}>
                                       {cli.montant !== undefined ? `${cli.montant} ${cli.devise || 'USD'}` : '0 USD'}
-                                    </strong>
-                                  </LigneInfo>
-
-                                  <SectionDetaillee>
-                                    <div>Type : <strong>{cli.typeFacture || cli.type || 'Loyer'}</strong></div>
-                                    <div>Comptable : <strong>{dateComptableAffichee}</strong></div>
-                                  </SectionDetaillee>
-
-                                  <GroupeBoutons>
-                                    <BoutonPDF onClick={() => handleTelechargerPDF(cli)} disabled={enCoursDeChargement}>
-                                      {enCoursDeChargement ? <><FiLoader /> Génération...</> : <><FiDownload /> PDF</>}
-                                    </BoutonPDF>
-                                  </GroupeBoutons>
-                                </CarteFacture>
+                                    </span>
+                                    <BoutonTelechargerFichier 
+                                      onClick={() => handleTelechargerPDF(cli)} 
+                                      disabled={enCoursDeChargement}
+                                    >
+                                      {enCoursDeChargement ? <FiLoader className="fa-spin" size={11} /> : <><FiDownload size={11} /> PDF</>}
+                                    </BoutonTelechargerFichier>
+                                  </PiedFichier>
+                                </CarteFactureFichier>
                               );
                             })}
                           </GrilleFactures>

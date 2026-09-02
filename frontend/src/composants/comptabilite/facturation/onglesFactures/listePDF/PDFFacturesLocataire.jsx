@@ -29,7 +29,6 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
         }
       })
       .catch(() => {
-        // Utilisation silencieuse des banques par défaut si le serveur ne répond pas
         setBanques(banquesParDefaut);
       });
   }, []);
@@ -37,23 +36,18 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
   useImperativeHandle(ref, () => ({
     genererPDF: async (cli, options = { autoDownload: true }) => {
       setDonneesFacture(cli);
-      // Délai augmenté pour garantir que le DOM virtuel a fini de peindre les données du client
       await new Promise((resolve) => setTimeout(resolve, 350));
 
       const element = elementRef.current;
       if (!element) return null;
 
       try {
-        element.style.display = 'block';
-
         const canvas = await html2canvas(element, {
           scale: 2,
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff'
         });
-
-        element.style.display = 'none';
 
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -64,8 +58,6 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
         
         const nomFichier = `Facture_Locataire_${cli.matricule || cli.numero || cli.id || 'Client'}.pdf`;
 
-        // Si l'option autoDownload est désactivée (utile pour les téléchargements multiples en chaîne), 
-        // on retourne le blob/output au lieu de forcer pdf.save() directement pour éviter le blocage du navigateur.
         if (options.autoDownload === false) {
           return pdf.output('blob');
         }
@@ -74,7 +66,6 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
         return true;
       } catch (error) {
         console.error("Erreur génération PDF locataire :", error);
-        element.style.display = 'none';
         return null;
       }
     }
@@ -106,7 +97,11 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
     <div 
       ref={elementRef} 
       style={{ 
-        display: 'none',
+        position: 'absolute',
+        top: '-10000px',
+        left: '-10000px',
+        opacity: 0,
+        pointerEvents: 'none',
         width: '680px', 
         margin: '0 auto',
         background: '#ffffff', 

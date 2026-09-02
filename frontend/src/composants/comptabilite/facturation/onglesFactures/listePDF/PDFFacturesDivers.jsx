@@ -107,9 +107,9 @@ const PDFFacturesDivers = forwardRef(({ formaterDateFr }, ref) => {
   const montantFormate = Number(montantVal).toLocaleString('fr-FR', { minimumFractionDigits: 2 });
 
   const styleNomBanque = { display: 'inline-block', width: '58px' };
-  const moitié = Math.ceil(banques.length / 2);
-  const banquesColonne1 = banques.slice(0, moitié);
-  const banquesColonne2 = banques.slice(moitié);
+  const moitie = Math.ceil(banques.length / 2);
+  const banquesColonne1 = banques.slice(0, moitie);
+  const banquesColonne2 = banques.slice(moitie);
 
   const bordurePrincipale = '2px solid #111827';
   const bordureInterne = '1.5px solid #374151';
