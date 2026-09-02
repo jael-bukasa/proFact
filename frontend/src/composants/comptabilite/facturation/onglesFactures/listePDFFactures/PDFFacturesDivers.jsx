@@ -88,7 +88,7 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
   const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/EAU/2026`;
   const codeClientVal = cli.matricule || cli.numero || `EAU-0000000009`;
   const dateAffichage = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const nomClient = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
+  const nomClient = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.nomLocataire || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
   const adresseClient = `${cli.adresse || 'B.P 98'} - ${cli.pays || 'Congo'}`;
   const moisAffichage = cli.moisFacture ? `POUR LE MOIS DE ${cli.moisFacture.toUpperCase()}` : 'POUR LE MOIS DE JUILLET 2026';
   const objetAffichage = cli.designation || `CONSOMMATION EAU ET ENTRETIEN COMPTEUR`;
@@ -150,7 +150,7 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
                 <div><strong>DOIT :</strong> <span style={{ color: '#1f2937', fontWeight: '600' }}>{moisAffichage}</span></div>
               </div>
               <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                <strong>Client / Société :</strong> <span style={{ color: '#111827', fontWeight: '600' }}>{nomClient}</span><br/>
+                <strong>Client :</strong> <span style={{ color: '#111827', fontWeight: '600' }}>{nomClient}</span><br/>
                 <span style={{ color: '#4b5563' }}>{adresseClient}</span>
               </div>
               <div style={{ textAlign: 'center', marginTop: '4px' }}><strong>Objet :</strong> {objetAffichage}</div>

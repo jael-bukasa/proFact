@@ -20,6 +20,7 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
 
   useImperativeHandle(ref, () => ({
     genererPDF: async (cli) => {
+      console.log("🔍 CONTENU REÇU PAR LE PDF :", cli);
       setDonneesFacture(cli);
       await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -83,10 +84,20 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
   }));
 
   const cli = donneesFacture || {};
-  const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/EAU/2026`;
-  const codeClientVal = cli.matricule || cli.numero || `EAU-0000000009`;
+  const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || cli.numero || `0207/DCO/EAU/2026`;
+  const codeClientVal = cli.clientCode || cli.matricule || cli.numero || `EAU-0000000009`;
   const dateAffichage = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const nomClient = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
+  
+  const nomClient = 
+    (cli.nomLocataire ? String(cli.nomLocataire).replace(/['"]+/g, '').trim() : null) || 
+    (cli.nomClient ? String(cli.nomClient).replace(/['"]+/g, '').trim() : null) || 
+    cli.nomComplet || 
+    cli.nom_complet || 
+    cli.denomination || 
+    cli.raisonSociale || 
+    `${cli.nom || ''} ${cli.postNom || cli.postnom || ''} ${cli.prenom || ''}`.trim() || 
+    'Client Inconnu';
+
   const adresseClient = `${cli.adresse || 'B.P 98'} - ${cli.pays || 'Congo'}`;
   const moisAffichage = cli.moisFacture ? `POUR LE MOIS DE ${cli.moisFacture.toUpperCase()}` : 'POUR LE MOIS DE JUILLET 2026';
   const objetAffichage = cli.designation || `CONSOMMATION EAU ET ENTRETIEN COMPTEUR`;

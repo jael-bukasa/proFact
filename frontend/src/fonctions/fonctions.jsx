@@ -1,4 +1,3 @@
-
 // Fonction pour convertir un nombre en lettres (français)
 export function nombreEnLettres(nombre) {
   if (isNaN(nombre)) return "zéro";
@@ -57,11 +56,11 @@ export function nombreEnLettres(nombre) {
   return texteFinal;
 }
 
-// Fonction pour obtenir le libellé de la devise en toutes lettres
+// Fonction pour obtenir le libellé de la devise en toutes lettres (en majuscules)
 export function obtenirLibelleDevise(devise) {
   const code = (devise || 'USD').toUpperCase();
-  if (code === 'USD') return 'Dollars Américains';
-  if (code === 'CDF') return 'Francs Congolais';
+  if (code === 'USD') return 'DOLLARS AMÉRICAINS';
+  if (code === 'CDF') return 'FRANCS CONGOLAIS';
   return code;
 }
 

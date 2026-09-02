@@ -26,13 +26,34 @@ module.exports = function(db) {
     });
   });
 
-  // Route spécifique avec un tiret pour correspondre exactement à l'appel frontend /api/factures-electricite 
-  // (si tu montes ce routeur avec app.use('/api', facturesRoutes))
+  // Route spécifique avec un tiret pour correspondre à l'appel frontend /api/factures-electricite
   router.get('/factures-electricite', (req, res) => {
     factureService.obtenirParType(db, 'Électricité', (err, factures) => {
       if (err) {
         console.error("Erreur récupération factures électricité:", err);
         return res.status(500).json({ erreur: "Erreur lors de la récupération des factures d'électricité." });
+      }
+      res.status(200).json(factures);
+    });
+  });
+
+  // Route spécifique pour les factures d'eau (gère /api/factures/eau)
+  router.get('/eau', (req, res) => {
+    factureService.obtenirParType(db, 'Eau', (err, factures) => {
+      if (err) {
+        console.error("Erreur récupération factures eau:", err);
+        return res.status(500).json({ erreur: "Erreur lors de la récupération des factures d'eau." });
+      }
+      res.status(200).json(factures);
+    });
+  });
+
+  // Route spécifique avec un tiret pour correspondre exactement à l'appel frontend /api/factures-eau
+  router.get('/factures-eau', (req, res) => {
+    factureService.obtenirParType(db, 'Eau', (err, factures) => {
+      if (err) {
+        console.error("Erreur récupération factures eau:", err);
+        return res.status(500).json({ erreur: "Erreur lors de la récupération des factures d'eau." });
       }
       res.status(200).json(factures);
     });

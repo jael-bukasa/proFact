@@ -20,6 +20,7 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
 
   useImperativeHandle(ref, () => ({
     genererPDF: async (cli, options = { autoDownload: true }) => {
+      console.log("🔍 CONTENU REÇU PAR LE PDF :", cli);
       setDonneesFacture(cli);
       await new Promise((resolve) => setTimeout(resolve, 350));
 
@@ -65,7 +66,19 @@ const PDFFacturesLocataire = forwardRef(({ formaterDateFr }, ref) => {
   const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/LOY/2026`;
   const codeClientVal = cli.matricule || cli.numero || `LOY-0000000009`;
   const dateAffichage = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const nomClient = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
+  
+  // Prise en compte élargie de toutes les variantes possibles pour récupérer le nom du locataire
+  const nomClient = 
+    cli.nomLocataire ||
+    cli.nomComplet || 
+    cli.nom_complet || 
+    cli.nomClient || 
+    cli.denomination || 
+    cli.raisonSociale || 
+    `${cli.nom || ''} ${cli.postNom || cli.postnom || cli.post_nom || ''} ${cli.prenom || cli.prenomLocataire || cli.client || cli.locataire || ''}`.trim() || 
+    cli.clientNom || 
+    'Client Inconnu';
+
   const adresseClient = `${cli.adresse || 'B.P 98'} - ${cli.pays || 'Congo'}`;
   const moisAffichage = cli.moisFacture ? `POUR LE MOIS DE ${cli.moisFacture.toUpperCase()}` : 'POUR LE MOIS DE JUILLET 2026';
   const objetAffichage = cli.designation || `LOCATION IMMEUBLE SNCC A ILEBO`;
