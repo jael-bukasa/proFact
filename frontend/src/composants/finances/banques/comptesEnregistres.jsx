@@ -1,5 +1,5 @@
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { FiSearch, FiCreditCard, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 const THEME = {
@@ -15,7 +15,6 @@ const THEME = {
   bleu: '#38bdf8'
 };
 
-/* Animation d'apparition fluide lors du scroll */
 const apparition = keyframes`
   from {
     opacity: 0;
@@ -79,15 +78,14 @@ const CarteListe = styled.div`
   }
 `;
 
-const ListeBanquesContainer = styled.div`
+const SectionsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.5rem;
   max-height: 480px;
   overflow-y: auto;
   padding-right: 4px;
 
-  /* Personnalisation de la barre de défilement */
   &::-webkit-scrollbar {
     width: 6px;
   }
@@ -104,23 +102,49 @@ const ListeBanquesContainer = styled.div`
   }
 `;
 
+const BlocDevise = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  .titre-bloc {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: ${THEME.accent};
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid ${THEME.bordure};
+  }
+`;
+
+const ListeBanquesContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+// Application dynamique de la couleur si la banque vient d'être modifiée
 const ElementBanque = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: ${THEME.fondPrincipal};
-  border: 1px solid ${THEME.bordure};
+  background: ${props => props.$estModifie ? 'rgba(174, 234, 0, 0.08)' : THEME.fondPrincipal};
+  border: 1px solid ${props => props.$estModifie ? THEME.accent : THEME.bordure};
   padding: 0.9rem 1rem;
   border-radius: 10px;
-  
-  /* Animation d'apparition en cascade pour chaque élément */
+
   animation: ${apparition} 0.4s ease forwards;
-  transition: all 0.25s ease;
+  transition: all 0.4s ease;
 
   &:hover {
     border-color: ${THEME.accent};
     transform: translateX(4px);
-    background: rgba(174, 234, 0, 0.02);
+    background: rgba(174, 234, 0, 0.04);
+
+    .icone-banque {
+      background: rgba(174, 234, 0, 0.1);
+    }
   }
 
   .infos-banque {
@@ -140,10 +164,6 @@ const ElementBanque = styled.div`
       color: ${THEME.accent};
       font-size: 1.05rem;
       transition: background 0.25s ease;
-
-      ${ElementBanque}:hover & {
-        background: rgba(174, 234, 0, 0.1);
-      }
     }
 
     .details {
@@ -174,12 +194,6 @@ const ElementBanque = styled.div`
       display: flex;
       align-items: center;
       gap: 0.4rem;
-
-      .solde {
-        color: ${THEME.accent};
-        font-weight: 700;
-        font-size: 0.9rem;
-      }
 
       .badge-devise {
         font-size: 0.65rem;
@@ -231,7 +245,11 @@ const MessageVide = styled.div`
   border: 1px dashed ${THEME.bordure};
 `;
 
-export default function ComptesEnregistres({ banquesFiltrees, recherche, setRecherche, onModifier, onSupprimer }) {
+export default function ComptesEnregistres({ banquesFiltrees, recherche, setRecherche, onModifier, onSupprimer, idModifieRecent }) {
+  // Séparation des comptes par devise
+  const comptesUSD = banquesFiltrees.filter(b => (b.devise || 'USD').toUpperCase() === 'USD');
+  const comptesCDF = banquesFiltrees.filter(b => (b.devise || '').toUpperCase() === 'CDF');
+
   return (
     <CarteListe>
       <div className="entete-liste">
@@ -251,29 +269,65 @@ export default function ComptesEnregistres({ banquesFiltrees, recherche, setRech
       {banquesFiltrees.length === 0 ? (
         <MessageVide>Aucun compte bancaire ne correspond à votre recherche.</MessageVide>
       ) : (
-        <ListeBanquesContainer>
-          {banquesFiltrees.map((banque) => (
-            <ElementBanque key={banque.id}>
-              <div className="infos-banque">
-                <div className="icone-banque"><FiCreditCard /></div>
-                <div className="details">
-                  <h4>{banque.nom}</h4>
-                  <span>N° {banque.numeroCompte}</span>
-                </div>
-              </div>
-              <div className="actions-banque">
-                <div className="conteneur-solde">
-                  <span className="solde">{banque.solde.toLocaleString()}</span>
-                  <span className="badge-devise">{banque.devise === 'USD' ? '$' : 'FC'}</span>
-                </div>
-                <div className="groupe-btn">
-                  <button className="btn-modifier" onClick={() => onModifier(banque)} title="Modifier"><FiEdit2 /></button>
-                  <button className="btn-supprimer" onClick={() => onSupprimer(banque.id)} title="Supprimer"><FiTrash2 /></button>
-                </div>
-              </div>
-            </ElementBanque>
-          ))}
-        </ListeBanquesContainer>
+        <SectionsContainer>
+          {/* Bloc USD */}
+          {comptesUSD.length > 0 && (
+            <BlocDevise>
+              <div className="titre-bloc">Comptes USD ($)</div>
+              <ListeBanquesContainer>
+                {comptesUSD.map((banque) => (
+                  <ElementBanque key={banque.id} $estModifie={banque.id === idModifieRecent}>
+                    <div className="infos-banque">
+                      <div className="icone-banque"><FiCreditCard /></div>
+                      <div className="details">
+                        <h4>{banque.nomBanque}</h4>
+                        <span>N° {banque.numeroCompte.replace(/^N°\s*/i, '')}</span>
+                      </div>
+                    </div>
+                    <div className="actions-banque">
+                      <div className="conteneur-solde">
+                        <span className="badge-devise">{banque.devise || 'USD'}</span>
+                      </div>
+                      <div className="groupe-btn">
+                        <button className="btn-modifier" onClick={() => onModifier(banque)} title="Modifier"><FiEdit2 /></button>
+                        <button className="btn-supprimer" onClick={() => onSupprimer(banque.id)} title="Supprimer"><FiTrash2 /></button>
+                      </div>
+                    </div>
+                  </ElementBanque>
+                ))}
+              </ListeBanquesContainer>
+            </BlocDevise>
+          )}
+
+          {/* Bloc CDF */}
+          {comptesCDF.length > 0 && (
+            <BlocDevise>
+              <div className="titre-bloc">Comptes CDF (FC)</div>
+              <ListeBanquesContainer>
+                {comptesCDF.map((banque) => (
+                  <ElementBanque key={banque.id} $estModifie={banque.id === idModifieRecent}>
+                    <div className="infos-banque">
+                      <div className="icone-banque"><FiCreditCard /></div>
+                      <div className="details">
+                        <h4>{banque.nomBanque}</h4>
+                        <span>N° {banque.numeroCompte.replace(/^N°\s*/i, '')}</span>
+                      </div>
+                    </div>
+                    <div className="actions-banque">
+                      <div className="conteneur-solde">
+                        <span className="badge-devise">{banque.devise || 'CDF'}</span>
+                      </div>
+                      <div className="groupe-btn">
+                        <button className="btn-modifier" onClick={() => onModifier(banque)} title="Modifier"><FiEdit2 /></button>
+                        <button className="btn-supprimer" onClick={() => onSupprimer(banque.id)} title="Supprimer"><FiTrash2 /></button>
+                      </div>
+                    </div>
+                  </ElementBanque>
+                ))}
+              </ListeBanquesContainer>
+            </BlocDevise>
+          )}
+        </SectionsContainer>
       )}
     </CarteListe>
   );

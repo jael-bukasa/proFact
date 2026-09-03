@@ -1,6 +1,7 @@
-import React from 'react';
-import styled from 'styled-components';
-import { FiCreditCard, FiPlus, FiX } from 'react-icons/fi';
+import React, { useState } from 'react';
+import styled, { keyframes } from 'styled-components';
+import { FiCreditCard, FiPlus, FiX, FiAlertCircle, FiRotateCcw } from 'react-icons/fi';
+import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 
 const THEME = {
   fondCarte: '#18181b',
@@ -12,6 +13,22 @@ const THEME = {
   texteSecondaire: '#a1a1aa',
   rouge: '#f87171'
 };
+
+const rotation = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const vibration = keyframes`
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+`;
+
+const clignotement = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+`;
 
 const CarteFormulaire = styled.div`
   background: ${THEME.fondCarte};
@@ -38,7 +55,12 @@ const CarteFormulaire = styled.div`
       gap: 0.5rem;
     }
 
-    button.btn-annuler-edition {
+    .actions-entete {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    button.btn-annuler-edition, button.btn-reinitialiser {
       background: rgba(248, 113, 113, 0.1);
       border: 1px solid rgba(248, 113, 113, 0.2);
       color: ${THEME.rouge};
@@ -49,6 +71,32 @@ const CarteFormulaire = styled.div`
       display: flex;
       align-items: center;
       gap: 0.3rem;
+      transition: background 0.2s ease;
+
+      &:hover:not(:disabled) {
+        background: rgba(248, 113, 113, 0.2);
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .icone-chargement-mini {
+        animation: ${rotation} 1s linear infinite;
+        font-size: 0.9rem;
+      }
+    }
+
+    button.btn-reinitialiser {
+      background: rgba(161, 161, 170, 0.1);
+      border: 1px solid rgba(161, 161, 170, 0.2);
+      color: ${THEME.texteSecondaire};
+
+      &:hover:not(:disabled) {
+        background: rgba(161, 161, 170, 0.2);
+        color: ${THEME.textePrincipal};
+      }
     }
   }
 
@@ -76,11 +124,29 @@ const CarteFormulaire = styled.div`
         color: ${THEME.textePrincipal};
         font-size: 0.88rem;
         outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &.en-erreur {
+          border-color: ${THEME.rouge};
+          animation: ${vibration} 0.4s ease-in-out;
+          box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.15);
+        }
 
         &:focus {
           border-color: ${THEME.bordureFocus};
           box-shadow: 0 0 0 2px rgba(174, 234, 0, 0.15);
         }
+      }
+
+      .message-erreur {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: ${THEME.rouge};
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-top: 0.15rem;
+        animation: ${clignotement} 1.2s ease-in-out infinite;
       }
     }
 
@@ -98,15 +164,67 @@ const CarteFormulaire = styled.div`
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
+      transition: opacity 0.2s ease;
 
-      &:hover {
+      &:hover:not(:disabled) {
         opacity: 0.9;
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .icone-chargement {
+        animation: ${rotation} 1s linear infinite;
+        font-size: 1rem;
       }
     }
   }
 `;
 
 export default function NouvelleBanque({ form, setForm, onSubmit, idEnCoursDeModification, onAnnuler }) {
+  const [enChargement, setEnChargement] = useState(false);
+  const [enChargementReset, setEnChargementReset] = useState(false);
+  const [erreurs, setErreurs] = useState({});
+  const [cleAnimation, setCleAnimation] = useState(0);
+
+  const validerEtSoumettre = async (e) => {
+    e.preventDefault();
+    
+    let nouvellesErreurs = {};
+    if (!form.nomBanque.trim()) {
+      nouvellesErreurs.nomBanque = "Veuillez renseigner ce champ.";
+    }
+    if (!form.numeroCompte.trim()) {
+      nouvellesErreurs.numeroCompte = "Veuillez renseigner ce champ.";
+    }
+
+    if (Object.keys(nouvellesErreurs).length > 0) {
+      setErreurs(nouvellesErreurs);
+      setCleAnimation(prev => prev + 1);
+      return;
+    }
+
+    setErreurs({});
+    setEnChargement(true);
+
+    setTimeout(async () => {
+      await onSubmit(e);
+      setEnChargement(false);
+    }, 600);
+  };
+
+  const gererReinitialisation = () => {
+    setEnChargementReset(true);
+    setErreurs({});
+
+    setTimeout(() => {
+      onAnnuler();
+      setEnChargementReset(false);
+    }, 500);
+  };
+
   return (
     <CarteFormulaire>
       <div className="entete-form">
@@ -114,33 +232,69 @@ export default function NouvelleBanque({ form, setForm, onSubmit, idEnCoursDeMod
           <FiCreditCard />
           {idEnCoursDeModification !== null ? 'Modifier le compte' : 'Nouvelle Banque'}
         </h3>
-        {idEnCoursDeModification !== null && (
-          <button type="button" className="btn-annuler-edition" onClick={onAnnuler}>
-            <FiX /> Annuler
+        <div className="actions-entete">
+          <button 
+            type="button" 
+            className="btn-reinitialiser" 
+            onClick={gererReinitialisation} 
+            disabled={enChargement || enChargementReset} 
+            title="Réinitialiser le formulaire"
+          >
+            {enChargementReset ? (
+              <AiOutlineLoading3Quarters className="icone-chargement-mini" />
+            ) : (
+              <FiRotateCcw />
+            )}
+            Réinitialiser
           </button>
-        )}
+          {idEnCoursDeModification !== null && (
+            <button type="button" className="btn-annuler-edition" onClick={onAnnuler} disabled={enChargement || enChargementReset}>
+              <FiX /> Annuler
+            </button>
+          )}
+        </div>
       </div>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={validerEtSoumettre} noValidate>
         <div className="groupe-champ">
           <label>Nom de la banque</label>
           <input 
+            key={`nom-${cleAnimation}`}
             type="text" 
             placeholder="Ex: Rawbank, TMB, Equity..." 
-            value={form.nom}
-            onChange={(e) => setForm({ ...form, nom: e.target.value })}
-            required
+            value={form.nomBanque}
+            onChange={(e) => {
+              setForm({ ...form, nomBanque: e.target.value });
+              if (erreurs.nomBanque) setErreurs({ ...erreurs, nomBanque: null });
+            }}
+            disabled={enChargement || enChargementReset}
+            className={erreurs.nomBanque ? 'en-erreur' : ''}
           />
+          {erreurs.nomBanque && (
+            <span className="message-erreur">
+              <FiAlertCircle size={13} /> {erreurs.nomBanque}
+            </span>
+          )}
         </div>
 
         <div className="groupe-champ">
           <label>Numéro de compte</label>
           <input 
+            key={`compte-${cleAnimation}`}
             type="text" 
             placeholder="Ex: 00123456789" 
             value={form.numeroCompte}
-            onChange={(e) => setForm({ ...form, numeroCompte: e.target.value })}
-            required
+            onChange={(e) => {
+              setForm({ ...form, numeroCompte: e.target.value });
+              if (erreurs.numeroCompte) setErreurs({ ...erreurs, numeroCompte: null });
+            }}
+            disabled={enChargement || enChargementReset}
+            className={erreurs.numeroCompte ? 'en-erreur' : ''}
           />
+          {erreurs.numeroCompte && (
+            <span className="message-erreur">
+              <FiAlertCircle size={13} /> {erreurs.numeroCompte}
+            </span>
+          )}
         </div>
 
         <div className="groupe-champ">
@@ -148,25 +302,22 @@ export default function NouvelleBanque({ form, setForm, onSubmit, idEnCoursDeMod
           <select 
             value={form.devise}
             onChange={(e) => setForm({ ...form, devise: e.target.value })}
+            disabled={enChargement || enChargementReset}
           >
             <option value="USD">USD ($)</option>
             <option value="CDF">CDF (FC)</option>
           </select>
         </div>
 
-        <div className="groupe-champ">
-          <label>Solde {idEnCoursDeModification !== null ? '(actuel)' : 'initial'}</label>
-          <input 
-            type="number" 
-            step="0.01" 
-            placeholder="0.00" 
-            value={form.soldeInitiale}
-            onChange={(e) => setForm({ ...form, soldeInitiale: e.target.value })}
-          />
-        </div>
-
-        <button type="submit" className="btn-soumettre">
-          {idEnCoursDeModification !== null ? 'Mettre à jour le compte' : <><FiPlus /> Enregistrer la banque</>}
+        <button type="submit" className="btn-soumettre" disabled={enChargement || enChargementReset}>
+          {enChargement ? (
+            <>
+              <AiOutlineLoading3Quarters className="icone-chargement" />
+              Traitement en cours...
+            </>
+          ) : (
+            idEnCoursDeModification !== null ? 'Mettre à jour le compte' : <><FiPlus /> Enregistrer la banque</>
+          )}
         </button>
       </form>
     </CarteFormulaire>

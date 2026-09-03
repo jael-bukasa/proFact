@@ -11,7 +11,6 @@ const THEME = {
   fondInput: '#27272a'
 };
 
-/* Animation d'apparition fluide lors du chargement ou du scroll */
 const apparition = keyframes`
   from {
     opacity: 0;
@@ -26,41 +25,42 @@ const apparition = keyframes`
 const CarteStat = styled.div`
   background: ${THEME.fondCarte};
   border: 1px solid ${THEME.bordure};
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 1.25rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   
-  /* Application de l'animation au scroll/chargement */
   animation: ${apparition} 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  
-  /* Transition fluide pour les effets de survol */
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 
   &:hover {
-    transform: translateY(-4px);
     border-color: ${THEME.accent};
     box-shadow: 0 8px 30px rgba(174, 234, 0, 0.1);
+
+    .icone-stat {
+      background: rgba(174, 234, 0, 0.1);
+    }
   }
 
   .infos-stat {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.2rem;
 
     span.titre {
       color: ${THEME.texteSecondaire};
       font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
     }
 
     span.valeur {
       color: ${THEME.textePrincipal};
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       font-weight: 700;
     }
   }
@@ -77,10 +77,6 @@ const CarteStat = styled.div`
     font-size: 1.2rem;
     border: 1px solid ${THEME.bordure};
     transition: background 0.25s ease;
-
-    ${CarteStat}:hover & {
-      background: rgba(174, 234, 0, 0.1);
-    }
   }
 `;
 

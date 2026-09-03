@@ -64,15 +64,11 @@ const ConteneurContenuPrincipal = styled.main`
   padding: 2.5rem;
   overflow-y: auto;
   background-color: #000000;
-  
-  /* Évite le saut de largeur quand la barre de défilement apparaît/disparaît */
-  scrollbar-gutter: stable;
 
-  /* --- SUPPORT FIREFOX --- */
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 
-  /* --- SCROLLBAR WEBKIT (Chrome, Edge, Safari) --- */
   &::-webkit-scrollbar {
     width: 6px;
   }
@@ -128,7 +124,7 @@ const VoyantSignal = styled.span`
 export default function App() {
   const [etatAuth, setEtatAuth] = useState('connexion');
   const referenceContenu = useRef(null);
-  
+
   const [utilisateurActuel, setUtilisateurActuel] = useState({
     prenom: 'Jaël',
     nom: 'Mulaji',
@@ -143,11 +139,10 @@ export default function App() {
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [backendConnecte, setBackendConnecte] = useState(false);
 
-  // État centralisé des clients (chargé depuis le backend MySQL)
+  // États centralisés
   const [clientsEnregistres, setClientsEnregistres] = useState([]);
-
-  // État centralisé des factures récupérées depuis le backend
   const [facturesEnregistrees, setFacturesEnregistrees] = useState([]);
+  const [banquesEnregistrees, setBanquesEnregistrees] = useState([]);
 
   const [facturiers, setFacturiers] = useState(() => {
     try {
@@ -160,14 +155,14 @@ export default function App() {
     }
   });
 
-  // Remet le scroll tout en haut à chaque changement d'onglet pour éviter les sauts visuels
+  // Remet le scroll en haut au changement d'onglet
   useEffect(() => {
     if (referenceContenu.current) {
       referenceContenu.current.scrollTop = 0;
     }
   }, [ongletActif]);
 
-  // Charger les clients depuis l'API backend MySQL au démarrage
+  // Charger les clients depuis l'API backend
   useEffect(() => {
     const chargerClientsGlobal = async () => {
       try {
@@ -176,13 +171,13 @@ export default function App() {
           setClientsEnregistres(Array.isArray(reponse.data) ? reponse.data : []);
         }
       } catch (err) {
-        console.error("Impossible de récupérer les clients depuis l'API backend", err);
+        console.error("Impossible de récupérer les clients", err);
       }
     };
     chargerClientsGlobal();
   }, []);
 
-  // Charger les factures depuis l'API globale au démarrage
+  // Charger les factures depuis l'API backend
   useEffect(() => {
     const chargerFacturesGlobal = async () => {
       try {
@@ -191,10 +186,25 @@ export default function App() {
           setFacturesEnregistrees(reponse.data);
         }
       } catch (err) {
-        console.error("Impossible de récupérer les factures depuis l'API backend", err);
+        console.error("Impossible de récupérer les factures", err);
       }
     };
     chargerFacturesGlobal();
+  }, []);
+
+  // Charger les banques depuis l'API backend
+  useEffect(() => {
+    const chargerBanquesGlobal = async () => {
+      try {
+        const reponse = await axios.get('http://localhost:5000/api/banques');
+        if (reponse.data) {
+          setBanquesEnregistrees(Array.isArray(reponse.data) ? reponse.data : []);
+        }
+      } catch (err) {
+        console.error("Impossible de récupérer les banques", err);
+      }
+    };
+    chargerBanquesGlobal();
   }, []);
 
   useEffect(() => {
@@ -327,13 +337,18 @@ export default function App() {
           />
         );
       case 'Banques':
-        return <Banques />;
+        return (
+          <Banques 
+            banquesEnregistrees={banquesEnregistrees}
+            setBanquesEnregistrees={setBanquesEnregistrees}
+          />
+        );
       case 'Rapports':
         return <Rapports />;
-      
+
       case 'Créer un compte':
         return <CreationsComptes surAjoutFacturier={ajouterFacturier} />;
-      
+
       case 'Gérer les comptes':
         return (
           <GererComptes 
