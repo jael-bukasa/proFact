@@ -306,7 +306,8 @@ export default function TableauDeBord({ utilisateurConnecte }) {
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         <RepartionParTypes 
-          clientsFiltresGlobal={clientsEnregistres}
+          // Modification ici : on passe les données déjà filtrées par mois/année du tableau de bord
+          clientsFiltresGlobal={statistiques.clientsFiltres}
           statsTypes={{
             Loyers: { count: 0, montantUSD: 0, couleur: THEME.accentuation, icon: '🏠', label: 'Loyers' },
             Eau: { count: 0, montantUSD: 0, couleur: THEME.bleu, icon: '💧', label: 'Eau' },

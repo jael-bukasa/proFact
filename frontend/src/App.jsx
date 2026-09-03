@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled, { createGlobalStyle, keyframes } from 'styled-components';
 import axios from 'axios';
 
@@ -8,6 +8,9 @@ import TableauDeBord from './composants/gestionLocative/tableauDeBord';
 import Clients from './composants/gestionLocative/clients';
 import Facturation from './composants/comptabilite/facturation';
 import Rapports from './composants/comptabilite/rapports';
+
+// --- IMPORT BANQUES (depuis le dossier finances) ---
+import Banques from './composants/finances/banques';
 
 // --- IMPORTS GESTION UTILISATEURS ---
 import CreationsComptes from './composants/gestionsUtilisateurs/creationsComptes';
@@ -44,7 +47,7 @@ const StyleGlobal = createGlobalStyle`
 
 const THEME = {
   fondApplication: '#000000',
-  accentuation: '#AEEA00',
+  accentuation: '#22c55e',
   bordure: 'rgba(255, 255, 255, 0.08)'
 };
 
@@ -61,6 +64,35 @@ const ConteneurContenuPrincipal = styled.main`
   padding: 2.5rem;
   overflow-y: auto;
   background-color: #000000;
+  
+  /* Évite le saut de largeur quand la barre de défilement apparaît/disparaît */
+  scrollbar-gutter: stable;
+
+  /* --- SUPPORT FIREFOX --- */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+  /* --- SCROLLBAR WEBKIT (Chrome, Edge, Safari) --- */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 8px 0;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
+    min-height: 40px;
+    transition: background 0.2s ease;
+  }
+
+  &::-webkit-scrollbar-thumb:hover,
+  &::-webkit-scrollbar-thumb:active {
+    background: ${THEME.accentuation};
+  }
 `;
 
 const ZoneAnimee = styled.div`
@@ -95,6 +127,7 @@ const VoyantSignal = styled.span`
 
 export default function App() {
   const [etatAuth, setEtatAuth] = useState('connexion');
+  const referenceContenu = useRef(null);
   
   const [utilisateurActuel, setUtilisateurActuel] = useState({
     prenom: 'Jaël',
@@ -126,6 +159,13 @@ export default function App() {
       return [];
     }
   });
+
+  // Remet le scroll tout en haut à chaque changement d'onglet pour éviter les sauts visuels
+  useEffect(() => {
+    if (referenceContenu.current) {
+      referenceContenu.current.scrollTop = 0;
+    }
+  }, [ongletActif]);
 
   // Charger les clients depuis l'API backend MySQL au démarrage
   useEffect(() => {
@@ -286,6 +326,8 @@ export default function App() {
             onRetour={() => setOngletActif(estAdmin ? 'Tableau de bord' : 'Clients')} 
           />
         );
+      case 'Banques':
+        return <Banques />;
       case 'Rapports':
         return <Rapports />;
       
@@ -338,7 +380,7 @@ export default function App() {
           surDeconnexionEffective={() => setEtatAuth('connexion')}
           utilisateurConnecte={utilisateurActuel}
         />
-        <ConteneurContenuPrincipal>
+        <ConteneurContenuPrincipal ref={referenceContenu}>
           <ZoneAnimee key={ongletActif}>
             {afficherPageCourante()}
           </ZoneAnimee>

@@ -5,7 +5,7 @@ import Deconnexion from './profil/deconnexion/deconnexion';
 const THEME = {
   fondSidebar: '#000000',
   fondCarte: '#1E1E1E',
-  accentuation: '#AEEA00',
+  accentuation: '#22c55e',
   textePrincipal: '#FFFFFF',
   texteSecondaire: '#888888',
   bordure: '#2A2A2A'
@@ -24,6 +24,36 @@ const ConteneurBarreLaterale = styled.aside`
   border-right: 1px solid ${THEME.bordure};
   overflow-y: auto;
   box-sizing: border-box;
+
+  /* Empêche les micro-sauts de mise en page quand la scrollbar apparaît */
+  scrollbar-gutter: stable;
+
+  /* --- SUPPORT FIREFOX --- */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+  /* --- SCROLLBAR WEBKIT (Chrome, Edge, Safari) --- */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 8px 0;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
+    min-height: 40px;
+    transition: background 0.2s ease;
+  }
+
+  /* Devient vert au survol, au clic et pendant le défilement */
+  &::-webkit-scrollbar-thumb:hover,
+  &::-webkit-scrollbar-thumb:active {
+    background: ${THEME.accentuation};
+  }
 `;
 
 const SectionProfil = styled.div`
@@ -105,7 +135,7 @@ const OptionProfil = styled.div`
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: rgba(174, 234, 0, 0.1);
+    background-color: rgba(34, 197, 94, 0.1);
     color: ${THEME.accentuation};
     transform: translateX(4px);
   }
@@ -150,7 +180,7 @@ const ElementNav = styled.div`
     background-color: ${THEME.accentuation};
     color: #000000;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(174, 234, 0, 0.25);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
 
     & span {
       color: #000000 !important;
@@ -190,6 +220,7 @@ const obtenirIconeNav = (element) => {
     case 'Facturation': return '📄';
     case 'Créer un compte': return '➕';
     case 'Gérer les comptes': return '⚙️';
+    case 'Banques': return '🏦';
     default: return '📁';
   }
 };
@@ -214,6 +245,10 @@ export default function BarreLaterale({
     { 
       titre: 'GESTION UTILISATEURS', 
       elements: ['Créer un compte', 'Gérer les comptes'] 
+    },
+    {
+      titre: 'FINANCES',
+      elements: ['Banques']
     }
   ] : [
     { 

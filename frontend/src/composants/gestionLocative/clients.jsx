@@ -95,7 +95,8 @@ const extraireHeureAuto = (client) => {
 export default function Clients() {
   const [clientsEnregistres, setClientsEnregistres] = useState([]);
   const [listeCorbeille, setListeCorbeille] = useState([]);
-  const [ongletActif, setOngletActif] = useState('enregistres');
+  // 🌟 MODIFICATION ICI : On initialise sur 'gestion' pour arriver directement sur l'enregistrement
+  const [ongletActif, setOngletActif] = useState('gestion');
   const [notification, setNotification] = useState(null);
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [erreursChamps, setErreursChamps] = useState({});
@@ -330,7 +331,6 @@ export default function Clients() {
       await chargerClients();
       
       reinitialiserFormulaire();
-      // 🌟 Suppression du changement d'onglet automatique ici : on reste sur le formulaire
     } catch (erreur) {
       console.error("Détail complet de l'erreur :", erreur.response?.data || erreur.message);
       const messageServeur = erreur.response?.data?.message || erreur.message;
@@ -367,7 +367,6 @@ export default function Clients() {
             onSubmit={soumettreFormulaireClient} 
             onClientAjoute={async () => {
               await chargerClients();
-              // Reste sur l'onglet gestion sans basculer
             }}
           />
           <AnimatePresence>

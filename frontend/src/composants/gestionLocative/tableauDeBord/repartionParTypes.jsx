@@ -32,22 +32,6 @@ const TitreSection = styled.h3`
   margin: 0;
 `;
 
-const SelecteurMois = styled.select`
-  background-color: ${THEME.fondCarte};
-  color: ${THEME.textePrincipal};
-  border: 1px solid ${THEME.bordure};
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  outline: none;
-  cursor: pointer;
-  transition: border-color 0.2s;
-
-  &:hover, &:focus {
-    border-color: ${THEME.accentuation};
-  }
-`;
-
 const GrilleCategories = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -151,40 +135,10 @@ const MessageAucuneDonnee = styled.div`
 `;
 
 export default function RepartionParTypes({ clientsFiltresGlobal = [], statsTypes, devise, tauxChangeCDF }) {
-  const [moisSelectionne, setMoisSelectionne] = useState('tous');
-
-  // Liste des mois disponibles basée sur les données réelles
-  const moisDisponibles = useMemo(() => {
-    const moisSet = new Set();
-    clientsFiltresGlobal.forEach(cli => {
-      const rawDate = cli.creeLe || cli.dateEnregistrement || cli.date || cli.dateComptable || cli.dateEntree || cli.created_at || cli.createdAt;
-      if (rawDate) {
-        const d = new Date(rawDate);
-        if (!isNaN(d.getTime())) {
-          const anneeMois = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          moisSet.add(anneeMois);
-        }
-      }
-    });
-    return Array.from(moisSet).sort().reverse();
-  }, [clientsFiltresGlobal]);
-
-  // Calcul des statistiques filtrées spécifiquement pour le mois choisi
+  // Calcul basé directement sur l'ensemble des données filtrées globales (sans sélecteur interne)
   const { statsParMois, totalDossiersMois } = useMemo(() => {
     let donneesCibles = clientsFiltresGlobal;
 
-    if (moisSelectionne !== 'tous') {
-      donneesCibles = clientsFiltresGlobal.filter(cli => {
-        const rawDate = cli.creeLe || cli.dateEnregistrement || cli.date || cli.dateComptable || cli.dateEntree || cli.created_at || cli.createdAt;
-        if (!rawDate) return false;
-        const d = new Date(rawDate);
-        if (isNaN(d.getTime())) return false;
-        const anneeMois = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        return anneeMois === moisSelectionne;
-      });
-    }
-
-    // Copie de la structure initiale des types avec remise à zéro
     const statsCourantes = JSON.parse(JSON.stringify(statsTypes));
     Object.keys(statsCourantes).forEach(k => {
       statsCourantes[k].count = 0;
@@ -224,14 +178,7 @@ export default function RepartionParTypes({ clientsFiltresGlobal = [], statsType
       statsParMois: statsCourantes,
       totalDossiersMois: donneesCibles.length
     };
-  }, [clientsFiltresGlobal, moisSelectionne, statsTypes, tauxChangeCDF]);
-
-  const formaterNomMois = (strAnneeMois) => {
-    if (strAnneeMois === 'tous') return 'Tous les mois';
-    const [annee, mois] = strAnneeMois.split('-');
-    const date = new Date(annee, mois - 1, 1);
-    return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-  };
+  }, [clientsFiltresGlobal, statsTypes, tauxChangeCDF]);
 
   return (
     <SectionCategories
@@ -241,18 +188,7 @@ export default function RepartionParTypes({ clientsFiltresGlobal = [], statsType
       transition={{ duration: 0.4 }}
     >
       <EnTeteSectionFlex>
-        <TitreSection>Répartition par Type & Statistiques Mensuelles</TitreSection>
-        <SelecteurMois 
-          value={moisSelectionne} 
-          onChange={(e) => setMoisSelectionne(e.target.value)}
-        >
-          <option value="tous">📅 Tous les mois (Global)</option>
-          {moisDisponibles.map(m => (
-            <option key={m} value={m}>
-              📅 {formaterNomMois(m)}
-            </option>
-          ))}
-        </SelecteurMois>
+        <TitreSection>Répartition par Type</TitreSection>
       </EnTeteSectionFlex>
 
       <GrilleCategories>
@@ -296,13 +232,13 @@ export default function RepartionParTypes({ clientsFiltresGlobal = [], statsType
 
               <BlocVolumeCategorie>
                 <div>
-                  <div className="label-volume">Volume ({formaterNomMois(moisSelectionne)}) :</div>
+                  <div className="label-volume">Volume :</div>
                   <div className="montant-volume">
                     {montantCategorieAffiche.toLocaleString(undefined, { maximumFractionDigits: 0 })} {devise}
                   </div>
                 </div>
                 <div className="pourcentage-volume">
-                  {pourcentage}% du<br />total mois
+                  {pourcentage}% du<br />total
                 </div>
               </BlocVolumeCategorie>
             </CarteCategorie>
@@ -311,7 +247,7 @@ export default function RepartionParTypes({ clientsFiltresGlobal = [], statsType
 
         {totalDossiersMois === 0 && (
           <MessageAucuneDonnee>
-            Aucune donnée disponible pour la période sélectionnée ({formaterNomMois(moisSelectionne)}).
+            Aucune donnée disponible.
           </MessageAucuneDonnee>
         )}
       </GrilleCategories>

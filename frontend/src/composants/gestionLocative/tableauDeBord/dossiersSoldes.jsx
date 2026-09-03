@@ -53,7 +53,6 @@ const TitreCarte = styled.span`
   letter-spacing: 0.5px;
 `;
 
-/* Badge indiquant le quantième (ex: 3/8) */
 const BadgeQuantieme = styled.span`
   font-size: 0.7rem;
   font-weight: 700;
@@ -125,7 +124,6 @@ const SousTexteCarte = styled.div`
 export default function DossiersSoldes({ totalRegle, totalDossiers, clientsSoldes = [] }) {
   const [indexActuel, setIndexActuel] = useState(0);
 
-  // Fait tourner les noms toutes les 3 secondes s'il y a des clients
   useEffect(() => {
     if (clientsSoldes.length <= 1) return;
 
@@ -136,7 +134,9 @@ export default function DossiersSoldes({ totalRegle, totalDossiers, clientsSolde
     return () => clearInterval(intervalle);
   }, [clientsSoldes.length]);
 
-  const clientActuel = clientsSoldes[indexActuel];
+  // Sécurité pour éviter un index hors limites si la liste change dynamiquement
+  const indexSecurise = clientsSoldes.length > 0 ? Math.min(indexActuel, clientsSoldes.length - 1) : 0;
+  const clientActuel = clientsSoldes[indexSecurise];
 
   const obtenirMoisFacture = (client) => {
     if (!client) return '';
@@ -159,7 +159,7 @@ export default function DossiersSoldes({ totalRegle, totalDossiers, clientsSolde
           <TitreCarte>Dossiers Soldés</TitreCarte>
           {nombreClients > 0 && (
             <BadgeQuantieme>
-              {indexActuel + 1} / {nombreClients}
+              {indexSecurise + 1} / {nombreClients}
             </BadgeQuantieme>
           )}
         </TitreContainer>
@@ -170,7 +170,7 @@ export default function DossiersSoldes({ totalRegle, totalDossiers, clientsSolde
         {nombreClients > 0 && clientActuel ? (
           <AnimatePresence mode="popLayout">
             <BlocClientInfo
-              key={indexActuel}
+              key={indexSecurise}
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -30, opacity: 0 }}
