@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
@@ -7,12 +7,21 @@ const THEME = {
   accentuation: '#AEEA00',
   textePrincipal: '#FFFFFF',
   texteSecondaire: '#888888',
-  bordure: '#2A2A2A'
+  bordure: '#2A2A2A',
+  bleu: '#2196F3'
 };
 
 const SectionCategories = styled(motion.div)`
   display: flex;
   flex-direction: column;
+  gap: 1.2rem;
+`;
+
+const EnTeteSectionFlex = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 1rem;
 `;
 
@@ -20,6 +29,23 @@ const TitreSection = styled.h3`
   font-size: 1.1rem;
   font-weight: 600;
   color: ${THEME.textePrincipal};
+  margin: 0;
+`;
+
+const SelecteurMois = styled.select`
+  background-color: ${THEME.fondCarte};
+  color: ${THEME.textePrincipal};
+  border: 1px solid ${THEME.bordure};
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &:hover, &:focus {
+    border-color: ${THEME.accentuation};
+  }
 `;
 
 const GrilleCategories = styled.div`
@@ -113,7 +139,100 @@ const BlocVolumeCategorie = styled.div`
   }
 `;
 
-export default function RepartionParTypes({ statsTypes, totalDossiers, devise, tauxChangeCDF }) {
+const MessageAucuneDonnee = styled.div`
+  grid-column: 1 / -1;
+  text-align: center;
+  color: ${THEME.texteSecondaire};
+  padding: 2rem;
+  background-color: ${THEME.fondCarte};
+  border: 1px solid ${THEME.bordure};
+  border-radius: 12px;
+  font-size: 0.9rem;
+`;
+
+export default function RepartionParTypes({ clientsFiltresGlobal = [], statsTypes, devise, tauxChangeCDF }) {
+  const [moisSelectionne, setMoisSelectionne] = useState('tous');
+
+  // Liste des mois disponibles basée sur les données réelles
+  const moisDisponibles = useMemo(() => {
+    const moisSet = new Set();
+    clientsFiltresGlobal.forEach(cli => {
+      const rawDate = cli.creeLe || cli.dateEnregistrement || cli.date || cli.dateComptable || cli.dateEntree || cli.created_at || cli.createdAt;
+      if (rawDate) {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          const anneeMois = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          moisSet.add(anneeMois);
+        }
+      }
+    });
+    return Array.from(moisSet).sort().reverse();
+  }, [clientsFiltresGlobal]);
+
+  // Calcul des statistiques filtrées spécifiquement pour le mois choisi
+  const { statsParMois, totalDossiersMois } = useMemo(() => {
+    let donneesCibles = clientsFiltresGlobal;
+
+    if (moisSelectionne !== 'tous') {
+      donneesCibles = clientsFiltresGlobal.filter(cli => {
+        const rawDate = cli.creeLe || cli.dateEnregistrement || cli.date || cli.dateComptable || cli.dateEntree || cli.created_at || cli.createdAt;
+        if (!rawDate) return false;
+        const d = new Date(rawDate);
+        if (isNaN(d.getTime())) return false;
+        const anneeMois = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return anneeMois === moisSelectionne;
+      });
+    }
+
+    // Copie de la structure initiale des types avec remise à zéro
+    const statsCourantes = JSON.parse(JSON.stringify(statsTypes));
+    Object.keys(statsCourantes).forEach(k => {
+      statsCourantes[k].count = 0;
+      statsCourantes[k].montantUSD = 0;
+    });
+
+    donneesCibles.forEach((cli) => {
+      let montantBrut = parseFloat(cli.montant) || 0;
+      let montantEnUSD = montantBrut;
+      if (cli.devise && cli.devise.toUpperCase() === 'CDF') {
+        montantEnUSD = montantBrut / tauxChangeCDF;
+      }
+
+      const matriculeBrut = (cli.matricule || cli.numero || '').toUpperCase();
+      const typeBrutSource = cli.typeClient || cli.typeFacture || cli.type || '';
+      const typeBrut = String(typeBrutSource).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      let typeDetecte = 'Loyers';
+      if (typeBrut.includes('eau') || matriculeBrut.startsWith('EAU')) {
+        typeDetecte = 'Eau';
+      } else if (typeBrut.includes('elect') || typeBrut === 'elec' || matriculeBrut.startsWith('ELE')) {
+        typeDetecte = 'Électricité';
+      } else if (typeBrut.includes('diver') || matriculeBrut.startsWith('DIV')) {
+        typeDetecte = 'Divers';
+      }
+
+      if (statsCourantes[typeDetecte]) {
+        statsCourantes[typeDetecte].count += 1;
+        statsCourantes[typeDetecte].montantUSD += montantEnUSD;
+      } else {
+        statsCourantes.Loyers.count += 1;
+        statsCourantes.Loyers.montantUSD += montantEnUSD;
+      }
+    });
+
+    return {
+      statsParMois: statsCourantes,
+      totalDossiersMois: donneesCibles.length
+    };
+  }, [clientsFiltresGlobal, moisSelectionne, statsTypes, tauxChangeCDF]);
+
+  const formaterNomMois = (strAnneeMois) => {
+    if (strAnneeMois === 'tous') return 'Tous les mois';
+    const [annee, mois] = strAnneeMois.split('-');
+    const date = new Date(annee, mois - 1, 1);
+    return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  };
+
   return (
     <SectionCategories
       initial={{ opacity: 0, y: 30 }}
@@ -121,11 +240,25 @@ export default function RepartionParTypes({ statsTypes, totalDossiers, devise, t
       viewport={{ once: false, amount: 0.1 }}
       transition={{ duration: 0.4 }}
     >
-      <TitreSection>Répartition par Type de Prestation</TitreSection>
+      <EnTeteSectionFlex>
+        <TitreSection>Répartition par Type & Statistiques Mensuelles</TitreSection>
+        <SelecteurMois 
+          value={moisSelectionne} 
+          onChange={(e) => setMoisSelectionne(e.target.value)}
+        >
+          <option value="tous">📅 Tous les mois (Global)</option>
+          {moisDisponibles.map(m => (
+            <option key={m} value={m}>
+              📅 {formaterNomMois(m)}
+            </option>
+          ))}
+        </SelecteurMois>
+      </EnTeteSectionFlex>
+
       <GrilleCategories>
-        {Object.entries(statsTypes).map(([nom, data], index) => {
-          const pourcentage = totalDossiers > 0 
-            ? Math.round((data.count / totalDossiers) * 100) 
+        {Object.entries(statsParMois).map(([nom, data], index) => {
+          const pourcentage = totalDossiersMois > 0 
+            ? Math.round((data.count / totalDossiersMois) * 100) 
             : 0;
           
           const montantCategorieAffiche = devise === 'USD' 
@@ -163,18 +296,24 @@ export default function RepartionParTypes({ statsTypes, totalDossiers, devise, t
 
               <BlocVolumeCategorie>
                 <div>
-                  <div className="label-volume">Volume :</div>
+                  <div className="label-volume">Volume ({formaterNomMois(moisSelectionne)}) :</div>
                   <div className="montant-volume">
                     {montantCategorieAffiche.toLocaleString(undefined, { maximumFractionDigits: 0 })} {devise}
                   </div>
                 </div>
                 <div className="pourcentage-volume">
-                  {pourcentage}% du<br />total
+                  {pourcentage}% du<br />total mois
                 </div>
               </BlocVolumeCategorie>
             </CarteCategorie>
           );
         })}
+
+        {totalDossiersMois === 0 && (
+          <MessageAucuneDonnee>
+            Aucune donnée disponible pour la période sélectionnée ({formaterNomMois(moisSelectionne)}).
+          </MessageAucuneDonnee>
+        )}
       </GrilleCategories>
     </SectionCategories>
   );

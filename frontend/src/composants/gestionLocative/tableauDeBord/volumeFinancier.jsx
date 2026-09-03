@@ -21,6 +21,7 @@ const CarteMetrique = styled.div`
   gap: 0.8rem;
   position: relative;
   overflow: hidden;
+  height: 100%;
 
   &::before {
     content: '';
@@ -89,11 +90,17 @@ const SousTexteCarte = styled.span`
   font-size: 0.75rem;
 `;
 
-export default function VolumeFinancier({ devise, basculerDevise, volumeFinancierAffiche }) {
+export default function VolumeFinancier({ devise, basculerDevise, volumeFinancierAffiche, dateFiltre, statistiques }) {
+  // Récupération du mois et de l'année actuels filtrés pour l'affichage dynamique
+  const nomMois = dateFiltre 
+    ? dateFiltre.toLocaleString('fr-FR', { month: 'long', year: 'numeric' }) 
+    : '';
+  const moisMaj = nomMois.charAt(0).toUpperCase() + nomMois.slice(1);
+
   return (
     <CarteMetrique>
       <EnTeteCarte>
-        <TitreCarte>Volume Financier Global</TitreCarte>
+        <TitreCarte>Volume Financier</TitreCarte>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <SelecteurDevise 
             onClick={basculerDevise}
@@ -110,7 +117,7 @@ export default function VolumeFinancier({ devise, basculerDevise, volumeFinancie
         {volumeFinancierAffiche.toLocaleString(undefined, { maximumFractionDigits: 2 })} {devise}
       </ValeurCarte>
       <SousTexteCarte>
-        {devise === 'CDF' ? 'Converti en Franc Congolais' : 'Somme totale des montants'}
+        Volume financier pour {moisMaj || 'ce mois'}
       </SousTexteCarte>
     </CarteMetrique>
   );

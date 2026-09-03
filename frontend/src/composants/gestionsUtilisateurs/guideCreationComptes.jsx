@@ -2,20 +2,20 @@ import React from 'react';
 import styled from 'styled-components';
 
 const THEME = {
-  accentuation: '#AEEA00',
+  accentuation: '#22c55e',
   textePrincipal: '#FFFFFF',
-  texteSecondaire: '#8A99AD'
+  texteSecondaire: '#888888'
 };
 
 const ColonneAide = styled.div`
   flex: 1;
-  background: linear-gradient(145deg, rgba(18, 24, 38, 0.8) 0%, rgba(11, 16, 27, 0.9) 100%);
-  border: 1px solid ${THEME.accentuation}33;
+  background: #1E1E1E;
+  border: 1px solid #2A2A2A;
   border-radius: 14px;
   padding: 1.5rem;
   position: sticky;
   top: 1.5rem;
-  box-shadow: 0 8px 32px 0 rgba(174, 234, 0, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
 
   &::before {
     content: '';

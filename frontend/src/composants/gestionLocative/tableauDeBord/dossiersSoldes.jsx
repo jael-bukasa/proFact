@@ -39,12 +39,28 @@ const EnTeteCarte = styled.div`
   align-items: center;
 `;
 
+const TitreContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
 const TitreCarte = styled.span`
   color: ${THEME.texteSecondaire};
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+`;
+
+/* Badge indiquant le quantième (ex: 3/8) */
+const BadgeQuantieme = styled.span`
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: ${THEME.vert};
+  background-color: rgba(34, 197, 94, 0.1);
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
 `;
 
 const IconeWrapper = styled.div`
@@ -59,22 +75,37 @@ const IconeWrapper = styled.div`
   font-size: 1rem;
 `;
 
-// Conteneur pour l'effet d'écran défilant
 const EcranDefilant = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 55px;
+  height: 55px;
   position: relative;
+  overflow: hidden;
 `;
 
-const LigneNom = styled(motion.div)`
-  font-size: 1.2rem;
+const BlocClientInfo = styled(motion.div)`
+  position: absolute;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+`;
+
+const LigneNom = styled.div`
+  font-size: 1.1rem;
   font-weight: 700;
   color: ${THEME.textePrincipal};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const LigneMoisFacture = styled.div`
+  font-size: 0.8rem;
+  color: ${THEME.vert};
+  font-weight: 600;
+  text-transform: capitalize;
 `;
 
 const AucunDossier = styled.span`
@@ -107,25 +138,51 @@ export default function DossiersSoldes({ totalRegle, totalDossiers, clientsSolde
 
   const clientActuel = clientsSoldes[indexActuel];
 
+  const obtenirMoisFacture = (client) => {
+    if (!client) return '';
+    const rawDate = client.creeLe || client.dateEnregistrement || client.date || client.dateComptable || client.dateEntree || client.created_at || client.createdAt;
+    
+    if (!rawDate) return 'Mois non spécifié';
+
+    const dateObj = new Date(rawDate);
+    if (isNaN(dateObj.getTime())) return 'Mois non spécifié';
+
+    return dateObj.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  };
+
+  const nombreClients = clientsSoldes.length;
+
   return (
     <CarteMetrique>
       <EnTeteCarte>
-        <TitreCarte>Dossiers Soldés</TitreCarte>
+        <TitreContainer>
+          <TitreCarte>Dossiers Soldés</TitreCarte>
+          {nombreClients > 0 && (
+            <BadgeQuantieme>
+              {indexActuel + 1} / {nombreClients}
+            </BadgeQuantieme>
+          )}
+        </TitreContainer>
         <IconeWrapper>✅</IconeWrapper>
       </EnTeteCarte>
 
       <EcranDefilant>
-        {clientsSoldes.length > 0 && clientActuel ? (
-          <AnimatePresence mode="wait">
-            <LigneNom
+        {nombreClients > 0 && clientActuel ? (
+          <AnimatePresence mode="popLayout">
+            <BlocClientInfo
               key={indexActuel}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4 }}
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -30, opacity: 0 }}
+              transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
             >
-              {clientActuel.nom} {clientActuel.postnom || clientActuel.postNom || ''}
-            </LigneNom>
+              <LigneNom>
+                {clientActuel.nom} {clientActuel.postnom || clientActuel.postNom || ''}
+              </LigneNom>
+              <LigneMoisFacture>
+                📅 Facturé en : {obtenirMoisFacture(clientActuel)}
+              </LigneMoisFacture>
+            </BlocClientInfo>
           </AnimatePresence>
         ) : (
           <AucunDossier>Aucun dossier soldé</AucunDossier>

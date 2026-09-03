@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
@@ -63,10 +63,40 @@ const CarteAnimee = styled(motion.div)`
   }
 `;
 
-export default function TableauDeBord({ clientsEnregistres = [], utilisateurConnecte }) {
+const IndicateurChargement = styled.div`
+  text-align: center;
+  color: ${THEME.textePrincipal};
+  padding: 3rem;
+  font-size: 1rem;
+`;
+
+export default function TableauDeBord({ utilisateurConnecte }) {
+  const [clientsEnregistres, setClientsEnregistres] = useState([]);
+  const [chargement, setChargement] = useState(true);
   const [dateFiltre, setDateFiltre] = useState(new Date());
   const [devise, setDevise] = useState('USD');
   const tauxChangeCDF = 2800;
+
+  // Récupération directe des données depuis la base de données via le backend
+  useEffect(() => {
+    const recupererDonneesBase = async () => {
+      try {
+        setChargement(true);
+        const reponse = await fetch('http://localhost:5000/api/clients'); 
+        if (!reponse.ok) {
+          throw new Error('Erreur lors de la récupération des données');
+        }
+        const donnees = await reponse.json();
+        setClientsEnregistres(Array.isArray(donnees) ? donnees : donnees.clients || []);
+      } catch (erreur) {
+        console.error("Erreur base de données :", erreur);
+      } finally {
+        setChargement(false);
+      }
+    };
+
+    recupererDonneesBase();
+  }, []);
 
   const basculerDevise = () => {
     setDevise(prev => (prev === 'USD' ? 'CDF' : 'USD'));
@@ -107,8 +137,8 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
   };
 
   const statistiques = useMemo(() => {
-    const clientsFiltres = clientsEnregistres.filter(cli => {
-      const rawDate = cli.date || cli.dateComptable || cli.dateEnregistrement || cli.created_at || cli.createdAt;
+    let clientsFiltres = clientsEnregistres.filter(cli => {
+      const rawDate = cli.creeLe || cli.dateEnregistrement || cli.date || cli.dateComptable || cli.dateEntree || cli.created_at || cli.createdAt;
       if (!rawDate) return false;
 
       const dateTransaction = convertirDate(rawDate);
@@ -120,11 +150,14 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
       );
     });
 
+    if (clientsFiltres.length === 0 && clientsEnregistres.length > 0) {
+      clientsFiltres = clientsEnregistres;
+    }
+
     const totalDossiers = clientsFiltres.length;
     let montantTotalGlobalUSD = 0;
     let totalRegle = 0;
 
-    // Liste des clients dont le dossier est soldé
     const clientsSoldesListe = [];
 
     const statsTypes = {
@@ -179,37 +212,18 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
       montantTotalGlobalUSD,
       totalRegle,
       statsTypes,
-      clientsSoldesListe
+      clientsSoldesListe,
+      clientsFiltres
     };
   }, [clientsEnregistres, dateFiltre, tauxChangeCDF]);
-
-  const donneesDonut = useMemo(() => {
-    const total = statistiques.totalDossiers;
-    if (total === 0) return [];
-
-    let angleCumule = 0;
-    const rayon = 40;
-    const circonference = 2 * Math.PI * rayon;
-
-    return Object.entries(statistiques.statsTypes).map(([nom, data]) => {
-      const pourcentage = (data.count / total);
-      const longueurTrait = pourcentage * circonference;
-      const decalage = -angleCumule;
-      angleCumule += longueurTrait;
-
-      return {
-        nom,
-        ...data,
-        pourcentageArrondi: Math.round(pourcentage * 100),
-        strokeDasharray: `${longueurTrait} ${circonference - longueurTrait}`,
-        strokeDashoffset: decalage
-      };
-    });
-  }, [statistiques]);
 
   const volumeFinancierAffiche = devise === 'USD' 
     ? statistiques.montantTotalGlobalUSD 
     : statistiques.montantTotalGlobalUSD * tauxChangeCDF;
+
+  if (chargement) {
+    return <IndicateurChargement>Chargement des données depuis la base de données...</IndicateurChargement>;
+  }
 
   return (
     <ConteneurSection
@@ -217,7 +231,6 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      
       <BarreSuperieureFiltres
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -251,7 +264,6 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
           <TotalEnregistrements 
             totalDossiers={statistiques.totalDossiers}
             statsTypes={statistiques.statsTypes}
-            donneesDonut={donneesDonut}
           />
         </CarteAnimee>
 
@@ -267,6 +279,7 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
             devise={devise}
             basculerDevise={basculerDevise}
             volumeFinancierAffiche={volumeFinancierAffiche}
+            dateFiltre={dateFiltre}
           />
         </CarteAnimee>
 
@@ -293,13 +306,17 @@ export default function TableauDeBord({ clientsEnregistres = [], utilisateurConn
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         <RepartionParTypes 
-          statsTypes={statistiques.statsTypes}
-          totalDossiers={statistiques.totalDossiers}
+          clientsFiltresGlobal={clientsEnregistres}
+          statsTypes={{
+            Loyers: { count: 0, montantUSD: 0, couleur: THEME.accentuation, icon: '🏠', label: 'Loyers' },
+            Eau: { count: 0, montantUSD: 0, couleur: THEME.bleu, icon: '💧', label: 'Eau' },
+            Électricité: { count: 0, montantUSD: 0, couleur: THEME.orange, icon: '⚡', label: 'Électricité' },
+            Divers: { count: 0, montantUSD: 0, couleur: THEME.violet, icon: '📦', label: 'Divers' }
+          }}
           devise={devise}
           tauxChangeCDF={tauxChangeCDF}
         />
       </CarteAnimee>
-
     </ConteneurSection>
   );
 }

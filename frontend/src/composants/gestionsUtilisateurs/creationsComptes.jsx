@@ -3,13 +3,13 @@ import styled, { keyframes } from 'styled-components';
 import GuideCreationComptes from './guideCreationComptes';
 
 const THEME = {
-  fondCarte: '#121826',
-  fondInput: '#0B101B',
-  accentuation: '#AEEA00',
+  fondCarte: '#1E1E1E',
+  fondInput: '#121212',
+  accentuation: '#22c55e',
   textePrincipal: '#FFFFFF',
-  texteSecondaire: '#8A99AD',
-  bordure: 'rgba(255, 255, 255, 0.08)',
-  bordureFocus: '#AEEA00',
+  texteSecondaire: '#888888',
+  bordure: '#2A2A2A',
+  bordureFocus: '#22c55e',
   erreur: '#ef4444'
 };
 
@@ -35,9 +35,20 @@ const ColonneFormulaire = styled.div`
   flex: 1.4;
   background-color: ${THEME.fondCarte};
   border: 1px solid ${THEME.bordure};
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: ${THEME.accentuation};
+  }
 `;
 
 const TitreSection = styled.h2`
@@ -99,7 +110,7 @@ const Input = styled.input`
   &:focus {
     outline: none;
     border-color: ${props => props.$enErreur ? THEME.erreur : THEME.bordureFocus};
-    box-shadow: 0 0 0 3px ${props => props.$enErreur ? 'rgba(239, 68, 68, 0.15)' : 'rgba(174, 234, 0, 0.15)'};
+    box-shadow: 0 0 0 3px ${props => props.$enErreur ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)'};
   }
 
   &::placeholder {
@@ -141,7 +152,7 @@ const Select = styled.select`
   &:focus {
     outline: none;
     border-color: ${props => props.$enErreur ? THEME.erreur : THEME.bordureFocus};
-    box-shadow: 0 0 0 3px ${props => props.$enErreur ? 'rgba(239, 68, 68, 0.15)' : 'rgba(174, 234, 0, 0.15)'};
+    box-shadow: 0 0 0 3px ${props => props.$enErreur ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)'};
   }
 
   option {
@@ -182,7 +193,7 @@ const BoutonSoumettre = styled.button`
 `;
 
 const MessageSucces = styled.div`
-  background-color: rgba(174, 234, 0, 0.1);
+  background-color: rgba(34, 197, 94, 0.1);
   border: 1px solid ${THEME.accentuation};
   color: ${THEME.accentuation};
   padding: 0.75rem;
@@ -493,7 +504,6 @@ export default function CreationsComptes({ surAjoutFacturier }) {
         </form>
       </ColonneFormulaire>
 
-      {/* Appel du composant guide séparé */}
       <GuideCreationComptes champActif={champActif} />
     </ConteneurPrincipal>
   );

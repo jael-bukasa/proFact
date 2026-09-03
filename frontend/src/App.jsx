@@ -7,7 +7,6 @@ import BarreLaterale from './composants/barreLaterale';
 import TableauDeBord from './composants/gestionLocative/tableauDeBord';
 import Clients from './composants/gestionLocative/clients';
 import Facturation from './composants/comptabilite/facturation';
-import Paiements from './composants/comptabilite/paiements';
 import Rapports from './composants/comptabilite/rapports';
 
 // --- IMPORTS GESTION UTILISATEURS ---
@@ -111,15 +110,8 @@ export default function App() {
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [backendConnecte, setBackendConnecte] = useState(false);
 
-  // État centralisé des clients
-  const [clientsEnregistres, setClientsEnregistres] = useState(() => {
-    try {
-      const sauvegarde = localStorage.getItem('proFact_clientsEnregistres');
-      return sauvegarde ? JSON.parse(sauvegarde) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  // État centralisé des clients (chargé depuis le backend MySQL)
+  const [clientsEnregistres, setClientsEnregistres] = useState([]);
 
   // État centralisé des factures récupérées depuis le backend
   const [facturesEnregistrees, setFacturesEnregistrees] = useState([]);
@@ -134,6 +126,21 @@ export default function App() {
       return [];
     }
   });
+
+  // Charger les clients depuis l'API backend MySQL au démarrage
+  useEffect(() => {
+    const chargerClientsGlobal = async () => {
+      try {
+        const reponse = await axios.get('http://localhost:5000/api/clients');
+        if (reponse.data) {
+          setClientsEnregistres(Array.isArray(reponse.data) ? reponse.data : []);
+        }
+      } catch (err) {
+        console.error("Impossible de récupérer les clients depuis l'API backend", err);
+      }
+    };
+    chargerClientsGlobal();
+  }, []);
 
   // Charger les factures depuis l'API globale au démarrage
   useEffect(() => {
@@ -177,28 +184,6 @@ export default function App() {
     const date = new Date(dateString);
     return isNaN(date) ? dateString : date.toLocaleDateString('fr-FR');
   };
-
-  useEffect(() => {
-    const gererStockageChange = (e) => {
-      if (e.key === 'proFact_clientsEnregistres' && e.newValue) {
-        try {
-          setClientsEnregistres(JSON.parse(e.newValue));
-        } catch (err) {
-          console.error("Erreur parsing localStorage", err);
-        }
-      }
-    };
-    window.addEventListener('storage', gererStockageChange);
-    return () => window.removeEventListener('storage', gererStockageChange);
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('proFact_clientsEnregistres', JSON.stringify(clientsEnregistres));
-    } catch (e) {
-      console.error("Erreur de sauvegarde localStorage", e);
-    }
-  }, [clientsEnregistres]);
 
   useEffect(() => {
     axios.get('http://localhost:5000/api/health')
@@ -299,13 +284,6 @@ export default function App() {
             setListeFacturesAPI={setFacturesEnregistrees}
             formaterDateFr={formaterDateFr}
             onRetour={() => setOngletActif(estAdmin ? 'Tableau de bord' : 'Clients')} 
-          />
-        );
-      case 'Paiements':
-        return (
-          <Paiements 
-            listeFactures={facturesEnregistrees} 
-            onMettreAJourPaiement={setFacturesEnregistrees} 
           />
         );
       case 'Rapports':

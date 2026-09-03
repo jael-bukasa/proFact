@@ -21,8 +21,8 @@ const GrilleStats = styled.div`
 `;
 
 const CarteStat = styled.div`
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: #1E1E1E;
+  border: 1px solid #2A2A2A;
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -36,7 +36,7 @@ const CarteStat = styled.div`
     gap: 0.4rem;
 
     span.titre {
-      color: #8b949e;
+      color: #888888;
       font-size: 0.8rem;
       font-weight: 600;
       text-transform: uppercase;
@@ -44,7 +44,7 @@ const CarteStat = styled.div`
     }
 
     span.valeur {
-      color: #ffffff;
+      color: #FFFFFF;
       font-size: 2rem;
       font-weight: 700;
     }
@@ -54,19 +54,19 @@ const CarteStat = styled.div`
     width: 46px;
     height: 46px;
     border-radius: 10px;
-    background: #21262d;
-    color: #c9d1d9;
+    background: #121212;
+    color: #FFFFFF;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
-    border: 1px solid #30363d;
+    border: 1px solid #2A2A2A;
   }
 `;
 
 const CarteListe = styled.div`
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: #1E1E1E;
+  border: 1px solid #2A2A2A;
   border-radius: 14px;
   padding: 2rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -81,7 +81,7 @@ const CarteListe = styled.div`
 
     h3 {
       font-size: 1.25rem;
-      color: #ffffff;
+      color: #FFFFFF;
       font-weight: 600;
     }
 
@@ -91,18 +91,19 @@ const CarteListe = styled.div`
       gap: 1rem;
 
       input.recherche {
-        background: #0d1117;
-        border: 1px solid #30363d;
+        background: #121212;
+        border: 1px solid #2A2A2A;
         padding: 0.6rem 1rem;
         border-radius: 8px;
-        color: #ffffff;
+        color: #FFFFFF;
         font-size: 0.9rem;
         outline: none;
         width: 250px;
         transition: border-color 0.2s;
 
         &:focus {
-          border-color: #58a6ff;
+          border-color: #22c55e;
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
         }
       }
     }
@@ -117,7 +118,7 @@ const SectionCategorie = styled.div`
   }
 
   h4.titre-categorie {
-    color: #e6edf3;
+    color: #FFFFFF;
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 1.2rem;
@@ -125,15 +126,15 @@ const SectionCategorie = styled.div`
     align-items: center;
     justify-content: space-between;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #30363d;
+    border-bottom: 1px solid #2A2A2A;
 
     .badge-compte {
-      background: #21262d;
-      color: #8b949e;
+      background: #121212;
+      color: #888888;
       font-size: 0.75rem;
       padding: 0.2rem 0.6rem;
       border-radius: 20px;
-      border: 1px solid #30363d;
+      border: 1px solid #2A2A2A;
     }
   }
 `;
@@ -148,15 +149,15 @@ const LigneUtilisateur = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: #121212;
+  border: 1px solid #2A2A2A;
   padding: 1rem 1.2rem;
   border-radius: 10px;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: #8b949e;
-    background: #121820;
+    border-color: #22c55e;
+    background: #161616;
   }
 
   @media (max-width: 768px) {
@@ -176,14 +177,14 @@ const AvatarMini = styled.div`
   width: 42px;
   height: 42px;
   border-radius: 8px;
-  background: #21262d;
-  color: #58a6ff;
+  background: #1E1E1E;
+  color: #22c55e;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   font-size: 0.9rem;
-  border: 1px solid #30363d;
+  border: 1px solid #2A2A2A;
 `;
 
 const TexteInfos = styled.div`
@@ -192,25 +193,25 @@ const TexteInfos = styled.div`
   gap: 0.2rem;
 
   h5 {
-    color: #ffffff;
+    color: #FFFFFF;
     font-size: 0.95rem;
     font-weight: 600;
   }
 
   span.email {
-    color: #8b949e;
+    color: #888888;
     font-size: 0.85rem;
   }
 `;
 
 const BadgeRole = styled.span`
-  background: ${props => props.$isAdmin ? 'rgba(88, 166, 255, 0.1)' : 'rgba(46, 160, 67, 0.1)'};
-  color: ${props => props.$isAdmin ? '#58a6ff' : '#3fb950'};
+  background: ${props => props.$isAdmin ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.1)'};
+  color: #22c55e;
   font-size: 0.75rem;
   padding: 0.15rem 0.6rem;
   border-radius: 6px;
   font-weight: 600;
-  border: 1px solid ${props => props.$isAdmin ? 'rgba(88, 166, 255, 0.3)' : 'rgba(46, 160, 67, 0.3)'};
+  border: 1px solid rgba(34, 197, 94, 0.3);
   width: fit-content;
   margin-top: 0.2rem;
 `;
@@ -226,29 +227,29 @@ const BoutonAction = styled.button`
   font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid #30363d;
+  border: 1px solid #2A2A2A;
   font-weight: 500;
   display: flex;
   align-items: center;
   gap: 0.3rem;
 
   &.modifier {
-    background: #21262d;
-    color: #58a6ff;
+    background: #121212;
+    color: #22c55e;
 
     &:hover {
-      background: #30363d;
-      border-color: #58a6ff;
+      background: #1E1E1E;
+      border-color: #22c55e;
     }
   }
 
   &.supprimer {
-    background: #21262d;
-    color: #f85149;
+    background: #121212;
+    color: #ef4444;
 
     &:hover {
-      background: rgba(248, 81, 73, 0.15);
-      border-color: #f85149;
+      background: rgba(239, 68, 68, 0.15);
+      border-color: #ef4444;
     }
   }
 `;
@@ -256,11 +257,11 @@ const BoutonAction = styled.button`
 const MessageVide = styled.div`
   text-align: center;
   padding: 2rem;
-  color: #8b949e;
+  color: #888888;
   font-size: 0.88rem;
-  background: #0d1117;
+  background: #121212;
   border-radius: 8px;
-  border: 1px dashed #30363d;
+  border: 1px dashed #2A2A2A;
 `;
 
 const FormulaireEdition = styled.div`
@@ -272,15 +273,16 @@ const FormulaireEdition = styled.div`
 
   input, select {
     padding: 0.5rem 0.8rem;
-    background: #161b22;
-    border: 1px solid #30363d;
-    color: #ffffff;
+    background: #1E1E1E;
+    border: 1px solid #2A2A2A;
+    color: #FFFFFF;
     border-radius: 6px;
     font-size: 0.85rem;
     outline: none;
 
     &:focus {
-      border-color: #58a6ff;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
     }
   }
 
@@ -295,19 +297,19 @@ const FormulaireEdition = styled.div`
       font-size: 0.85rem;
       cursor: pointer;
       font-weight: 600;
-      border: 1px solid #30363d;
+      border: 1px solid #2A2A2A;
 
       &.sauvegarder {
-        background: #238636;
-        color: #ffffff;
-        border-color: #2ea043;
-        &:hover { background: #2ea043; }
+        background: #22c55e;
+        color: #000000;
+        border-color: #22c55e;
+        &:hover { opacity: 0.9; }
       }
 
       &.annuler {
-        background: #21262d;
-        color: #c9d1d9;
-        &:hover { background: #30363d; }
+        background: #121212;
+        color: #FFFFFF;
+        &:hover { background: #1E1E1E; }
       }
     }
   }
@@ -316,7 +318,7 @@ const FormulaireEdition = styled.div`
 const OverlayModal = styled.div`
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(1, 4, 9, 0.8);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -325,8 +327,8 @@ const OverlayModal = styled.div`
 `;
 
 const ContenuModal = styled.div`
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: #1E1E1E;
+  border: 1px solid #2A2A2A;
   padding: 2rem;
   border-radius: 12px;
   width: 100%;
@@ -336,8 +338,8 @@ const ContenuModal = styled.div`
   gap: 1rem;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
 
-  h4 { color: #ffffff; font-size: 1.1rem; }
-  p { color: #8b949e; font-size: 0.9rem; line-height: 1.4; }
+  h4 { color: #FFFFFF; font-size: 1.1rem; }
+  p { color: #888888; font-size: 0.9rem; line-height: 1.4; }
 
   .actions-modal {
     display: flex;
@@ -351,18 +353,18 @@ const ContenuModal = styled.div`
       font-size: 0.85rem;
       cursor: pointer;
       font-weight: 600;
-      border: 1px solid #30363d;
+      border: 1px solid #2A2A2A;
 
       &.btn-confirmer-suppr {
-        background: #da3633;
-        color: #ffffff;
-        border-color: #f85149;
-        &:hover { background: #f85149; }
+        background: #ef4444;
+        color: #FFFFFF;
+        border-color: #ef4444;
+        &:hover { opacity: 0.9; }
       }
       &.btn-annuler-suppr {
-        background: #21262d;
-        color: #c9d1d9;
-        &:hover { background: #30363d; }
+        background: #121212;
+        color: #FFFFFF;
+        &:hover { background: #1E1E1E; }
       }
     }
   }
@@ -400,7 +402,6 @@ export default function GererComptes({ facturiers = [], surSupprimerFacturier, s
       nom: utilisateur.nom,
       email: utilisateur.email,
       role: utilisateur.role,
-      // Récupération directe du mot de passe de la base de données (gère les deux conventions de nommage possibles)
       motDePasse: utilisateur.mot_de_passe || utilisateur.motDePasse || ''
     });
   };
@@ -435,7 +436,7 @@ export default function GererComptes({ facturiers = [], surSupprimerFacturier, s
             <span className="titre">Administrateurs</span>
             <span className="valeur">{nombreAdmins}</span>
           </div>
-          <div className="icone-stat" style={{ color: '#58a6ff' }}>🛡️</div>
+          <div className="icone-stat">🛡️</div>
         </CarteStat>
 
         <CarteStat>
@@ -443,7 +444,7 @@ export default function GererComptes({ facturiers = [], surSupprimerFacturier, s
             <span className="titre">Facturiers</span>
             <span className="valeur">{nombreFacturiers}</span>
           </div>
-          <div className="icone-stat" style={{ color: '#3fb950' }}>📄</div>
+          <div className="icone-stat">📄</div>
         </CarteStat>
       </GrilleStats>
 
@@ -546,7 +547,6 @@ export default function GererComptes({ facturiers = [], surSupprimerFacturier, s
               <option value="Admin">Admin</option>
             </select>
 
-            {/* Input de type texte pour voir et modifier clairement le mot de passe */}
             <input 
               type="text" 
               value={formDataEdit.motDePasse} 

@@ -188,7 +188,6 @@ const obtenirIconeNav = (element) => {
     case 'Tableau de bord': return '📊';
     case 'Clients': return '👥';
     case 'Facturation': return '📄';
-    case 'Paiements': return '💳';
     case 'Créer un compte': return '➕';
     case 'Gérer les comptes': return '⚙️';
     default: return '📁';
@@ -211,10 +210,6 @@ export default function BarreLaterale({
     { 
       titre: 'GESTION LOCATIVE', 
       elements: ['Tableau de bord'] 
-    },
-    { 
-      titre: 'COMPTABILITÉ', 
-      elements: ['Paiements'] 
     },
     { 
       titre: 'GESTION UTILISATEURS', 

@@ -7,7 +7,10 @@ const THEME = {
   accentuation: '#AEEA00',
   textePrincipal: '#FFFFFF',
   texteSecondaire: '#888888',
-  bordure: '#2A2A2A'
+  bordure: '#2A2A2A',
+  bleu: '#2196F3',
+  orange: '#FF9800',
+  violet: '#a855f7'
 };
 
 const CarteMetrique = styled.div`
@@ -21,6 +24,7 @@ const CarteMetrique = styled.div`
   gap: 0.8rem;
   position: relative;
   overflow: hidden;
+  height: 100%;
 
   &::before {
     content: '';
@@ -62,13 +66,15 @@ const IconeWrapper = styled.div`
 const SousTexteCarte = styled.span`
   color: ${THEME.texteSecondaire};
   font-size: 0.75rem;
+  text-align: center;
+  margin-top: 0.2rem;
 `;
 
 const ConteneurGraphiqueCirculaire = styled.div`
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  margin: 0.5rem 0;
+  gap: 1.2rem;
+  margin: 0.2rem 0;
 
   @media (max-width: 480px) {
     flex-direction: column;
@@ -79,8 +85,8 @@ const ConteneurGraphiqueCirculaire = styled.div`
 
 const WrapperSvg = styled.div`
   position: relative;
-  width: 110px;
-  height: 110px;
+  width: 100px;
+  height: 100px;
   flex-shrink: 0;
 `;
 
@@ -97,13 +103,13 @@ const TexteCentreSvg = styled.div`
   pointer-events: none;
   
   span.total-chiffre {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 800;
     color: ${THEME.textePrincipal};
     line-height: 1;
   }
   span.total-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     color: ${THEME.texteSecondaire};
     text-transform: uppercase;
   }
@@ -112,7 +118,7 @@ const TexteCentreSvg = styled.div`
 const LegendeCirculaire = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
   width: 100%;
 `;
 
@@ -120,13 +126,13 @@ const ElementLegende = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.75rem;
-  gap: 0.5rem;
+  font-size: 0.72rem;
+  gap: 0.4rem;
 
   .gauche {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.35rem;
     color: ${THEME.textePrincipal};
   }
 
@@ -137,14 +143,45 @@ const ElementLegende = styled.div`
 `;
 
 const PastilleCouleur = styled.span`
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: ${props => props.$couleur};
   flex-shrink: 0;
 `;
 
-export default function TotalEnregistrements({ totalDossiers, statsTypes, donneesDonut }) {
+export default function TotalEnregistrements({ totalDossiers = 0, statsTypes = {} }) {
+  const statsSecurisees = statsTypes && typeof statsTypes === 'object' && Object.keys(statsTypes).length > 0 
+    ? statsTypes 
+    : {
+        Loyers: { count: 0, montantUSD: 0, couleur: THEME.accentuation, icon: '🏠', label: 'Loyers' },
+        Eau: { count: 0, montantUSD: 0, couleur: THEME.bleu, icon: '💧', label: 'Eau' },
+        Électricité: { count: 0, montantUSD: 0, couleur: THEME.orange, icon: '⚡', label: 'Électricité' },
+        Divers: { count: 0, montantUSD: 0, couleur: THEME.violet, icon: '📦', label: 'Divers' }
+      };
+
+  const rayon = 38;
+  const circonference = 2 * Math.PI * rayon;
+
+  let longueurAcumulee = 0;
+  const entreesStats = Object.entries(statsSecurisees);
+
+  const donneesDonut = entreesStats.map(([nom, data]) => {
+    const count = data?.count || 0;
+    const pourcentage = totalDossiers > 0 ? count / totalDossiers : 0;
+    const longueurTrait = pourcentage * circonference;
+    const decalageTrait = -longueurAcumulee;
+    
+    longueurAcumulee += longueurTrait;
+
+    return {
+      nom,
+      couleur: data?.couleur || THEME.accentuation,
+      strokeDasharray: `${longueurTrait} ${circonference - longueurTrait}`,
+      strokeDashoffset: decalageTrait
+    };
+  });
+
   return (
     <CarteMetrique>
       <EnTeteCarte>
@@ -154,43 +191,47 @@ export default function TotalEnregistrements({ totalDossiers, statsTypes, donnee
 
       <ConteneurGraphiqueCirculaire>
         <WrapperSvg>
-          <motion.svg 
-            width="110" 
-            height="110" 
-            viewBox="0 0 100 100" 
-            style={{ transformOrigin: 'center' }}
-            animate={{ rotate: [0, 360] }}
+          <motion.div
+            style={{ width: '100%', height: '100%' }}
+            animate={{ rotate: 360 }}
             transition={{
-              duration: 4,
+              duration: 12,
               repeat: Infinity,
-              ease: "easeInOut",
-              repeatDelay: 2
+              ease: "linear",
+              delay: 4
             }}
           >
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              fill="transparent"
-              stroke="rgba(255, 255, 255, 0.05)"
-              strokeWidth="14"
-            />
-            {donneesDonut.map((item, idx) => (
-              <motion.circle
-                key={item.nom}
+            <svg 
+              width="100" 
+              height="100" 
+              viewBox="0 0 100 100" 
+              style={{ transform: 'rotate(-90deg)', transformOrigin: 'center', width: '100%', height: '100%' }}
+            >
+              <circle
                 cx="50"
                 cy="50"
-                r="40"
+                r={rayon}
                 fill="transparent"
-                stroke={item.couleur}
-                strokeWidth="14"
-                strokeDasharray={item.strokeDasharray}
-                initial={{ strokeDashoffset: 251.32 }}
-                animate={{ strokeDashoffset: item.strokeDashoffset }}
-                transition={{ duration: 0.8, delay: idx * 0.15, ease: "easeOut" }}
+                stroke="rgba(255, 255, 255, 0.05)"
+                strokeWidth="12"
               />
-            ))}
-          </motion.svg>
+              {donneesDonut.map((item, idx) => (
+                <motion.circle
+                  key={item.nom || idx}
+                  cx="50"
+                  cy="50"
+                  r={rayon}
+                  fill="transparent"
+                  stroke={item.couleur}
+                  strokeWidth="12"
+                  strokeDasharray={item.strokeDasharray}
+                  initial={{ strokeDashoffset: circonference }}
+                  animate={{ strokeDashoffset: item.strokeDashoffset }}
+                  transition={{ duration: 1.2, delay: idx * 0.15, ease: [0.25, 1, 0.5, 1] }}
+                />
+              ))}
+            </svg>
+          </motion.div>
           <TexteCentreSvg>
             <span className="total-chiffre">{totalDossiers}</span>
             <span className="total-label">Total</span>
@@ -198,19 +239,20 @@ export default function TotalEnregistrements({ totalDossiers, statsTypes, donnee
         </WrapperSvg>
 
         <LegendeCirculaire>
-          {Object.entries(statsTypes).map(([nom, data]) => {
+          {entreesStats.map(([nom, data]) => {
+            const count = data?.count || 0;
             const pourcentage = totalDossiers > 0 
-              ? Math.round((data.count / totalDossiers) * 100) 
+              ? Math.round((count / totalDossiers) * 100) 
               : 0;
 
             return (
               <ElementLegende key={nom}>
                 <div className="gauche">
-                  <PastilleCouleur $couleur={data.couleur} />
-                  <span>{data.icon} {nom}</span>
+                  <PastilleCouleur $couleur={data?.couleur || THEME.accentuation} />
+                  <span>{data?.icon || '📁'} {data?.label || nom}</span>
                 </div>
                 <div className="droite">
-                  {data.count} ({pourcentage}%)
+                  {count} ({pourcentage}%)
                 </div>
               </ElementLegende>
             );
