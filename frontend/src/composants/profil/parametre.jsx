@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import axios from 'axios';
 
-// Imports des composants en camelCase
+// Imports des sous-composants
 import InformationsPersonnelles from './parametres/informationsPersonnelles';
 import Securite from './parametres/securite';
 import Apparence from './parametres/apparence';
@@ -84,7 +84,6 @@ const BadgeStatut = styled.span`
   letter-spacing: 0.5px;
 `;
 
-/* Barre d'onglets centrée située sous l'en-tête */
 const BarreOngletsBas = styled.div`
   display: flex;
   justify-content: center;
@@ -115,7 +114,6 @@ const BoutonOnglet = styled.button`
   }
 `;
 
-/* Animation de transition fluide (style SPA dynamique) */
 const fadeIn = keyframes`
   from {
     opacity: 0;
@@ -127,65 +125,11 @@ const fadeIn = keyframes`
   }
 `;
 
-const SectionFormulaire = styled.form`
+const ConteneurOnglet = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   animation: ${fadeIn} 0.3s ease-in-out;
-`;
-
-const PiedFormulaire = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-`;
-
-const rotationAnimation = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
-const SpinnerChargement = styled.span`
-  width: 16px;
-  height: 16px;
-  border: 2px solid #052e16;
-  border-top: 2px solid transparent;
-  border-radius: 50%;
-  display: inline-block;
-  animation: ${rotationAnimation} 0.8s linear infinite;
-`;
-
-const BoutonAction = styled.button`
-  background: #22c55e;
-  color: #052e16;
-  font-weight: 600;
-  font-size: 0.95rem;
-  padding: 0.85rem 1.75rem;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
-
-  &:hover {
-    background: #16a34a;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-  }
 `;
 
 const NotificationMessage = styled.div`
@@ -200,14 +144,14 @@ const NotificationMessage = styled.div`
 
 export default function Paramettre({ utilisateurConnecte, surModificationUtilisateur, themeActuel, surChangementTheme }) {
   const user = utilisateurConnecte || {};
-  // Récupération sécurisée de l'ID utilisateur (prend en charge id, _id ou uid)
   const userId = user.id || user._id || user.uid;
-  const roleUtilisateur = (user.role || '').toLowerCase();
-  const isAdmin = roleUtilisateur.includes('admin');
 
   const [ongletParametreActif, setOngletParametreActif] = useState('profil');
   const [enCoursDeChargement, setEnCoursDeChargement] = useState(false);
   const [message, setMessage] = useState('');
+  
+  // État des erreurs spécifiques au formulaire de sécurité
+  const [erreursSecurite, setErreursSecurite] = useState({});
 
   const [formData, setFormData] = useState({
     prenom: user.prenom || '',
@@ -215,7 +159,8 @@ export default function Paramettre({ utilisateurConnecte, surModificationUtilisa
     postnom: user.postnom || '',
     email: user.email || '',
     ancienMotDePasse: '',
-    nouveauMotDePasse: ''
+    nouveauMotDePasse: '',
+    confirmationMotDePasse: ''
   });
 
   const [estSombre, setEstSombre] = useState(themeActuel !== 'clair');
@@ -224,6 +169,10 @@ export default function Paramettre({ utilisateurConnecte, surModificationUtilisa
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Nettoie l'erreur du champ dès que l'utilisateur tape dedans
+    if (e.target.name === 'ancienMotDePasse') setErreursSecurite(prev => ({ ...prev, ancien: '' }));
+    if (e.target.name === 'nouveauMotDePasse') setErreursSecurite(prev => ({ ...prev, nouveau: '' }));
+    if (e.target.name === 'confirmationMotDePasse') setErreursSecurite(prev => ({ ...prev, confirmation: '' }));
   };
 
   const handleToggleTheme = () => {
@@ -233,21 +182,65 @@ export default function Paramettre({ utilisateurConnecte, surModificationUtilisa
     if (surChangementTheme) surChangementTheme(themeStr);
   };
 
-const handleSubmit = async (e) => {
+  // Soumission spécifique au Profil
+  const handleSubmitProfil = async (e) => {
     e.preventDefault();
+    if (!userId) {
+      setMessage("Erreur : ID utilisateur introuvable. Veuillez vous reconnecter.");
+      return;
+    }
+    if (!formData.nom || !formData.email) {
+      setMessage("Veuillez remplir au moins le nom et l'e-mail.");
+      return;
+    }
+    await envoyerRequeteAPI();
+  };
+
+  // Soumission spécifique à la Sécurité
+  const handleSubmitSecurite = async (e) => {
+    e.preventDefault();
+    setErreursSecurite({});
+    setMessage('');
 
     if (!userId) {
       setMessage("Erreur : ID utilisateur introuvable. Veuillez vous reconnecter.");
       return;
     }
 
+    let nouvellesErreurs = {};
+
+    if (!formData.ancienMotDePasse) {
+      nouvellesErreurs.ancien = "Champ requis";
+    }
+    if (!formData.nouveauMotDePasse) {
+      nouvellesErreurs.nouveau = "Champ requis";
+    }
+    if (!formData.confirmationMotDePasse) {
+      nouvellesErreurs.confirmation = "Champ requis";
+    }
+
+    if (Object.keys(nouvellesErreurs).length > 0) {
+      setErreursSecurite(nouvellesErreurs);
+      return;
+    }
+
+    if (formData.nouveauMotDePasse !== formData.confirmationMotDePasse) {
+      setErreursSecurite({
+        nouveau: "Les mots de passe ne correspondent pas",
+        confirmation: "Les mots de passe ne correspondent pas"
+      });
+      return;
+    }
+
+    await envoyerRequeteAPI();
+  };
+
+  const envoyerRequeteAPI = async () => {
     setEnCoursDeChargement(true);
     setMessage('');
 
     try {
-      // Utilisation de la route unique définie dans ton backend
       const routeApi = `http://localhost:5000/api/utilisateurs/${userId}`;
-
       const payload = {
         ...formData,
         role: user.role || 'Facturier',
@@ -260,10 +253,24 @@ const handleSubmit = async (e) => {
         surModificationUtilisateur(reponse.data || formData);
       }
 
+      // Vidage des champs de mots de passe après succès
+      setFormData(prev => ({
+        ...prev,
+        ancienMotDePasse: '',
+        nouveauMotDePasse: '',
+        confirmationMotDePasse: ''
+      }));
+
       setMessage("Vos informations ont été modifiées et enregistrées avec succès !");
     } catch (err) {
-      console.error("Erreur lors de la mise à jour du profil :", err);
-      setMessage(err.response?.data?.erreur || "Erreur lors de la mise à jour. Veuillez réessayer.");
+      console.error("Erreur lors de la mise à jour :", err);
+      const msgErreurAPI = err.response?.data?.erreur || "";
+      
+      if (msgErreurAPI.toLowerCase().includes("ancien") || msgErreurAPI.toLowerCase().includes("incorrect")) {
+        setErreursSecurite({ ancien: "Mot de passe incorrect" });
+      } else {
+        setMessage(msgErreurAPI || "Erreur lors de la mise à jour. Veuillez réessayer.");
+      }
     } finally {
       setEnCoursDeChargement(false);
       setTimeout(() => setMessage(''), 5000);
@@ -272,7 +279,6 @@ const handleSubmit = async (e) => {
 
   return (
     <ConteneurPage>
-      {/* 1. En-tête d'informations en haut */}
       <SectionEnTete>
         <BlocIdentite>
           <AvatarCercle>{initiales}</AvatarCercle>
@@ -284,59 +290,58 @@ const handleSubmit = async (e) => {
         <BadgeStatut>{user.role || 'Utilisateur'}</BadgeStatut>
       </SectionEnTete>
 
-      {/* 2. Barre d'onglets centrée positionnée sous l'en-tête */}
       <BarreOngletsBas>
         <BoutonOnglet 
           type="button" 
           $actif={ongletParametreActif === 'profil'} 
-          onClick={() => setOngletParametreActif('profil')}
+          onClick={() => { setOngletParametreActif('profil'); setMessage(''); }}
         >
           👤 Information profil
         </BoutonOnglet>
         <BoutonOnglet 
           type="button" 
           $actif={ongletParametreActif === 'securite'} 
-          onClick={() => setOngletParametreActif('securite')}
+          onClick={() => { setOngletParametreActif('securite'); setMessage(''); }}
         >
           🔒 Sécurité
         </BoutonOnglet>
         <BoutonOnglet 
           type="button" 
           $actif={ongletParametreActif === 'apparence'} 
-          onClick={() => setOngletParametreActif('apparence')}
+          onClick={() => { setOngletParametreActif('apparence'); setMessage(''); }}
         >
           🎨 Apparence
         </BoutonOnglet>
       </BarreOngletsBas>
 
-      {/* 3. Contenu du formulaire avec la clé pour déclencher l'animation fluide */}
-      <SectionFormulaire onSubmit={handleSubmit} key={ongletParametreActif}>
-        {ongletParametreActif === 'apparence' && (
-          <Apparence estSombre={estSombre} handleToggleTheme={handleToggleTheme} />
-        )}
+      {message && <NotificationMessage>{message}</NotificationMessage>}
 
+      <ConteneurOnglet>
         {ongletParametreActif === 'profil' && (
-          <InformationsPersonnelles formData={formData} handleChange={handleChange} />
+          <InformationsPersonnelles 
+            formData={formData} 
+            handleChange={handleChange} 
+            onSubmit={handleSubmitProfil} 
+          />
         )}
 
         {ongletParametreActif === 'securite' && (
-          <Securite formData={formData} handleChange={handleChange} />
+          <Securite 
+            formData={formData} 
+            handleChange={handleChange} 
+            onSubmit={handleSubmitSecurite}
+            erreurs={erreursSecurite} 
+            enCoursDeChargement={enCoursDeChargement}
+          />
         )}
 
-        <PiedFormulaire>
-          {message ? <NotificationMessage>{message}</NotificationMessage> : <div />}
-          <BoutonAction type="submit" disabled={enCoursDeChargement}>
-            {enCoursDeChargement ? (
-              <>
-                <SpinnerChargement />
-                <span>Enregistrement en cours...</span>
-              </>
-            ) : (
-              'Enregistrer les modifications'
-            )}
-          </BoutonAction>
-        </PiedFormulaire>
-      </SectionFormulaire>
+        {ongletParametreActif === 'apparence' && (
+          <Apparence 
+            estSombre={estSombre} 
+            handleToggleTheme={handleToggleTheme} 
+          />
+        )}
+      </ConteneurOnglet>
     </ConteneurPage>
   );
 }

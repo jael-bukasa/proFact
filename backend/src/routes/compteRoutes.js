@@ -184,7 +184,7 @@ function compteRoutes(db) {
   // ==========================================
   router.put('/utilisateurs/:id', (req, res) => {
     const { id } = req.params;
-    const { prenom, nom, postnom, email, role, motDePasse, ancienRole } = req.body;
+    const { prenom, nom, postnom, email, role, ancienMotDePasse, nouveauMotDePasse, ancienRole } = req.body;
 
     if (!role) {
       return res.status(400).json({ erreur: "Le rôle est requis." });
@@ -197,106 +197,112 @@ function compteRoutes(db) {
     const postnomPropre = postnom ? postnom.trim() : '';
     const emailPropre = email ? email.trim() : '';
 
-    const executerMiseAJour = (pwdActuel) => {
-      let mdpFinal = pwdActuel;
-      if (ancienRoleNorm !== 'admin') {
-        mdpFinal = (motDePasse && motDePasse.trim() !== '') ? motDePasse : pwdActuel;
-      }
-
-      // Cas 1 : Reste Facturier -> Met à jour prénom, nom, postnom, email, mdp et rôle
-      if (ancienRoleNorm === 'facturier' && nouveauRoleNorm === 'facturier') {
-        const sql = "UPDATE facturiers SET prenom = ?, nom = ?, postnom = ?, email = ?, mot_de_passe = ?, role = ? WHERE id = ?";
-        db.query(sql, [prenomPropre, nomPropre, postnomPropre, emailPropre, mdpFinal, role, id], (err) => {
-          if (err) {
-            console.error("Erreur modification facturier :", err);
-            return res.status(500).json({ erreur: "Erreur lors de la mise à jour." });
-          }
-          res.json({ 
-            message: "Compte mis à jour avec succès.",
-            id, prenom: prenomPropre, nom: nomPropre, postnom: postnomPropre, email: emailPropre, role 
-          });
-        });
-      }
-      // Cas 2 : Reste Admin -> Met à jour nom, email et rôle
-      else if (ancienRoleNorm === 'admin' && nouveauRoleNorm === 'admin') {
-        const nomComplet = `${prenomPropre} ${nomPropre} ${postnomPropre}`.trim() || nomPropre;
-        const sql = "UPDATE admin SET nom = ?, email = ?, role = ? WHERE id = ?";
-        db.query(sql, [nomComplet, emailPropre, role, id], (err) => {
-          if (err) {
-            console.error("Erreur modification admin :", err);
-            return res.status(500).json({ erreur: "Erreur lors de la mise à jour." });
-          }
-          res.json({ 
-            message: "Compte administrateur mis à jour avec succès.",
-            id, nom: nomComplet, email: emailPropre, role 
-          });
-        });
-      }
-      // Cas 3 : Passe de Facturier à Admin
-      else if (ancienRoleNorm === 'facturier' && nouveauRoleNorm === 'admin') {
-        db.query("SELECT * FROM facturiers WHERE id = ?", [id], (err, results) => {
-          if (err || results.length === 0) return res.status(404).json({ erreur: "Utilisateur introuvable." });
-          const user = results[0];
-
-          const nomComplet = `${prenomPropre} ${nomPropre} ${postnomPropre}`.trim() || `${user.prenom || ''} ${user.nom}`.trim();
-          const sqlInsert = "INSERT INTO admin (nom, email, motDePasse, role) VALUES (?, ?, ?, ?)";
-          
-          db.query(sqlInsert, [nomComplet, emailPropre || user.email, mdpFinal, role], (errInsert) => {
-            if (errInsert) {
-              console.error("Erreur migration vers admin :", errInsert);
-              return res.status(500).json({ erreur: "Erreur lors du changement de rôle." });
-            }
-
-            db.query("DELETE FROM facturiers WHERE id = ?", [id], (errDel) => {
-              if (errDel) console.error("Erreur suppression ancienne table :", errDel);
-              res.json({ message: "Utilisateur promu Admin avec succès." });
-            });
-          });
-        });
-      }
-      // Cas 4 : Passe d'Admin à Facturier
-      else if (ancienRoleNorm === 'admin' && nouveauRoleNorm === 'facturier') {
-        db.query("SELECT * FROM admin WHERE id = ?", [id], (err, results) => {
-          if (err || results.length === 0) return res.status(404).json({ erreur: "Utilisateur introuvable." });
-          const user = results[0];
-
-          const parts = user.nom.split(' ');
-          const prenomFinal = prenomPropre || parts[0] || '';
-          const nomFinal = nomPropre || parts.slice(1).join(' ') || user.nom;
-
-          const sqlInsert = "INSERT INTO facturiers (prenom, nom, postnom, email, mot_de_passe, role) VALUES (?, ?, ?, ?, ?, ?)";
-          
-          db.query(sqlInsert, [prenomFinal, nomFinal, postnomPropre, emailPropre || user.email, pwdActuel, role], (errInsert) => {
-            if (errInsert) {
-              console.error("Erreur migration vers facturiers :", errInsert);
-              return res.status(500).json({ erreur: "Erreur lors du changement de rôle." });
-            }
-
-            db.query("DELETE FROM admin WHERE id = ?", [id], (errDel) => {
-              if (errDel) console.error("Erreur suppression ancienne table :", errDel);
-              res.json({ message: "Utilisateur rétrogradé Facturier avec succès." });
-            });
-          });
-        });
-      }
-    };
-
     const tableCible = ancienRoleNorm === 'admin' ? 'admin' : 'facturiers';
     const colonneMdp = ancienRoleNorm === 'admin' ? 'motDePasse' : 'mot_de_passe';
 
+    // 1. Récupération sécurisée de l'ancien mot de passe actuel en base
     db.query(`SELECT ${colonneMdp} AS mdp FROM ${tableCible} WHERE id = ?`, [id], (err, results) => {
-      if (err || results.length === 0) {
+      let pwdActuel = '';
+      
+      const verifierEtPoursuivre = (motDePasseActuel) => {
+        // Si l'utilisateur a rempli le champ "nouveauMotDePasse", on exige et vérifie l'ancien
+        if (nouveauMotDePasse && nouveauMotDePasse.trim() !== '') {
+          if (!ancienMotDePasse || ancienMotDePasse !== motDePasseActuel) {
+            return res.status(400).json({ erreur: "L'ancien mot de passe saisi est incorrect." });
+          }
+        }
+
+        const mdpFinal = (nouveauMotDePasse && nouveauMotDePasse.trim() !== '') ? nouveauMotDePasse : motDePasseActuel;
+
+        // Cas 1 : Reste Facturier
+        if (ancienRoleNorm === 'facturier' && nouveauRoleNorm === 'facturier') {
+          compteService.mettreAJourFacturier(db, id, prenomPropre, nomPropre, postnomPropre, emailPropre, role, nouveauMotDePasse, (errUp) => {
+            if (errUp) {
+              console.error("Erreur modification facturier :", errUp);
+              return res.status(500).json({ erreur: "Erreur lors de la mise à jour." });
+            }
+            res.json({ 
+              message: "Compte mis à jour avec succès.",
+              id, prenom: prenomPropre, nom: nomPropre, postnom: postnomPropre, email: emailPropre, role 
+            });
+          });
+        }
+        // Cas 2 : Reste Admin
+        else if (ancienRoleNorm === 'admin' && nouveauRoleNorm === 'admin') {
+          const nomComplet = `${prenomPropre} ${nomPropre} ${postnomPropre}`.trim() || nomPropre;
+          compteService.mettreAJourAdmin(db, id, nomComplet, emailPropre, role, nouveauMotDePasse, (errUp) => {
+            if (errUp) {
+              console.error("Erreur modification admin :", errUp);
+              return res.status(500).json({ erreur: "Erreur lors de la mise à jour." });
+            }
+            res.json({ 
+              message: "Compte administrateur mis à jour avec succès.",
+              id, nom: nomComplet, email: emailPropre, role 
+            });
+          });
+        }
+        // Cas 3 : Passe de Facturier à Admin
+        else if (ancienRoleNorm === 'facturier' && nouveauRoleNorm === 'admin') {
+          db.query("SELECT * FROM facturiers WHERE id = ?", [id], (errSel, resSel) => {
+            if (errSel || resSel.length === 0) return res.status(404).json({ erreur: "Utilisateur introuvable." });
+            const user = resSel[0];
+
+            const nomComplet = `${prenomPropre} ${nomPropre} ${postnomPropre}`.trim() || `${user.prenom || ''} ${user.nom}`.trim();
+            const sqlInsert = "INSERT INTO admin (nom, email, motDePasse, role) VALUES (?, ?, ?, ?)";
+            
+            db.query(sqlInsert, [nomComplet, emailPropre || user.email, mdpFinal, role], (errInsert) => {
+              if (errInsert) {
+                console.error("Erreur migration vers admin :", errInsert);
+                return res.status(500).json({ erreur: "Erreur lors du changement de rôle." });
+              }
+
+              db.query("DELETE FROM facturiers WHERE id = ?", [id], (errDel) => {
+                if (errDel) console.error("Erreur suppression ancienne table :", errDel);
+                res.json({ message: "Utilisateur promu Admin avec succès." });
+              });
+            });
+          });
+        }
+        // Cas 4 : Passe d'Admin à Facturier
+        else if (ancienRoleNorm === 'admin' && nouveauRoleNorm === 'facturier') {
+          db.query("SELECT * FROM admin WHERE id = ?", [id], (errSel, resSel) => {
+            if (errSel || resSel.length === 0) return res.status(404).json({ erreur: "Utilisateur introuvable." });
+            const user = resSel[0];
+
+            const parts = user.nom.split(' ');
+            const prenomFinal = prenomPropre || parts[0] || '';
+            const nomFinal = nomPropre || parts.slice(1).join(' ') || user.nom;
+
+            const sqlInsert = "INSERT INTO facturiers (prenom, nom, postnom, email, mot_de_passe, role) VALUES (?, ?, ?, ?, ?, ?)";
+            
+            db.query(sqlInsert, [prenomFinal, nomFinal, postnomPropre, emailPropre || user.email, mdpFinal, role], (errInsert) => {
+              if (errInsert) {
+                console.error("Erreur migration vers facturiers :", errInsert);
+                return res.status(500).json({ erreur: "Erreur lors du changement de rôle." });
+              }
+
+              db.query("DELETE FROM admin WHERE id = ?", [id], (errDel) => {
+                if (errDel) console.error("Erreur suppression ancienne table :", errDel);
+                res.json({ message: "Utilisateur rétrogradé Facturier avec succès." });
+              });
+            });
+          });
+        }
+      };
+
+      if (!err && results.length > 0) {
+        verifierEtPoursuivre(results[0].mdp);
+      } else {
+        // Recherche de secours dans l'autre table
         const autreTable = tableCible === 'admin' ? 'facturiers' : 'admin';
         const autreColMdp = autreTable === 'admin' ? 'motDePasse' : 'mot_de_passe';
         db.query(`SELECT ${autreColMdp} AS mdp FROM ${autreTable} WHERE id = ?`, [id], (err2, results2) => {
           if (err2 || results2.length === 0) {
             return res.status(404).json({ erreur: "Utilisateur introuvable en base de données." });
           }
-          executerMiseAJour(results2[0].mdp);
+          verifierEtPoursuivre(results2[0].mdp);
         });
-        return;
       }
-      executerMiseAJour(results[0].mdp);
     });
   });
 
