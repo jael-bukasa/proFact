@@ -1,38 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const SectionCategorie = styled.div`
-  margin-bottom: 0;
-
-  h4.titre-categorie {
-    color: #e2e8f0;
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-
-    .nom-cat {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .badge-compte {
-      background: rgba(255, 255, 255, 0.05);
-      color: #94a3b8;
-      font-size: 0.75rem;
-      padding: 0.2rem 0.65rem;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      font-weight: 500;
-    }
-  }
-`;
-
 const TableauUtilisateurs = styled.div`
   display: flex;
   flex-direction: column;
@@ -280,11 +248,7 @@ export default function RepertoireFacturiers({
   setVoirMdpEdition 
 }) {
   return (
-    <SectionCategorie>
-      <h4 className="titre-categorie">
-        <span className="nom-cat">📄 Facturiers</span> 
-        <span className="badge-compte">{facturiers.length}</span>
-      </h4>
+    <>
       {facturiers.length === 0 ? (
         <MessageVide>Aucun facturier trouvé.</MessageVide>
       ) : (
@@ -366,6 +330,6 @@ export default function RepertoireFacturiers({
           })}
         </TableauUtilisateurs>
       )}
-    </SectionCategorie>
+    </>
   );
 }

@@ -58,7 +58,7 @@ const CarteListe = styled.div`
   margin-top: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 2rem;
 
   .entete-carte {
     display: flex;
@@ -85,6 +85,62 @@ const CarteListe = styled.div`
       background-position: 10px center;
       &:focus { border-color: #22c55e; }
     }
+  }
+`;
+
+const SectionDepliable = styled.div`
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  background: #18181b;
+  overflow: hidden;
+  transition: all 0.3s ease;
+
+  .en-tete-section {
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.02);
+    user-select: none;
+    transition: background 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .titre-section {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #f8fafc;
+      font-weight: 600;
+      font-size: 0.95rem;
+
+      .badge-compteur {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+        padding: 0.15rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+    }
+
+    .fleche {
+      color: #94a3b8;
+      font-size: 1rem;
+      transition: transform 0.3s ease;
+      transform: ${props => props.$ouvert ? 'rotate(180deg)' : 'rotate(0deg)'};
+    }
+  }
+
+  .contenu-section {
+    max-height: ${props => props.$ouvert ? '2000px' : '0'};
+    opacity: ${props => props.$ouvert ? '1' : '0'};
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    padding: ${props => props.$ouvert ? '1rem' : '0 1rem'};
   }
 `;
 
@@ -122,6 +178,10 @@ export default function RepertoireAccesEtRoles({
   const [formDataEdit, setFormDataEdit] = useState({ prenom: '', nom: '', email: '', role: '', motDePasse: '' });
   const [recherche, setRecherche] = useState('');
   const [utilisateurASupprimer, setUtilisateurASupprimer] = useState(null);
+
+  // États pour gérer le dépliage des listes
+  const [ouvertAdmins, setOuvertAdmins] = useState(true);
+  const [ouvertFacturiers, setOuvertFacturiers] = useState(true);
 
   const [motsDePasseVisibles, setMotsDePasseVisibles] = useState({});
   const [voirMdpEdition, setVoirMdpEdition] = useState(false);
@@ -227,25 +287,49 @@ export default function RepertoireAccesEtRoles({
           </div>
         </div>
 
-        <RepertoireAdministrateurs 
-          admins={listeAdmins} 
-          surSupprimer={(admin) => setUtilisateurASupprimer(admin)} 
-        />
+        {/* Section Administrateurs Dépliable */}
+        <SectionDepliable $ouvert={ouvertAdmins}>
+          <div className="en-tete-section" onClick={() => setOuvertAdmins(!ouvertAdmins)}>
+            <div className="titre-section">
+              <span>🛡️ Administrateurs</span>
+              <span className="badge-compteur">{listeAdmins.length}</span>
+            </div>
+            <span className="fleche">▼</span>
+          </div>
+          <div className="contenu-section">
+            <RepertoireAdministrateurs 
+              admins={listeAdmins} 
+              surSupprimer={(admin) => setUtilisateurASupprimer(admin)} 
+            />
+          </div>
+        </SectionDepliable>
 
-        <RepertoireFacturiers 
-          facturiers={listeFacturiersSeuls}
-          idEnEdition={idEnEdition}
-          formDataEdit={formDataEdit}
-          setFormDataEdit={setFormDataEdit}
-          demarrerEdition={demarrerEdition}
-          sauvegarderModification={sauvegarderModification}
-          annulerEdition={() => setIdEnEdition(null)}
-          surSupprimer={(facturier) => setUtilisateurASupprimer(facturier)}
-          motsDePasseVisibles={motsDePasseVisibles}
-          basculerVisibiliteMdp={basculerVisibiliteMdp}
-          voirMdpEdition={voirMdpEdition}
-          setVoirMdpEdition={setVoirMdpEdition}
-        />
+        {/* Section Facturiers Dépliable */}
+        <SectionDepliable $ouvert={ouvertFacturiers}>
+          <div className="en-tete-section" onClick={() => setOuvertFacturiers(!ouvertFacturiers)}>
+            <div className="titre-section">
+              <span>📄 Facturiers</span>
+              <span className="badge-compteur">{listeFacturiersSeuls.length}</span>
+            </div>
+            <span className="fleche">▼</span>
+          </div>
+          <div className="contenu-section">
+            <RepertoireFacturiers 
+              facturiers={listeFacturiersSeuls}
+              idEnEdition={idEnEdition}
+              formDataEdit={formDataEdit}
+              setFormDataEdit={setFormDataEdit}
+              demarrerEdition={demarrerEdition}
+              sauvegarderModification={sauvegarderModification}
+              annulerEdition={() => setIdEnEdition(null)}
+              surSupprimer={(facturier) => setUtilisateurASupprimer(facturier)}
+              motsDePasseVisibles={motsDePasseVisibles}
+              basculerVisibiliteMdp={basculerVisibiliteMdp}
+              voirMdpEdition={voirMdpEdition}
+              setVoirMdpEdition={setVoirMdpEdition}
+            />
+          </div>
+        </SectionDepliable>
       </CarteListe>
 
       {utilisateurASupprimer && (
