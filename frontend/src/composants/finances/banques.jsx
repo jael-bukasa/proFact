@@ -80,10 +80,10 @@ export default function Banques() {
           // Activer la surbrillance pour cette banque précise
           setIdModifieRecent(idModifie);
 
-          // Retirer la surbrillance après 10 secondes (10000 ms)
+          // Retirer la surbrillance après 5 secondes (5000 ms)
           setTimeout(() => {
             setIdModifieRecent(null);
-          }, 10000);
+          }, 5000);
         }
       } else {
         // ENVOI DE LA REQUÊTE D'AJOUT (POST)

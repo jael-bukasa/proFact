@@ -19,9 +19,9 @@ const compteService = {
     db.query(query, [email], callback);
   },
 
-  // Récupérer tous les facturiers
+  // Récupérer tous les facturiers (Alias de mot_de_passe en motDePasse pour le frontend)
   obtenirTousFacturiers: (db, callback) => {
-    const query = 'SELECT id, prenom, nom, email, role, creeLe FROM facturiers ORDER BY id DESC';
+    const query = "SELECT id, prenom, nom, email, role, mot_de_passe AS motDePasse, cree_le AS creeLe, 'Facturier' as typeRole FROM facturiers ORDER BY id DESC";
     db.query(query, callback);
   },
 

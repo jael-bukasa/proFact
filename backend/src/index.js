@@ -10,7 +10,8 @@ const factureService = require('./services/factureService');
 // Importation des routeurs
 const clientsRoutes = require('./routes/clientsRoutes');
 const facturesRoutes = require('./routes/facturesRoutes');
-const banquesRoutes = require('./routes/banquesRoutes'); // <--- Ajouté ici
+const banquesRoutes = require('./routes/banquesRoutes');
+const compteRoutes = require('./routes/compteRoutes'); // <--- Ajouté ici
 
 const app = express();
 const PORT = 5000;
@@ -226,7 +227,8 @@ app.get('/api/health', (req, res) => {
 // ==========================================
 app.use('/api/clients', clientsRoutes(db));
 app.use('/api/factures', facturesRoutes(db));
-app.use('/api/banques', banquesRoutes(db)); // <--- Intégré ici proprement
+app.use('/api/banques', banquesRoutes(db));
+app.use('/api', compteRoutes(db)); // <--- Gère /api/admin, /api/facturiers, etc.
 
 // ==========================================
 // ROUTES SPÉCIFIQUES - FACTURES (Électricité & Eau)
@@ -248,180 +250,6 @@ app.get('/api/factures-eau', (req, res) => {
       return res.status(500).json({ erreur: "Erreur serveur lors de la récupération des factures d'eau" });
     }
     res.json(results);
-  });
-});
-
-// ==========================================
-// ROUTES API - ADMIN / AUTHENTIFICATION
-// ==========================================
-app.post('/api/admin/inscription', (req, res) => {
-  const { nom, email, motDePasse, role = 'Administrateur' } = req.body;
-
-  if (!nom || !email || !motDePasse) {
-    return res.status(400).json({ erreur: "Tous les champs obligatoires doivent être remplis." });
-  }
-
-  const emailPropre = email.trim();
-
-  compteService.trouverAdminParEmail(db, emailPropre, (err, results) => {
-    if (err) {
-      console.error("Erreur SQL vérification email :", err);
-      return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
-    }
-
-    if (results.length > 0) {
-      return res.status(400).json({ erreur: "Cet email est déjà utilisé par un autre administrateur." });
-    }
-
-    compteService.insererAdmin(db, nom.trim(), emailPropre, motDePasse, role, (errInsert, resultat) => {
-      if (errInsert) {
-        console.error("Erreur lors de l'inscription admin :", errInsert);
-        return res.status(500).json({ erreur: "Erreur lors de la création du compte administrateur." });
-      }
-
-      res.status(201).json({
-        message: "Compte administrateur créé avec succès.",
-        admin: {
-          id: resultat.insertId,
-          nom: nom.trim(),
-          email: emailPropre,
-          role
-        }
-      });
-    });
-  });
-});
-
-app.post('/api/admin/connexion', (req, res) => {
-  const { email, motDePasse, role } = req.body;
-
-  if (!email || !motDePasse) {
-    return res.status(400).json({ erreur: "L'email et le mot de passe sont requis." });
-  }
-
-  const emailPropre = email.trim();
-  const roleNormalise = role ? role.trim().toLowerCase() : '';
-
-  if (roleNormalise === 'facturier') {
-    compteService.trouverFacturierParEmail(db, emailPropre, (err, results) => {
-      if (err) {
-        console.error("Erreur SQL connexion facturier :", err);
-        return res.status(500).json({ erreur: "Erreur serveur lors de la connexion." });
-      }
-
-      if (results.length === 0) {
-        return res.status(404).json({ erreur: "Facturier introuvable avec cet email." });
-      }
-
-      const facturier = results[0];
-
-      if (facturier.mot_de_passe !== motDePasse) {
-        return res.status(401).json({ erreur: "Mot de passe incorrect." });
-      }
-
-      res.json({
-        message: "Connexion réussie",
-        admin: {
-          id: facturier.id,
-          nom: facturier.nom,
-          prenom: facturier.prenom || '',
-          email: facturier.email,
-          role: facturier.role || 'Facturier'
-        }
-      });
-    });
-  } 
-  else {
-    compteService.trouverAdminParEmail(db, emailPropre, (err, results) => {
-      if (err) {
-        console.error("Erreur SQL connexion admin :", err);
-        return res.status(500).json({ erreur: "Erreur serveur lors de la connexion." });
-      }
-
-      if (results.length === 0) {
-        return res.status(404).json({ erreur: "Administrateur introuvable avec cet email." });
-      }
-
-      const admin = results[0];
-
-      if (admin.motDePasse !== motDePasse) {
-        return res.status(401).json({ erreur: "Mot de passe incorrect." });
-      }
-
-      res.json({
-        message: "Connexion réussie",
-        admin: {
-          id: admin.id,
-          nom: admin.nom,
-          email: admin.email,
-          role: admin.role || 'Administrateur'
-        }
-      });
-    });
-  }
-});
-
-// ==========================================
-// ROUTES API - FACTURIERS
-// ==========================================
-app.get('/api/facturiers', (req, res) => {
-  compteService.obtenirTousFacturiers(db, (err, results) => {
-    if (err) {
-      console.error("Erreur SQL récupération facturiers :", err);
-      return res.status(500).json({ erreur: "Erreur lors de la récupération des facturiers." });
-    }
-    res.json(results);
-  });
-});
-
-app.post('/api/facturiers', (req, res) => {
-  const { prenom, nom, email, motDePasse, role = 'Facturier' } = req.body;
-
-  if (!prenom || !nom || !email || !motDePasse) {
-    return res.status(400).json({ erreur: "Tous les champs obligatoires doivent être remplis." });
-  }
-
-  const emailPropre = email.trim();
-
-  compteService.trouverFacturierParEmail(db, emailPropre, (err, results) => {
-    if (err) {
-      console.error("Erreur SQL vérification email facturier :", err);
-      return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
-    }
-
-    if (results.length > 0) {
-      return res.status(400).json({ erreur: "Cette adresse e-mail est déjà utilisée." });
-    }
-
-    compteService.insererFacturier(db, prenom.trim(), nom.trim(), emailPropre, motDePasse, role, (errInsert, resultat) => {
-      if (errInsert) {
-        console.error("Erreur lors de l'insertion du facturier :", errInsert);
-        return res.status(500).json({ erreur: "Erreur lors de la création du compte facturier." });
-      }
-
-      res.status(201).json({
-        success: true,
-        message: "Compte facturier créé avec succès.",
-        data: {
-          id: resultat.insertId,
-          prenom: prenom.trim(),
-          nom: nom.trim(),
-          email: emailPropre,
-          role
-        }
-      });
-    });
-  });
-});
-
-app.delete('/api/facturiers/:id', (req, res) => {
-  const { id } = req.params;
-  compteService.supprimerFacturier(db, id, (err) => {
-    if (err) {
-      console.error("Erreur suppression facturier :", err);
-      return res.status(500).json({ erreur: "Erreur lors de la suppression du facturier" });
-    }
-    res.json({ message: "Facturier supprimé avec succès" });
   });
 });
 

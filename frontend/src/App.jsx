@@ -139,21 +139,11 @@ export default function App() {
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [backendConnecte, setBackendConnecte] = useState(false);
 
-  // États centralisés
+  // États centralisés reliés à l'API
   const [clientsEnregistres, setClientsEnregistres] = useState([]);
   const [facturesEnregistrees, setFacturesEnregistrees] = useState([]);
   const [banquesEnregistrees, setBanquesEnregistrees] = useState([]);
-
-  const [facturiers, setFacturiers] = useState(() => {
-    try {
-      const sauvegarde = localStorage.getItem('proFact_facturiers');
-      return sauvegarde ? JSON.parse(sauvegarde) : [
-        { id: 1, prenom: 'Jaël', nom: 'Mulaji', postnom: 'Bukasa', email: 'jaelbuk08@gmail.com', role: 'Admin', motDePasse: 'secret123' }
-      ];
-    } catch (e) {
-      return [];
-    }
-  });
+  const [utilisateursSysteme, setUtilisateursSysteme] = useState([]);
 
   // Remet le scroll en haut au changement d'onglet
   useEffect(() => {
@@ -162,70 +152,97 @@ export default function App() {
     }
   }, [ongletActif]);
 
-  // Charger les clients depuis l'API backend
+  // --- CHARGEMENT DES DONNÉES DEPUIS LE BACKEND (API) ---
   useEffect(() => {
-    const chargerClientsGlobal = async () => {
-      try {
-        const reponse = await axios.get('http://localhost:5000/api/clients');
-        if (reponse.data) {
-          setClientsEnregistres(Array.isArray(reponse.data) ? reponse.data : []);
-        }
-      } catch (err) {
-        console.error("Impossible de récupérer les clients", err);
-      }
-    };
-    chargerClientsGlobal();
+    // Vérification de la santé du backend
+    axios.get('http://localhost:5000/api/health')
+      .then(reponse => setBackendConnecte(reponse.data.status === 'ok'))
+      .catch(() => setBackendConnecte(false));
+
+    // Charger les clients
+    axios.get('http://localhost:5000/api/clients')
+      .then(reponse => {
+        if (reponse.data) setClientsEnregistres(Array.isArray(reponse.data) ? reponse.data : []);
+      })
+      .catch(err => console.error("Impossible de récupérer les clients", err));
+
+    // Charger les factures
+    axios.get('http://localhost:5000/api/factures')
+      .then(reponse => {
+        if (reponse.data) setFacturesEnregistrees(reponse.data);
+      })
+      .catch(err => console.error("Impossible de récupérer les factures", err));
+
+    // Charger les banques
+    axios.get('http://localhost:5000/api/banques')
+      .then(reponse => {
+        if (reponse.data) setBanquesEnregistrees(Array.isArray(reponse.data) ? reponse.data : []);
+      })
+      .catch(err => console.error("Impossible de récupérer les banques", err));
+
+    // Charger et fusionner les Administrateurs et Facturiers depuis le backend
+    chargerUtilisateursBackend();
   }, []);
 
-  // Charger les factures depuis l'API backend
-  useEffect(() => {
-    const chargerFacturesGlobal = async () => {
-      try {
-        const reponse = await axios.get('http://localhost:5000/api/factures');
-        if (reponse.data) {
-          setFacturesEnregistrees(reponse.data);
-        }
-      } catch (err) {
-        console.error("Impossible de récupérer les factures", err);
-      }
-    };
-    chargerFacturesGlobal();
-  }, []);
-
-  // Charger les banques depuis l'API backend
-  useEffect(() => {
-    const chargerBanquesGlobal = async () => {
-      try {
-        const reponse = await axios.get('http://localhost:5000/api/banques');
-        if (reponse.data) {
-          setBanquesEnregistrees(Array.isArray(reponse.data) ? reponse.data : []);
-        }
-      } catch (err) {
-        console.error("Impossible de récupérer les banques", err);
-      }
-    };
-    chargerBanquesGlobal();
-  }, []);
-
-  useEffect(() => {
+  const chargerUtilisateursBackend = async () => {
     try {
-      localStorage.setItem('proFact_facturiers', JSON.stringify(facturiers));
-    } catch (e) {
-      console.error("Erreur sauvegarde localStorage facturiers", e);
+      const [adminsRes, facturiersRes] = await Promise.all([
+        axios.get('http://localhost:5000/api/admin').catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/api/facturiers').catch(() => ({ data: [] }))
+      ]);
+
+      const adminsFormates = (adminsRes.data || []).map(a => ({
+        ...a,
+        role: 'Admin'
+      }));
+
+      const facturiersFormates = (facturiersRes.data || []).map(f => ({
+        ...f,
+        role: 'Facturier'
+      }));
+
+      setUtilisateursSysteme([...adminsFormates, ...facturiersFormates]);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des utilisateurs de la base de données", err);
     }
-  }, [facturiers]);
-
-  const ajouterFacturier = (nouveau) => {
-    setFacturiers([nouveau, ...facturiers]);
   };
 
-  const modifierFacturier = (id, donneesModifiees) => {
-    setFacturiers(facturiers.map(f => (f.id === id ? { ...f, ...donneesModifiees } : f)));
+  // --- ACTIONS SUR LES UTILISATEURS (Vers le Backend corrigé) ---
+  const ajouterFacturier = async (nouveau) => {
+    try {
+      const route = nouveau.role?.toLowerCase().includes('admin') 
+        ? 'http://localhost:5000/api/admin' 
+        : 'http://localhost:5000/api/facturiers';
+
+      await axios.post(route, nouveau);
+      chargerUtilisateursBackend();
+    } catch (err) {
+      console.error("Erreur lors de l'ajout de l'utilisateur", err);
+    }
   };
 
-  const supprimerFacturier = (id) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce compte ?")) {
-      setFacturiers(facturiers.filter(f => f.id !== id));
+  // Modification mise à jour pour pointer vers la route unifiée du backend
+  const modifierFacturier = async (id, donneesModifiees) => {
+    try {
+      const route = `http://localhost:5000/api/utilisateurs/${id}`;
+
+      await axios.put(route, donneesModifiees);
+      chargerUtilisateursBackend();
+    } catch (err) {
+      console.error("Erreur lors de la modification de l'utilisateur", err);
+    }
+  };
+
+  const supprimerFacturier = async (id) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce compte de la base de données ?")) {
+      try {
+        const route = `http://localhost:5000/api/utilisateurs/${id}`;
+
+        await axios.delete(route);
+        chargerUtilisateursBackend();
+      } catch (err) {
+        console.error("Erreur lors de la suppression de l'utilisateur", err);
+      }
     }
   };
 
@@ -234,12 +251,6 @@ export default function App() {
     const date = new Date(dateString);
     return isNaN(date) ? dateString : date.toLocaleDateString('fr-FR');
   };
-
-  useEffect(() => {
-    axios.get('http://localhost:5000/api/health')
-      .then(reponse => setBackendConnecte(reponse.data.status === 'ok'))
-      .catch(() => setBackendConnecte(false));
-  }, []);
 
   const allerAFacturation = (client) => {
     setClientSelectionne(client);
@@ -352,7 +363,7 @@ export default function App() {
       case 'Gérer les comptes':
         return (
           <GererComptes 
-            facturiers={facturiers} 
+            facturiers={utilisateursSysteme}
             surSupprimerFacturier={supprimerFacturier} 
             surModifierFacturier={modifierFacturier}
           />
