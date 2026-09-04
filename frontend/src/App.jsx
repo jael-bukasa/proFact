@@ -20,7 +20,7 @@ import GererComptes from './composants/gestionsUtilisateurs/gererComptes';
 import Connexion from './composants/profil/connexion/connexion';
 import CreerCompte from './composants/profil/connexion/creerCompte';
 import Deconnexion from './composants/profil/deconnexion';
-import Paramettre from './composants/profil/paramettre';
+import Paramettre from './composants/profil/parametre';
 
 // --- ANIMATIONS ---
 const transitionDouce = keyframes`
@@ -126,6 +126,7 @@ export default function App() {
   const referenceContenu = useRef(null);
 
   const [utilisateurActuel, setUtilisateurActuel] = useState({
+    id: null, // Ajouté pour éviter l'erreur d'ID introuvable
     prenom: 'Jaël',
     nom: 'Mulaji',
     postnom: 'Bukasa',
@@ -133,7 +134,7 @@ export default function App() {
     email: 'jaelbuk08@gmail.com'
   });
 
-  const estAdmin = utilisateurActuel.role.toLowerCase().includes('admin');
+  const estAdmin = (utilisateurActuel.role || '').toLowerCase().includes('admin');
 
   const [ongletActif, setOngletActif] = useState(estAdmin ? 'Tableau de bord' : 'Clients');
   const [clientSelectionne, setClientSelectionne] = useState(null);
@@ -224,7 +225,6 @@ export default function App() {
   const modifierFacturier = async (id, donneesModifiees) => {
     try {
       const route = `http://localhost:5000/api/utilisateurs/${id}`;
-
       await axios.put(route, donneesModifiees);
       chargerUtilisateursBackend();
     } catch (err) {
@@ -236,7 +236,6 @@ export default function App() {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce compte de la base de données ?")) {
       try {
         const route = `http://localhost:5000/api/utilisateurs/${id}`;
-
         await axios.delete(route);
         chargerUtilisateursBackend();
       } catch (err) {
@@ -264,6 +263,7 @@ export default function App() {
           surConnexionReussie={(donneesUtilisateur) => {
             if (donneesUtilisateur) {
               setUtilisateurActuel({
+                id: donneesUtilisateur.id || donneesUtilisateur._id, // Récupération sécurisée de l'ID
                 prenom: donneesUtilisateur.prenom || 'Jaël',
                 nom: donneesUtilisateur.nom || 'Mulaji',
                 postnom: donneesUtilisateur.postnom || 'Bukasa',
@@ -289,6 +289,7 @@ export default function App() {
           surInscriptionReussie={(donneesUtilisateur) => {
             if (donneesUtilisateur) {
               setUtilisateurActuel({
+                id: donneesUtilisateur.id || donneesUtilisateur._id, // Récupération sécurisée de l'ID
                 prenom: donneesUtilisateur.prenom || 'Jaël',
                 nom: donneesUtilisateur.nom || 'Mulaji',
                 postnom: donneesUtilisateur.postnom || 'Bukasa',

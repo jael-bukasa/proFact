@@ -78,6 +78,7 @@ function compteRoutes(db) {
             id: facturier.id,
             nom: facturier.nom,
             prenom: facturier.prenom || '',
+            postnom: facturier.postnom || '',
             email: facturier.email,
             role: facturier.role || 'Facturier'
           }
@@ -117,9 +118,7 @@ function compteRoutes(db) {
   // ==========================================
   // ROUTES FACTURIERS & LISTE ADMIN
   // ==========================================
-  
   router.get('/admin', (req, res) => {
-    // On met NULL pour masquer le mot de passe des autres administrateurs
     const sql = "SELECT id, nom, email, role, NULL AS motDePasse, 'Admin' as typeRole FROM admin";
     db.query(sql, (err, results) => {
       if (err) {
@@ -181,11 +180,11 @@ function compteRoutes(db) {
   });
 
   // ==========================================
-  // ROUTE DE MODIFICATION (Sécurisée pour les admins)
+  // ROUTE DE MODIFICATION (Mise à jour complète)
   // ==========================================
   router.put('/utilisateurs/:id', (req, res) => {
     const { id } = req.params;
-    const { role, motDePasse, ancienRole } = req.body;
+    const { prenom, nom, postnom, email, role, motDePasse, ancienRole } = req.body;
 
     if (!role) {
       return res.status(400).json({ erreur: "Le rôle est requis." });
@@ -193,49 +192,56 @@ function compteRoutes(db) {
 
     const nouveauRoleNorm = role.trim().toLowerCase();
     const ancienRoleNorm = ancienRole ? ancienRole.trim().toLowerCase() : 'facturier';
+    const prenomPropre = prenom ? prenom.trim() : '';
+    const nomPropre = nom ? nom.trim() : '';
+    const postnomPropre = postnom ? postnom.trim() : '';
+    const emailPropre = email ? email.trim() : '';
 
     const executerMiseAJour = (pwdActuel) => {
-      // RÈGLE : Si c'est un admin, on interdit de modifier son mot de passe via un tiers
       let mdpFinal = pwdActuel;
       if (ancienRoleNorm !== 'admin') {
         mdpFinal = (motDePasse && motDePasse.trim() !== '') ? motDePasse : pwdActuel;
-      } else if (motDePasse && motDePasse.trim() !== '' && motDePasse !== '••••••••' && motDePasse !== null) {
-        // Optionnel : Bloquer explicitement si un admin tente de changer le mot d'un autre admin
-        return res.status(403).json({ erreur: "Il est interdit de modifier le mot de passe d'un autre administrateur." });
       }
 
-      // Cas 1 : Reste Facturier -> Mise à jour simple dans 'facturiers'
+      // Cas 1 : Reste Facturier -> Met à jour prénom, nom, postnom, email, mdp et rôle
       if (ancienRoleNorm === 'facturier' && nouveauRoleNorm === 'facturier') {
-        const sql = "UPDATE facturiers SET mot_de_passe = ?, role = ? WHERE id = ?";
-        db.query(sql, [mdpFinal, role, id], (err) => {
+        const sql = "UPDATE facturiers SET prenom = ?, nom = ?, postnom = ?, email = ?, mot_de_passe = ?, role = ? WHERE id = ?";
+        db.query(sql, [prenomPropre, nomPropre, postnomPropre, emailPropre, mdpFinal, role, id], (err) => {
           if (err) {
             console.error("Erreur modification facturier :", err);
             return res.status(500).json({ erreur: "Erreur lors de la mise à jour." });
           }
-          res.json({ message: "Compte mis à jour avec succès." });
+          res.json({ 
+            message: "Compte mis à jour avec succès.",
+            id, prenom: prenomPropre, nom: nomPropre, postnom: postnomPropre, email: emailPropre, role 
+          });
         });
       }
-      // Cas 2 : Reste Admin -> Mise à jour du rôle uniquement (le mot de passe ne change pas)
+      // Cas 2 : Reste Admin -> Met à jour nom, email et rôle
       else if (ancienRoleNorm === 'admin' && nouveauRoleNorm === 'admin') {
-        const sql = "UPDATE admin SET role = ? WHERE id = ?";
-        db.query(sql, [role, id], (err) => {
+        const nomComplet = `${prenomPropre} ${nomPropre} ${postnomPropre}`.trim() || nomPropre;
+        const sql = "UPDATE admin SET nom = ?, email = ?, role = ? WHERE id = ?";
+        db.query(sql, [nomComplet, emailPropre, role, id], (err) => {
           if (err) {
             console.error("Erreur modification admin :", err);
             return res.status(500).json({ erreur: "Erreur lors de la mise à jour." });
           }
-          res.json({ message: "Compte administrateur mis à jour avec succès." });
+          res.json({ 
+            message: "Compte administrateur mis à jour avec succès.",
+            id, nom: nomComplet, email: emailPropre, role 
+          });
         });
       }
-      // Cas 3 : Passe de Facturier à Admin -> Migration de 'facturiers' vers 'admin'
+      // Cas 3 : Passe de Facturier à Admin
       else if (ancienRoleNorm === 'facturier' && nouveauRoleNorm === 'admin') {
         db.query("SELECT * FROM facturiers WHERE id = ?", [id], (err, results) => {
           if (err || results.length === 0) return res.status(404).json({ erreur: "Utilisateur introuvable." });
           const user = results[0];
 
-          const nomComplet = `${user.prenom || ''} ${user.nom}`.trim();
+          const nomComplet = `${prenomPropre} ${nomPropre} ${postnomPropre}`.trim() || `${user.prenom || ''} ${user.nom}`.trim();
           const sqlInsert = "INSERT INTO admin (nom, email, motDePasse, role) VALUES (?, ?, ?, ?)";
           
-          db.query(sqlInsert, [nomComplet, user.email, mdpFinal, role], (errInsert) => {
+          db.query(sqlInsert, [nomComplet, emailPropre || user.email, mdpFinal, role], (errInsert) => {
             if (errInsert) {
               console.error("Erreur migration vers admin :", errInsert);
               return res.status(500).json({ erreur: "Erreur lors du changement de rôle." });
@@ -248,19 +254,19 @@ function compteRoutes(db) {
           });
         });
       }
-      // Cas 4 : Passe d'Admin à Facturier -> Migration d'admin' vers 'facturiers'
+      // Cas 4 : Passe d'Admin à Facturier
       else if (ancienRoleNorm === 'admin' && nouveauRoleNorm === 'facturier') {
         db.query("SELECT * FROM admin WHERE id = ?", [id], (err, results) => {
           if (err || results.length === 0) return res.status(404).json({ erreur: "Utilisateur introuvable." });
           const user = results[0];
 
           const parts = user.nom.split(' ');
-          const prenom = parts[0] || '';
-          const nom = parts.slice(1).join(' ') || user.nom;
+          const prenomFinal = prenomPropre || parts[0] || '';
+          const nomFinal = nomPropre || parts.slice(1).join(' ') || user.nom;
 
-          const sqlInsert = "INSERT INTO facturiers (prenom, nom, email, mot_de_passe, role) VALUES (?, ?, ?, ?, ?)";
+          const sqlInsert = "INSERT INTO facturiers (prenom, nom, postnom, email, mot_de_passe, role) VALUES (?, ?, ?, ?, ?, ?)";
           
-          db.query(sqlInsert, [prenom, nom, user.email, pwdActuel, role], (errInsert) => {
+          db.query(sqlInsert, [prenomFinal, nomFinal, postnomPropre, emailPropre || user.email, pwdActuel, role], (errInsert) => {
             if (errInsert) {
               console.error("Erreur migration vers facturiers :", errInsert);
               return res.status(500).json({ erreur: "Erreur lors du changement de rôle." });
@@ -283,7 +289,7 @@ function compteRoutes(db) {
         const autreTable = tableCible === 'admin' ? 'facturiers' : 'admin';
         const autreColMdp = autreTable === 'admin' ? 'motDePasse' : 'mot_de_passe';
         db.query(`SELECT ${autreColMdp} AS mdp FROM ${autreTable} WHERE id = ?`, [id], (err2, results2) => {
-          if (err2 || results2.length ===0) {
+          if (err2 || results2.length === 0) {
             return res.status(404).json({ erreur: "Utilisateur introuvable en base de données." });
           }
           executerMiseAJour(results2[0].mdp);
