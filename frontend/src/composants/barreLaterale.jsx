@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import Deconnexion from './profil/deconnexion/deconnexion';
 
 const THEME = {
   fondSidebar: '#000000',
@@ -22,38 +21,8 @@ const ConteneurBarreLaterale = styled.aside`
   display: flex;
   flex-direction: column;
   border-right: 1px solid ${THEME.bordure};
-  overflow-y: auto;
   box-sizing: border-box;
-
-  /* Empêche les micro-sauts de mise en page quand la scrollbar apparaît */
-  scrollbar-gutter: stable;
-
-  /* --- SUPPORT FIREFOX --- */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-
-  /* --- SCROLLBAR WEBKIT (Chrome, Edge, Safari) --- */
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-    margin: 8px 0;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 20px;
-    min-height: 40px;
-    transition: background 0.2s ease;
-  }
-
-  /* Devient vert au survol, au clic et pendant le défilement */
-  &::-webkit-scrollbar-thumb:hover,
-  &::-webkit-scrollbar-thumb:active {
-    background: ${THEME.accentuation};
-  }
+  overflow-y: auto;
 `;
 
 const SectionProfil = styled.div`
@@ -61,16 +30,17 @@ const SectionProfil = styled.div`
   align-items: center;
   gap: 0.8rem;
   padding: 0.6rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   width: 100%;
   border-radius: 12px;
   cursor: pointer;
-  background-color: ${props => props.$ouvert ? 'rgba(255, 255, 255, 0.08)' : 'transparent'};
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  background-color: ${props => props.$actif ? 'rgba(34, 197, 94, 0.1)' : 'transparent'};
+  border: 1px solid ${props => props.$actif ? 'rgba(34, 197, 94, 0.3)' : 'transparent'};
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    transform: translateX(4px);
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 `;
 
@@ -78,7 +48,7 @@ const Avatar = styled.div`
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background-color: #222;
+  background-color: #1a1a1a;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -87,6 +57,7 @@ const Avatar = styled.div`
   font-size: 0.85rem;
   color: ${THEME.accentuation};
   border: 1px solid ${THEME.bordure};
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 `;
 
 const TexteProfil = styled.div`
@@ -98,7 +69,9 @@ const TexteProfil = styled.div`
 
 const Salutation = styled.span`
   color: ${THEME.texteSecondaire};
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const NomUtilisateur = styled.span`
@@ -108,36 +81,50 @@ const NomUtilisateur = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   color: ${THEME.textePrincipal};
+  text-transform: capitalize;
 `;
 
-const MenuDeroulantProfil = styled.div`
-  margin-left: 1rem;
-  padding-left: 1rem;
-  border-left: 2px solid ${THEME.bordure};
-  margin-bottom: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  animation: fadeIn 0.25s ease-in-out;
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-`;
-
-const OptionProfil = styled.div`
-  padding: 0.5rem 0.7rem;
-  border-radius: 8px;
+const Fleche = styled.span`
   font-size: 0.85rem;
   color: ${THEME.texteSecondaire};
+  display: inline-flex;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: ${props => props.$ouvert ? 'rotate(90deg)' : 'rotate(0deg)'};
+`;
+
+/* Menu déroulant élégant avec animation de glissement et d'opacité */
+const MenuDeroulantProfil = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-left: 1rem;
+  margin-left: 1.2rem;
+  margin-bottom: 1.2rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  
+  /* Animation d'apparition fluide */
+  max-height: ${props => props.$ouvert ? '200px' : '0'};
+  opacity: ${props => props.$ouvert ? '1' : '0'};
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-in-out;
+`;
+
+const SousElementNav = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
   cursor: pointer;
+  font-size: 0.85rem;
+  color: ${props => props.$actif ? '#000000' : THEME.textePrincipal};
+  background-color: ${props => props.$actif ? THEME.accentuation : 'transparent'};
+  font-weight: ${props => props.$actif ? '600' : '400'};
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: rgba(34, 197, 94, 0.1);
-    color: ${THEME.accentuation};
-    transform: translateX(4px);
+    background-color: ${props => props.$actif ? THEME.accentuation : 'rgba(255, 255, 255, 0.08)'};
+    transform: translateX(3px);
   }
 `;
 
@@ -152,15 +139,6 @@ const TitreSectionNav = styled.h3`
 
 const Icone = styled.span`
   font-size: 1.1rem;
-  color: ${props => props.$actif ? '#000' : THEME.texteSecondaire};
-  transition: transform 0.25s ease, color 0.2s ease;
-`;
-
-const Fleche = styled.span`
-  font-size: 0.8rem;
-  color: ${THEME.texteSecondaire};
-  opacity: ${props => (props.$actif ? '1' : '0.5')};
-  transition: transform 0.25s ease, opacity 0.2s ease, color 0.2s ease;
 `;
 
 const ElementNav = styled.div`
@@ -171,41 +149,19 @@ const ElementNav = styled.div`
   border-radius: 12px;
   cursor: pointer;
   margin-bottom: 0.3rem;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              background-color 0.25s ease,
-              box-shadow 0.25s ease,
-              color 0.2s ease;
+  color: ${THEME.textePrincipal};
+  transition: all 0.2s ease;
 
   ${props => props.$actif && `
     background-color: ${THEME.accentuation};
     color: #000000;
     font-weight: 600;
     box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
-
-    & span {
-      color: #000000 !important;
-    }
   `}
 
-  ${props => !props.$actif && `
-    color: ${THEME.textePrincipal};
-    
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-      transform: translateX(6px);
-
-      ${Icone} {
-        transform: scale(1.18) rotate(-5deg);
-        color: ${THEME.accentuation};
-      }
-
-      ${Fleche} {
-        transform: translateX(3px);
-        opacity: 1;
-        color: ${THEME.accentuation};
-      }
-    }
-  `}
+  &:hover {
+    background-color: ${props => props.$actif ? THEME.accentuation : 'rgba(255, 255, 255, 0.08)'};
+  }
 `;
 
 const Libelle = styled.span`
@@ -228,90 +184,77 @@ const obtenirIconeNav = (element) => {
 export default function BarreLaterale({ 
   ongletActif, 
   auChangementOnglet, 
-  surDeconnexionEffective,
   utilisateurConnecte 
 }) {
-  const [profilOuvert, setProfilOuvert] = useState(false);
-  const [enDeconnexion, setEnDeconnexion] = useState(false);
+  const [profilDeroule, setProfilDeroule] = useState(
+    ongletActif === 'Parametres' || ongletActif === 'Deconnexion' || ongletActif === 'Profil'
+  );
 
   const roleBrut = utilisateurConnecte?.role || 'Admin';
   const estAdmin = roleBrut.toLowerCase().includes('admin');
 
+  const prenomUser = utilisateurConnecte?.prenom || '';
+  const nomUser = utilisateurConnecte?.nom || '';
+  const initiales = `${prenomUser.charAt(0)}${nomUser.charAt(0)}`.toUpperCase() || 'U';
+  const nomAffichage = prenomUser ? `${prenomUser} ${nomUser}`.trim() : 'Mon profil';
+
   const configurationMenu = estAdmin ? [
-    { 
-      titre: 'GESTION LOCATIVE', 
-      elements: ['Tableau de bord'] 
-    },
-    { 
-      titre: 'GESTION UTILISATEURS', 
-      elements: ['Créer un compte', 'Gérer les comptes'] 
-    },
-    {
-      titre: 'FINANCES',
-      elements: ['Banques']
-    }
+    { titre: 'GESTION LOCATIVE', elements: ['Tableau de bord'] },
+    { titre: 'GESTION UTILISATEURS', elements: ['Créer un compte', 'Gérer les comptes'] },
+    { titre: 'FINANCES', elements: ['Banques'] }
   ] : [
-    { 
-      titre: 'ESPACE FACTURIER', 
-      elements: ['Clients', 'Facturation'] 
-    }
+    { titre: 'ESPACE FACTURIER', elements: ['Clients', 'Facturation'] }
   ];
 
-  const declencherDeconnexion = () => {
-    setEnDeconnexion(true);
-    setTimeout(() => {
-      if (surDeconnexionEffective) {
-        surDeconnexionEffective();
-      }
-    }, 1200);
-  };
-
   return (
-    <>
-      {enDeconnexion && (
-        <Deconnexion surDeconnexion={() => {}} />
-      )}
+    <ConteneurBarreLaterale>
+      {/* Bloc principal du profil avec animation de la flèche */}
+      <SectionProfil 
+        $actif={ongletActif === 'Parametres' || ongletActif === 'Deconnexion' || ongletActif === 'Profil'}
+        onClick={() => setProfilDeroule(!profilDeroule)}
+      >
+        <Avatar>{initiales}</Avatar>
+        <TexteProfil>
+          <Salutation>ProFact</Salutation>
+          <NomUtilisateur>{nomAffichage}</NomUtilisateur>
+        </TexteProfil>
+        <Fleche $ouvert={profilDeroule}>›</Fleche>
+      </SectionProfil>
 
-      <ConteneurBarreLaterale>
-        <SectionProfil 
-          $ouvert={profilOuvert}
-          onClick={() => setProfilOuvert(!profilOuvert)}
+      {/* Menu déroulant avec effet fluide d'ouverture et glissement latéral au survol */}
+      <MenuDeroulantProfil $ouvert={profilDeroule}>
+        <SousElementNav 
+          $actif={ongletActif === 'Parametres' || ongletActif === 'Profil'}
+          onClick={() => auChangementOnglet('Parametres')}
         >
-          <Avatar>BJ</Avatar>
-          <TexteProfil>
-            <Salutation>ProFact</Salutation>
-            <NomUtilisateur>Mon profil</NomUtilisateur>
-          </TexteProfil>
-          <span style={{ color: THEME.texteSecondaire, fontSize: '0.8rem', transform: profilOuvert ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>›</span>
-        </SectionProfil>
+          <span>⚙️</span>
+          <span>Paramètres</span>
+        </SousElementNav>
 
-        {profilOuvert && (
-          <MenuDeroulantProfil>
-            <OptionProfil onClick={() => auChangementOnglet('Voir Profil')}>👤 Voir les détails</OptionProfil>
-            <OptionProfil onClick={() => auChangementOnglet('Parametres')}>⚙️ Paramètres</OptionProfil>
-            <OptionProfil onClick={declencherDeconnexion}>🚪 Déconnexion</OptionProfil>
-          </MenuDeroulantProfil>
-        )}
+        <SousElementNav 
+          $actif={ongletActif === 'Deconnexion'}
+          onClick={() => auChangementOnglet('Deconnexion')}
+        >
+          <span>🚪</span>
+          <span>Déconnexion</span>
+        </SousElementNav>
+      </MenuDeroulantProfil>
 
-        {configurationMenu.map(section => (
-          <div key={section.titre}>
-            <TitreSectionNav>{section.titre}</TitreSectionNav>
-            {section.elements.map(element => (
-              <ElementNav 
-                key={element} 
-                $actif={ongletActif === element} 
-                onClick={() => auChangementOnglet(element)}
-              >
-                <Icone $actif={ongletActif === element}>
-                  {obtenirIconeNav(element)}
-                </Icone>
-                <Libelle>{element}</Libelle>
-                <Fleche $actif={ongletActif === element}>›</Fleche>
-              </ElementNav>
-            ))}
-          </div>
-        ))}
-      </ConteneurBarreLaterale>
-    </>
+      {configurationMenu.map(section => (
+        <div key={section.titre}>
+          <TitreSectionNav>{section.titre}</TitreSectionNav>
+          {section.elements.map(element => (
+            <ElementNav 
+              key={element} 
+              $actif={ongletActif === element} 
+              onClick={() => auChangementOnglet(element)}
+            >
+              <Icone>{obtenirIconeNav(element)}</Icone>
+              <Libelle>{element}</Libelle>
+            </ElementNav>
+          ))}
+        </div>
+      ))}
+    </ConteneurBarreLaterale>
   );
 }

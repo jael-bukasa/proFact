@@ -19,8 +19,8 @@ import GererComptes from './composants/gestionsUtilisateurs/gererComptes';
 // --- IMPORTS AUTHENTIFICATION & PROFIL ---
 import Connexion from './composants/profil/connexion/connexion';
 import CreerCompte from './composants/profil/connexion/creerCompte';
-import Deconnexion from './composants/profil/deconnexion/deconnexion';
-import Profil from './composants/profil/profil';
+import Deconnexion from './composants/profil/deconnexion';
+import Paramettre from './composants/profil/paramettre';
 
 // --- ANIMATIONS ---
 const transitionDouce = keyframes`
@@ -207,7 +207,7 @@ export default function App() {
     }
   };
 
-  // --- ACTIONS SUR LES UTILISATEURS (Vers le Backend corrigé) ---
+  // --- ACTIONS SUR LES UTILISATEURS (Vers le Backend) ---
   const ajouterFacturier = async (nouveau) => {
     try {
       const route = nouveau.role?.toLowerCase().includes('admin') 
@@ -221,7 +221,6 @@ export default function App() {
     }
   };
 
-  // Modification mise à jour pour pointer vers la route unifiée du backend
   const modifierFacturier = async (id, donneesModifiees) => {
     try {
       const route = `http://localhost:5000/api/utilisateurs/${id}`;
@@ -369,19 +368,23 @@ export default function App() {
           />
         );
 
+      case 'Parametres':
+        return <Paramettre utilisateurConnecte={utilisateurActuel} />;
+
+      case 'Profil':
       case 'Voir Profil':
         return (
-          <div>
-            <h1>Mon Profil</h1>
-            <Profil utilisateur={utilisateurActuel} />
-          </div>
+          <Profil 
+            utilisateurConnecte={utilisateurActuel} 
+            surDeconnexion={() => setEtatAuth('connexion')} 
+          />
         );
-      case 'Parametres':
-        return <h1>Paramètres de l'application</h1>;
+
       case 'Deconnexion':
         return (
           <Deconnexion surDeconnexion={() => setEtatAuth('connexion')} />
         );
+
       default:
         return (
           <Clients 
