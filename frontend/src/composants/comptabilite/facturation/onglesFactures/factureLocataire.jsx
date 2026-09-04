@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter, FiUser, FiHash, FiCreditCard, FiFolder, FiFile } from 'react-icons/fi';
+import { FiFileText, FiDownload, FiLoader, FiCalendar, FiChevronDown, FiFilter, FiCreditCard, FiHash, FiFolder, FiFile } from 'react-icons/fi';
 import PDFFacturesLocataire from './listePDFFactures/PDFFacturesLocataire';
 
 const THEME = {
@@ -182,7 +182,6 @@ const ContenuDepliable = styled(motion.div)`
   padding-top: 1rem;
 `;
 
-/* --- FORCÉ STRICTEMENT À 5 PAR LIGNE --- */
 const GrilleFactures = styled.div`
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -501,9 +500,14 @@ export default function FactureLocataire({ listeFactures = [], formaterDateFr })
                         >
                           <GrilleFactures>
                             {facturesDuMois.map((cli, index) => {
+                              // Inspection console pour voir la structure exacte de l'objet
+                              console.log("Objet facture locataire :", cli);
+
                               const factureId = cli.id ? `id-${cli.id}-${index}` : `idx-${annee}-${mois}-${index}`;
                               const enCoursDeChargement = idEnCours === cli.id;
-                              const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Locataire Inconnu';
+                              
+                              const nomComplet = `${cli.nomLocataire || cli.nom || cli.client || cli.locataire || ''}`.trim() || 'Locataire Inconnu';
+                              
                               const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || '-');
 
                               return (

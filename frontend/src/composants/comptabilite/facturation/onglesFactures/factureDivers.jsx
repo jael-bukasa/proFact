@@ -411,7 +411,14 @@ function FactureDivers({
 
   const bmjHandleToutTelecharger = () => {
     if (bmjPdfRef.current && typeof bmjPdfRef.current.telechargerTout === 'function') {
-      bmjPdfRef.current.telechargerTout(bmjFacturesFiltrees, formaterDateFr);
+      // Correction : On passe uniquement la liste des factures filtrées à la méthode du composant PDF
+      bmjPdfRef.current.telechargerTout(bmjFacturesFiltrees);
+    }
+  };
+
+  const bmjHandleTelechargerMois = (bmjFacturesDuMois) => {
+    if (bmjPdfRef.current && typeof bmjPdfRef.current.telechargerTout === 'function') {
+      bmjPdfRef.current.telechargerTout(bmjFacturesDuMois);
     }
   };
 
@@ -420,7 +427,7 @@ function FactureDivers({
     if (bmjPdfRef.current && typeof bmjPdfRef.current.genererPDF === 'function') {
       try {
         setBmjIdEnCours(bmjFactureId);
-        await bmjPdfRef.current.genererPDF(bmjCli, formaterDateFr);
+        await bmjPdfRef.current.genererPDF(bmjCli);
       } catch (bmjError) {
         console.error("Erreur :", bmjError);
       } finally {
@@ -520,7 +527,7 @@ function FactureDivers({
                         <BmjBadgeCompteur>{bmjFacturesDuMois.length} fichier{bmjFacturesDuMois.length > 1 ? 's' : ''}</BmjBadgeCompteur>
                       </BmjGroupeInfosMois>
                       <BmjActionsMois>
-                        <BmjBoutonGenererMois onClick={(e) => { e.stopPropagation(); bmjHandleTelechargerUnitaire(bmjFacturesDuMois[0]); }}>
+                        <BmjBoutonGenererMois onClick={(e) => { e.stopPropagation(); bmjHandleTelechargerMois(bmjFacturesDuMois); }}>
                           <FiDownload /> Générer le mois
                         </BmjBoutonGenererMois>
                       </BmjActionsMois>
@@ -533,7 +540,8 @@ function FactureDivers({
                             {bmjFacturesDuMois.map((bmjCli, bmjIndex) => {
                               const bmjFactureId = bmjCli.id ? `id-${bmjCli.id}-${bmjIndex}` : `idx-${bmjAnnee}-${bmjMois}-${bmjIndex}`;
                               const bmjEnCours = bmjIdEnCours === (bmjCli.id || bmjCli.numeroFacture);
-                              const bmjNomComplet = `${bmjCli.nom || ''} ${bmjCli.postNom || ''} ${bmjCli.prenom || bmjCli.client || ''}`.trim() || 'Client Inconnu';
+                              
+                              const bmjNomComplet = `${bmjCli.nomLocataire || bmjCli.client || bmjCli.nom || ''}`.trim() || 'Client Inconnu';
                               const bmjDateAffichee = formaterDateFr && (bmjCli.dateBail || bmjCli.dateFacture) ? formaterDateFr(bmjCli.dateBail || bmjCli.dateFacture) : (bmjCli.dateBail || 'N/A');
 
                               return (

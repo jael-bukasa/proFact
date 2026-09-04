@@ -1,27 +1,36 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { nombreEnLettres, obtenirLibelleDevise, banquesParDefaut, chargerBanques, preparerColonnesBanques } from '../../../../../fonctions/fonctions';
 
-const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
+const PDFFacturesDivers = forwardRef(({ formaterDateFr }, ref) => {
   const elementRef = useRef(null);
   const [donneesFacture, setDonneesFacture] = useState(null);
+
+  const banquesParDefaut = [
+    { nomBanque: 'BCDC', numeroCompte: 'N° 00011-00130-00000856147-03', devise: 'CDF' },
+    { nomBanque: 'BCDC', numeroCompte: 'N° 00011-00130-00000856151-88', devise: 'USD' },
+    { nomBanque: 'RAWBANK', numeroCompte: 'N° 00016-05130-01002107502-77', devise: 'CDF' },
+    { nomBanque: 'RAWBANK', numeroCompte: 'N° 00016-05130-01002107501-80', devise: 'USD' },
+    { nomBanque: 'TMB', numeroCompte: 'N° 00017-25000-00015000000-87', devise: 'CDF' },
+    { nomBanque: 'TMB', numeroCompte: 'N° 00017-25000-00187750001-35', devise: 'USD' }
+  ];
+
   const [banques, setBanques] = useState(banquesParDefaut);
 
   useEffect(() => {
-    chargerBanques().then(data => setBanques(data));
+    fetch('http://localhost:5000/api/banques')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setBanques(data);
+        }
+      })
+      .catch(err => console.error("Erreur chargement banques :", err));
   }, []);
-
-  const formaterCompteBanque = (b) => {
-    return (
-      <React.Fragment>
-        <strong><span style={{ display: 'inline-block', width: '58px' }}>{b.nomBanque}</span></strong> {b.numeroCompte} {b.devise}
-      </React.Fragment>
-    );
-  };
 
   useImperativeHandle(ref, () => ({
     genererPDF: async (cli) => {
+      console.log("CONTENU REÇU PAR LE PDF DIVERS :", cli);
       setDonneesFacture(cli);
       await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -46,9 +55,9 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
-        pdf.save(`Facture_Eau_${cli.matricule || cli.numero || cli.id || 'Client'}.pdf`);
+        pdf.save(`Facture_Diverse_${cli.matricule || cli.numero || cli.id || 'Client'}.pdf`);
       } catch (error) {
-        console.error("Erreur génération PDF eau :", error);
+        console.error("Erreur génération PDF divers :", error);
         element.style.display = 'none';
       }
     },
@@ -80,28 +89,31 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
         pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
       }
 
-      pdf.save('Toutes_les_Factures_Eau.pdf');
+      pdf.save('Toutes_les_Factures_Diverses.pdf');
     }
   }));
 
   const cli = donneesFacture || {};
-  const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/EAU/2026`;
-  const codeClientVal = cli.matricule || cli.numero || `EAU-0000000009`;
+  const numeroFactureAffichage = cli.numeroFacture || cli.numFacture || cli.refFacture || `0207/DCO/DIV/2026`;
+  const codeClientVal = cli.matricule || cli.numero || cli.clientCode || `DIV-0000000009`;
   const dateAffichage = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const nomClient = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.nomLocataire || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
+  
+  // CORRECTION ICI : On privilégie nomLocataire, puis les autres champs, et on évite "Client Inconnu" si possible
+  const nomClient = cli.nomLocataire || `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || ''}`.trim() || cli.client || cli.locataire || 'Client Inconnu';
+  
   const adresseClient = `${cli.adresse || 'B.P 98'} - ${cli.pays || 'Congo'}`;
-  const moisAffichage = cli.moisFacture ? `POUR LE MOIS DE ${cli.moisFacture.toUpperCase()}` : 'POUR LE MOIS DE JUILLET 2026';
-  const objetAffichage = cli.designation || `CONSOMMATION EAU ET ENTRETIEN COMPTEUR`;
+  const moisAffichage = cli.moisFacture ? `POUR LE MOIS DE ${cli.moisFacture.toUpperCase()}` : 'POUR PRESTATIONS DIVERSES';
+  const objetAffichage = cli.designation ? cli.designation.trim() : (cli.typeFacture || `CHARGES ET PRESTATIONS DIVERSES`);
   const bailAffichage = cli.bail || cli.numeroBail || 'N/A';
-  const compteurInfo = cli.compteur ? `COMPTEUR N° : ${cli.compteur} (Index: ${cli.dernierNumero || cli.indexActuel || 0})` : 'COMPTEUR EAU STANDARD';
-
+  
   const montantVal = cli.montant !== undefined ? cli.montant : 0;
   const deviseVal = cli.devise || 'USD';
   const montantFormate = Number(montantVal).toLocaleString('fr-FR', { minimumFractionDigits: 2 });
 
-  const montantEnLettres = `${nombreEnLettres(montantVal)} ${obtenirLibelleDevise(deviseVal)}`;
-
-  const { colonne1: banquesColonne1, colonne2: banquesColonne2 } = preparerColonnesBanques(banques);
+  const styleNomBanque = { display: 'inline-block', width: '58px' };
+  const moitié = Math.ceil(banques.length / 2);
+  const banquesColonne1 = banques.slice(0, moitié);
+  const banquesColonne2 = banques.slice(moitié);
 
   const bordurePrincipale = '2px solid #111827';
   const bordureInterne = '1.5px solid #374151';
@@ -122,7 +134,7 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
       }}
     >
       <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px', letterSpacing: '1px', color: '#1f2937' }}>
-        FACTURE EAU
+        FACTURE PRESTATIONS DIVERSES
       </div>
 
       <table style={{ width: '100%', borderCollapse: 'collapse', border: bordurePrincipale, borderRadius: '4px', overflow: 'hidden' }}>
@@ -150,7 +162,7 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
                 <div><strong>DOIT :</strong> <span style={{ color: '#1f2937', fontWeight: '600' }}>{moisAffichage}</span></div>
               </div>
               <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                <strong>Client :</strong> <span style={{ color: '#111827', fontWeight: '600' }}>{nomClient}</span><br/>
+                <strong>Client / Société :</strong> <span style={{ color: '#111827', fontWeight: '600' }}>{nomClient}</span><br/>
                 <span style={{ color: '#4b5563' }}>{adresseClient}</span>
               </div>
               <div style={{ textAlign: 'center', marginTop: '4px' }}><strong>Objet :</strong> {objetAffichage}</div>
@@ -168,7 +180,7 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '10px', textAlign: 'center', verticalAlign: 'top', height: '45px' }}>1</td>
             <td style={{ borderRight: bordureInterne, borderBottom: bordureInterne, padding: '10px', textAlign: 'center', verticalAlign: 'top' }}>
               <span style={{ fontWeight: '600', fontSize: '10.5px' }}>{objetAffichage}</span><br/>
-              <span style={{ fontSize: '9px', color: '#4b5563' }}>NUMERO DE BAIL : {bailAffichage} | {compteurInfo}</span>
+              <span style={{ fontSize: '9px', color: '#4b5563' }}>NUMERO DE BAIL : {bailAffichage} {cli.imputation ? `| Imp: ${cli.imputation}` : ''}</span>
             </td>
             <td style={{ borderBottom: bordureInterne, padding: '10px', textAlign: 'right', verticalAlign: 'top', fontWeight: '600' }}>
               {montantFormate}
@@ -187,7 +199,7 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
           <tr>
             <td colSpan="3" style={{ padding: '8px 10px', borderBottom: bordureInterne, backgroundColor: '#fdfdfd', textAlign: 'center' }}>
               <span style={{ fontSize: '9px', color: '#6b7280' }}>Arrêtée la présente à la somme de :</span><br/>
-              <strong style={{ fontSize: '10.5px', textTransform: 'capitalize' }}>{montantEnLettres}</strong>
+              <strong style={{ fontSize: '10.5px' }}>{montantFormate} {deviseVal}</strong>
             </td>
           </tr>
 
@@ -195,10 +207,10 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
             <td colSpan="3" style={{ padding: '12px 10px', borderBottom: bordureInterne, fontSize: '8.5px', color: '#374151', lineHeight: '1.4' }}>
               <div style={{ background: '#f3f4f6', padding: '10px 12px', borderRadius: '4px', marginBottom: '10px', border: '1px solid #d1d5db' }}>
                 <div style={{ marginBottom: '6px' }}>
-                  <strong>Conditions de paiement :</strong> Nos factures sont payables suivant les clauses du contrat. Tout retard entraînera l'application des pénalités prévues et le paiement d'intérêts sur le cours bancaire du jour, soit en Dollars US.
+                  <strong>Conditions de paiement :</strong> Nos factures sont payables suivant les clauses contractuelles. Tout retard entraînera l'application des pénalités prévues.
                 </div>
                 <div>
-                  <strong>Modalité de paiement :</strong> Le montant est à verser exclusivement dans l'un de nos comptes bancaires officiels ci-dessous ou directement au bureau des recettes agréé muni de la pièce contre bordereau.
+                  <strong>Modalité de paiement :</strong> Le montant est à verser exclusivement dans l'un de nos comptes bancaires officiels ci-dessous.
                 </div>
               </div>
 
@@ -208,14 +220,14 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
                     <td style={{ width: '50%', verticalAlign: 'top', paddingRight: '12px' }}>
                       {banquesColonne1.map((b, index) => (
                         <div key={index} style={{ marginBottom: '7px' }}>
-                          {formaterCompteBanque(b)}
+                          <strong><span style={styleNomBanque}>{b.nomBanque}</span></strong> {b.numeroCompte} {b.devise}
                         </div>
                       ))}
                     </td>
                     <td style={{ width: '50%', verticalAlign: 'top' }}>
                       {banquesColonne2.map((b, index) => (
                         <div key={index} style={{ marginBottom: '7px' }}>
-                          {formaterCompteBanque(b)}
+                          <strong><span style={styleNomBanque}>{b.nomBanque}</span></strong> {b.numeroCompte} {b.devise}
                         </div>
                       ))}
                     </td>
@@ -233,14 +245,7 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
         </tbody>
       </table>
 
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          marginTop: '25px', 
-          padding: '0 10px' 
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '25px', padding: '0 10px' }}>
         <div style={{ textAlign: 'center', width: '45%' }}>
           <div style={{ fontSize: '9.5px', fontWeight: 'bold', marginBottom: '45px', color: '#111827' }}>
             Le Chef de service Facturation
@@ -259,4 +264,4 @@ const PDFFacturesEau = forwardRef(({ formaterDateFr }, ref) => {
   );
 });
 
-export default PDFFacturesEau;
+export default PDFFacturesDivers;

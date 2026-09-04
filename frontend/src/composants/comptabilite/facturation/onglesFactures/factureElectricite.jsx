@@ -588,7 +588,10 @@ function FactureElectricite({ formaterDateFr }) {
                             {facturesDuMois.map((cli, index) => {
                               const factureId = cli.id ? `id-${cli.id}-${index}` : `idx-${annee}-${mois}-${index}`;
                               const enCoursDeChargement = idEnCours === (cli.id || cli.numeroFacture);
-                              const nomComplet = `${cli.nom || ''} ${cli.postNom || ''} ${cli.prenom || cli.client || cli.locataire || ''}`.trim() || 'Client Inconnu';
+                              
+                              // Correction appliquée ici pour utiliser cli.nomLocataire en priorité absolue
+                              const nomComplet = `${cli.nomLocataire || cli.nom || cli.client || cli.locataire || ''}`.trim() || 'Locataire Inconnu';
+                              
                               const dateComptableAffichee = formaterDateFr && cli.dateComptable ? formaterDateFr(cli.dateComptable) : (cli.dateComptable || '-');
 
                               return (

@@ -175,11 +175,13 @@ const BoutonGenererMois = styled.button`
   }
 `;
 
-const ContenuDepliable = styled(motion.div)`
-  padding: 0 1rem 1rem 1rem;
+const ConteneurInterneDepliable = styled.div`
+  padding: 1rem;
   border-top: 1px dashed ${THEME.bordure};
-  margin-top: -0.2rem;
-  padding-top: 1rem;
+`;
+
+const ContenuDepliable = styled(motion.div)`
+  overflow: hidden;
 `;
 
 /* --- FORCÉ STRICTEMENT À 5 PAR LIGNE --- */
@@ -331,7 +333,7 @@ const MessageVide = styled.div`
   border-radius: 12px;
 `;
 
-function FactureEau({ formaterDateFr }) {
+export default function FactureEau({ formaterDateFr }) {
   const bmjPdfRef = useRef(null);
   const [bmjIdEnCours, setBmjIdEnCours] = useState(null);
   const [bmjMoisOuverts, setBmjMoisOuverts] = useState({});
@@ -562,48 +564,53 @@ function FactureEau({ formaterDateFr }) {
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.25 }}
                         >
-                          <GrilleFactures>
-                            {bmjFacturesDuMois.map((bmjCli, bmjIndex) => {
-                              const bmjFactureId = bmjCli.id ? `id-${bmjCli.id}-${bmjIndex}` : `idx-${bmjAnnee}-${bmjMois}-${bmjIndex}`;
-                              const bmjEnCoursDeChargement = bmjIdEnCours === (bmjCli.id || bmjCli.numeroFacture);
-                              const bmjNomComplet = `${bmjCli.nom || ''} ${bmjCli.postNom || ''} ${bmjCli.prenom || bmjCli.client || bmjCli.locataire || ''}`.trim() || 'Client Inconnu';
-                              const bmjDateComptableAffichee = formaterDateFr && bmjCli.dateComptable ? formaterDateFr(bmjCli.dateComptable) : (bmjCli.dateComptable || '-');
+                          <ConteneurInterneDepliable>
+                            <GrilleFactures>
+                              {bmjFacturesDuMois.map((bmjCli, bmjIndex) => {
+                                const bmjFactureId = bmjCli.id ? `id-${bmjCli.id}-${bmjIndex}` : `idx-${bmjAnnee}-${bmjMois}-${bmjIndex}`;
+                                const bmjEnCoursDeChargement = bmjIdEnCours === (bmjCli.id || bmjCli.numeroFacture);
+                                
+                                // Correction appliquée ici : priorité absolue à nomLocataire ou client
+                                const bmjNomComplet = `${bmjCli.nomLocataire || bmjCli.client || bmjCli.nom || ''}`.trim() || 'Client Inconnu';
+                                
+                                const bmjDateComptableAffichee = formaterDateFr && bmjCli.dateComptable ? formaterDateFr(bmjCli.dateComptable) : (bmjCli.dateComptable || '-');
 
-                              return (
-                                <CarteFactureFichier key={bmjFactureId}>
-                                  <div>
-                                    <EnTeteFichier>
-                                      <div className="icone-doc">
-                                        <FiFile />
-                                      </div>
-                                      <span className="badge-statut">{bmjCli.modePaiement || bmjCli.statut || 'Payé'}</span>
-                                    </EnTeteFichier>
+                                return (
+                                  <CarteFactureFichier key={bmjFactureId}>
+                                    <div>
+                                      <EnTeteFichier>
+                                        <div className="icone-doc">
+                                          <FiFile />
+                                        </div>
+                                        <span className="badge-statut">{bmjCli.modePaiement || bmjCli.statut || 'Payé'}</span>
+                                      </EnTeteFichier>
 
-                                    <CorpsFichier style={{ marginTop: '0.4rem' }}>
-                                      <span className="nom-locataire" title={bmjNomComplet}>{bmjNomComplet}</span>
-                                      <div className="meta-infos">
-                                        <span><FiCreditCard size={9} /> Bail: {bmjCli.bail || bmjCli.numero || 'N/A'}</span>
-                                        <span><FiHash size={9} /> {bmjCli.matricule || bmjCli.clientCode || 'Matricule N/A'}</span>
-                                        <span>📅 {bmjDateComptableAffichee}</span>
-                                      </div>
-                                    </CorpsFichier>
-                                  </div>
+                                      <CorpsFichier style={{ marginTop: '0.4rem' }}>
+                                        <span className="nom-locataire" title={bmjNomComplet}>{bmjNomComplet}</span>
+                                        <div className="meta-infos">
+                                          <span><FiCreditCard size={9} /> Bail: {bmjCli.bail || bmjCli.numero || 'N/A'}</span>
+                                          <span><FiHash size={9} /> {bmjCli.matricule || bmjCli.clientCode || 'Matricule N/A'}</span>
+                                          <span>📅 {bmjDateComptableAffichee}</span>
+                                        </div>
+                                      </CorpsFichier>
+                                    </div>
 
-                                  <PiedFichier>
-                                    <span className="montant" title={`${bmjCli.montant !== undefined ? bmjCli.montant : 0} ${bmjCli.devise || 'USD'}`}>
-                                      {bmjCli.montant !== undefined ? `${bmjCli.montant} ${bmjCli.devise || 'USD'}` : '0 USD'}
-                                    </span>
-                                    <BoutonTelechargerFichier 
-                                      onClick={() => bmjHandleTelechargerUnitaire(bmjCli)} 
-                                      disabled={bmjEnCoursDeChargement}
-                                    >
-                                      {bmjEnCoursDeChargement ? <FiLoader className="fa-spin" size={11} /> : <><FiDownload size={11} /> PDF</>}
-                                    </BoutonTelechargerFichier>
-                                  </PiedFichier>
-                                </CarteFactureFichier>
-                              );
-                            })}
-                          </GrilleFactures>
+                                    <PiedFichier>
+                                      <span className="montant" title={`${bmjCli.montant !== undefined ? bmjCli.montant : 0} ${bmjCli.devise || 'USD'}`}>
+                                        {bmjCli.montant !== undefined ? `${bmjCli.montant} ${bmjCli.devise || 'USD'}` : '0 USD'}
+                                      </span>
+                                      <BoutonTelechargerFichier 
+                                        onClick={() => bmjHandleTelechargerUnitaire(bmjCli)} 
+                                        disabled={bmjEnCoursDeChargement}
+                                      >
+                                        {bmjEnCoursDeChargement ? <FiLoader className="fa-spin" size={11} /> : <><FiDownload size={11} /> PDF</>}
+                                      </BoutonTelechargerFichier>
+                                    </PiedFichier>
+                                  </CarteFactureFichier>
+                                );
+                              })}
+                            </GrilleFactures>
+                          </ConteneurInterneDepliable>
                         </ContenuDepliable>
                       )}
                     </AnimatePresence>
@@ -617,6 +624,3 @@ function FactureEau({ formaterDateFr }) {
     </ConteneurSection>
   );
 }
-
-export default FactureEau;
-export { FactureEau };
