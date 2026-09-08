@@ -197,12 +197,12 @@ function compteRoutes(db) {
     const postnomPropre = postnom ? postnom.trim() : '';
     const emailPropre = email ? email.trim() : '';
 
-    const tableCible = ancienRoleNorm === 'admin' ? 'admin' : 'facturiers';
-    const colonneMdp = ancienRoleNorm === 'admin' ? 'motDePasse' : 'mot_de_passe';
+    const estAdminAncien = ancienRoleNorm.includes('admin');
+    const tableCible = estAdminAncien ? 'admin' : 'facturiers';
+    const colonneMdp = estAdminAncien ? 'motDePasse' : 'mot_de_passe';
 
     // 1. Récupération sécurisée de l'ancien mot de passe actuel en base
     db.query(`SELECT ${colonneMdp} AS mdp FROM ${tableCible} WHERE id = ?`, [id], (err, results) => {
-      let pwdActuel = '';
       
       const verifierEtPoursuivre = (motDePasseActuel) => {
         // Si l'utilisateur a rempli le champ "nouveauMotDePasse", on exige et vérifie l'ancien
@@ -215,7 +215,7 @@ function compteRoutes(db) {
         const mdpFinal = (nouveauMotDePasse && nouveauMotDePasse.trim() !== '') ? nouveauMotDePasse : motDePasseActuel;
 
         // Cas 1 : Reste Facturier
-        if (ancienRoleNorm === 'facturier' && nouveauRoleNorm === 'facturier') {
+        if (!estAdminAncien && !nouveauRoleNorm.includes('admin')) {
           compteService.mettreAJourFacturier(db, id, prenomPropre, nomPropre, postnomPropre, emailPropre, role, nouveauMotDePasse, (errUp) => {
             if (errUp) {
               console.error("Erreur modification facturier :", errUp);
@@ -228,7 +228,7 @@ function compteRoutes(db) {
           });
         }
         // Cas 2 : Reste Admin
-        else if (ancienRoleNorm === 'admin' && nouveauRoleNorm === 'admin') {
+        else if (estAdminAncien && nouveauRoleNorm.includes('admin')) {
           const nomComplet = `${prenomPropre} ${nomPropre} ${postnomPropre}`.trim() || nomPropre;
           compteService.mettreAJourAdmin(db, id, nomComplet, emailPropre, role, nouveauMotDePasse, (errUp) => {
             if (errUp) {
@@ -242,7 +242,7 @@ function compteRoutes(db) {
           });
         }
         // Cas 3 : Passe de Facturier à Admin
-        else if (ancienRoleNorm === 'facturier' && nouveauRoleNorm === 'admin') {
+        else if (!estAdminAncien && nouveauRoleNorm.includes('admin')) {
           db.query("SELECT * FROM facturiers WHERE id = ?", [id], (errSel, resSel) => {
             if (errSel || resSel.length === 0) return res.status(404).json({ erreur: "Utilisateur introuvable." });
             const user = resSel[0];
@@ -264,7 +264,7 @@ function compteRoutes(db) {
           });
         }
         // Cas 4 : Passe d'Admin à Facturier
-        else if (ancienRoleNorm === 'admin' && nouveauRoleNorm === 'facturier') {
+        else if (estAdminAncien && !nouveauRoleNorm.includes('admin')) {
           db.query("SELECT * FROM admin WHERE id = ?", [id], (errSel, resSel) => {
             if (errSel || resSel.length === 0) return res.status(404).json({ erreur: "Utilisateur introuvable." });
             const user = resSel[0];

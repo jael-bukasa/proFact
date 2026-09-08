@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const THEME = {
@@ -92,21 +92,19 @@ const Fleche = styled.span`
   transform: ${props => props.$ouvert ? 'rotate(90deg)' : 'rotate(0deg)'};
 `;
 
-/* Menu déroulant élégant avec animation de glissement et d'opacité */
 const MenuDeroulantProfil = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  padding-left: 1rem;
-  margin-left: 1.2rem;
+  width: 100%;
   margin-bottom: 1.2rem;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  
-  /* Animation d'apparition fluide */
-  max-height: ${props => props.$ouvert ? '200px' : '0'};
-  opacity: ${props => props.$ouvert ? '1' : '0'};
-  overflow: hidden;
-  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-in-out;
+  padding-left: 0.5rem;
+  animation: fadeIn 0.2s ease-in-out;
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 `;
 
 const SousElementNav = styled.div`
@@ -186,9 +184,13 @@ export default function BarreLaterale({
   auChangementOnglet, 
   utilisateurConnecte 
 }) {
-  const [profilDeroule, setProfilDeroule] = useState(
-    ongletActif === 'Parametres' || ongletActif === 'Deconnexion' || ongletActif === 'Profil'
-  );
+  const [profilDeroule, setProfilDeroule] = useState(false);
+
+  useEffect(() => {
+    if (['Parametres', 'Deconnexion', 'Profil', 'Voir Profil'].includes(ongletActif)) {
+      setProfilDeroule(true);
+    }
+  }, [ongletActif]);
 
   const roleBrut = utilisateurConnecte?.role || 'Admin';
   const estAdmin = roleBrut.toLowerCase().includes('admin');
@@ -199,7 +201,7 @@ export default function BarreLaterale({
   const nomAffichage = prenomUser ? `${prenomUser} ${nomUser}`.trim() : 'Mon profil';
 
   const configurationMenu = estAdmin ? [
-    { titre: 'GESTION LOCATIVE', elements: ['Tableau de bord'] },
+    { titre: 'GESTION LOCATIVE', elements: ['Tableau de bord', 'Clients'] },
     { titre: 'GESTION UTILISATEURS', elements: ['Créer un compte', 'Gérer les comptes'] },
     { titre: 'FINANCES', elements: ['Banques'] }
   ] : [
@@ -208,10 +210,9 @@ export default function BarreLaterale({
 
   return (
     <ConteneurBarreLaterale>
-      {/* Bloc principal du profil avec animation de la flèche */}
       <SectionProfil 
-        $actif={ongletActif === 'Parametres' || ongletActif === 'Deconnexion' || ongletActif === 'Profil'}
-        onClick={() => setProfilDeroule(!profilDeroule)}
+        $actif={['Parametres', 'Deconnexion', 'Profil', 'Voir Profil'].includes(ongletActif)}
+        onClick={() => setProfilDeroule(prev => !prev)}
       >
         <Avatar>{initiales}</Avatar>
         <TexteProfil>
@@ -221,24 +222,33 @@ export default function BarreLaterale({
         <Fleche $ouvert={profilDeroule}>›</Fleche>
       </SectionProfil>
 
-      {/* Menu déroulant avec effet fluide d'ouverture et glissement latéral au survol */}
-      <MenuDeroulantProfil $ouvert={profilDeroule}>
-        <SousElementNav 
-          $actif={ongletActif === 'Parametres' || ongletActif === 'Profil'}
-          onClick={() => auChangementOnglet('Parametres')}
-        >
-          <span>⚙️</span>
-          <span>Paramètres</span>
-        </SousElementNav>
+      {profilDeroule && (
+        <MenuDeroulantProfil>
+          <SousElementNav 
+            $actif={ongletActif === 'Profil' || ongletActif === 'Voir Profil'}
+            onClick={() => auChangementOnglet('Profil')}
+          >
+            <span>👤</span>
+            <span>Mon Profil</span>
+          </SousElementNav>
 
-        <SousElementNav 
-          $actif={ongletActif === 'Deconnexion'}
-          onClick={() => auChangementOnglet('Deconnexion')}
-        >
-          <span>🚪</span>
-          <span>Déconnexion</span>
-        </SousElementNav>
-      </MenuDeroulantProfil>
+          <SousElementNav 
+            $actif={ongletActif === 'Parametres'}
+            onClick={() => auChangementOnglet('Parametres')}
+          >
+            <span>⚙️</span>
+            <span>Paramètres</span>
+          </SousElementNav>
+
+          <SousElementNav 
+            $actif={ongletActif === 'Deconnexion'}
+            onClick={() => auChangementOnglet('Deconnexion')}
+          >
+            <span>🚪</span>
+            <span>Déconnexion</span>
+          </SousElementNav>
+        </MenuDeroulantProfil>
+      )}
 
       {configurationMenu.map(section => (
         <div key={section.titre}>

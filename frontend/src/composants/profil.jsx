@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import Paramettre from './paramettre';
-import Deconnexion from './deconnexion';
 
 const ConteneurPrincipal = styled.div`
   display: flex;
@@ -10,63 +8,90 @@ const ConteneurPrincipal = styled.div`
   max-width: 800px;
   width: 100%;
   margin: 1.5rem auto;
+  padding: 2rem;
+  background-color: #1E1E1E;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 `;
 
-const BarreOngletsProfil = styled.div`
+const TitreSection = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 0.5rem;
+`;
+
+const GrilleInfos = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.2rem;
+  margin-top: 1rem;
+`;
+
+const CarteInfo = styled.div`
+  background-color: #121212;
+  padding: 1.2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
-  gap: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding-bottom: 0.5rem;
+  flex-direction: column;
+  gap: 0.4rem;
 `;
 
-const BoutonOnglet = styled.button`
-  background: transparent;
-  border: none;
-  color: ${props => props.$actif ? '#22c55e' : '#888888'};
-  font-weight: ${props => props.$actif ? '600' : '400'};
-  font-size: 0.95rem;
-  cursor: pointer;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  background-color: ${props => props.$actif ? 'rgba(34, 197, 94, 0.1)' : 'transparent'};
-
-  &:hover {
-    color: #22c55e;
-    background-color: rgba(34, 197, 94, 0.05);
-  }
+const LabelInfo = styled.span`
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #888888;
+  letter-spacing: 0.5px;
 `;
 
-export default function Profil({ utilisateurConnecte, surDeconnexion }) {
-  const [sousOngletActif, setSousOngletActif] = useState('parametres');
+const ValeurInfo = styled.span`
+  font-size: 1rem;
+  font-weight: 500;
+  color: #FFFFFF;
+  text-transform: capitalize;
+`;
+
+export default function Profil({ utilisateurConnecte }) {
+  const prenom = utilisateurConnecte?.prenom || 'Jaël';
+  const nom = utilisateurConnecte?.nom || 'Mulaji';
+  const postnom = utilisateurConnecte?.postnom || 'Bukasa';
+  const role = utilisateurConnecte?.role || 'Facturier';
+  const email = utilisateurConnecte?.email || 'jaelbuk08@gmail.com';
 
   return (
     <ConteneurPrincipal>
-      <BarreOngletsProfil>
-        <BoutonOnglet 
-          $actif={sousOngletActif === 'parametres'} 
-          onClick={() => setSousOngletActif('parametres')}
-        >
-          ⚙️ Paramètres
-        </BoutonOnglet>
-        <BoutonOnglet 
-          $actif={sousOngletActif === 'deconnexion'} 
-          onClick={() => {
-            setSousOngletActif('deconnexion');
-            if (surDeconnexion) surDeconnexion();
-          }}
-        >
-          🚪 Déconnexion
-        </BoutonOnglet>
-      </BarreOngletsProfil>
+      <TitreSection>Mon Profil</TitreSection>
+      <p style={{ color: '#888888', fontSize: '0.9rem' }}>
+        Informations relatives à votre session active sur ProFact.
+      </p>
 
-      {sousOngletActif === 'parametres' && (
-        <Paramettre utilisateurConnecte={utilisateurConnecte} />
-      )}
+      <GrilleInfos>
+        <CarteInfo>
+          <LabelInfo>Prénom</LabelInfo>
+          <ValeurInfo>{prenom}</ValeurInfo>
+        </CarteInfo>
 
-      {sousOngletActif === 'deconnexion' && (
-        <Deconnexion surDeconnexion={surDeconnexion} />
-      )}
+        <CarteInfo>
+          <LabelInfo>Nom</LabelInfo>
+          <ValeurInfo>{nom}</ValeurInfo>
+        </CarteInfo>
+
+        <CarteInfo>
+          <LabelInfo>Postnom</LabelInfo>
+          <ValeurInfo>{postnom}</ValeurInfo>
+        </CarteInfo>
+
+        <CarteInfo>
+          <LabelInfo>Rôle Système</LabelInfo>
+          <ValeurInfo>{role}</ValeurInfo>
+        </CarteInfo>
+
+        <CarteInfo style={{ gridColumn: '1 / -1' }}>
+          <LabelInfo>Adresse Email</LabelInfo>
+          <ValeurInfo style={{ textTransform: 'none' }}>{email}</ValeurInfo>
+        </CarteInfo>
+      </GrilleInfos>
     </ConteneurPrincipal>
   );
 }

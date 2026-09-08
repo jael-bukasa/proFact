@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styled, { createGlobalStyle, keyframes } from 'styled-components';
+import styled, { ThemeProvider, createGlobalStyle, keyframes } from 'styled-components';
 import axios from 'axios';
+
+// --- IMPORT DU THÈME UNIQUE ---
+import { themeSombre } from './styles/themes';
 
 // --- IMPORTS ---
 import BarreLaterale from './composants/barreLaterale';
@@ -9,7 +12,7 @@ import Clients from './composants/gestionLocative/clients';
 import Facturation from './composants/comptabilite/facturation';
 import Rapports from './composants/comptabilite/rapports';
 
-// --- IMPORT BANQUES (depuis le dossier finances) ---
+// --- IMPORT BANQUES ---
 import Banques from './composants/finances/banques';
 
 // --- IMPORTS GESTION UTILISATEURS ---
@@ -20,7 +23,8 @@ import GererComptes from './composants/gestionsUtilisateurs/gererComptes';
 import Connexion from './composants/profil/connexion/connexion';
 import CreerCompte from './composants/profil/connexion/creerCompte';
 import Deconnexion from './composants/profil/deconnexion';
-import Paramettre from './composants/profil/parametre';
+import Parametres from './composants/profil/parametres';
+import Profil from './composants/profil';
 
 // --- ANIMATIONS ---
 const transitionDouce = keyframes`
@@ -39,23 +43,17 @@ const StyleGlobal = createGlobalStyle`
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body, #root {
     width: 100%; height: 100%; overflow: hidden;
-    background: #000000;
-    color: #FFFFFF;
+    background: ${props => props.theme.fondApplication};
+    color: ${props => props.theme.textePrincipal};
     font-family: 'Inter', system-ui, sans-serif;
   }
 `;
-
-const THEME = {
-  fondApplication: '#000000',
-  accentuation: '#22c55e',
-  bordure: 'rgba(255, 255, 255, 0.08)'
-};
 
 const ConteneurApp = styled.div`
   display: flex;
   height: 100vh;
   width: 100%;
-  background-color: ${THEME.fondApplication};
+  background-color: ${props => props.theme.fondApplication};
 `;
 
 const ConteneurContenuPrincipal = styled.main`
@@ -63,7 +61,7 @@ const ConteneurContenuPrincipal = styled.main`
   min-width: 0;
   padding: 2.5rem;
   overflow-y: auto;
-  background-color: #000000;
+  background-color: ${props => props.theme.fondApplication};
 
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -87,7 +85,7 @@ const ConteneurContenuPrincipal = styled.main`
 
   &::-webkit-scrollbar-thumb:hover,
   &::-webkit-scrollbar-thumb:active {
-    background: ${THEME.accentuation};
+    background: ${props => props.theme.primaire};
   }
 `;
 
@@ -101,10 +99,10 @@ const BadgeStatutApi = styled.div`
   right: 1.5rem;
   padding: 0.5rem 1rem;
   border-radius: 30px;
-  background-color: #1E1E1E;
-  border: 1px solid ${THEME.bordure};
+  background-color: ${props => props.theme.fondBloc};
+  border: 1px solid ${props => props.theme.bordure};
   backdrop-filter: blur(12px);
-  color: #FFFFFF;
+  color: ${props => props.theme.textePrincipal};
   font-size: 0.75rem;
   display: flex;
   align-items: center;
@@ -126,7 +124,7 @@ export default function App() {
   const referenceContenu = useRef(null);
 
   const [utilisateurActuel, setUtilisateurActuel] = useState({
-    id: null, // Ajouté pour éviter l'erreur d'ID introuvable
+    id: null,
     prenom: 'Jaël',
     nom: 'Mulaji',
     postnom: 'Bukasa',
@@ -155,33 +153,28 @@ export default function App() {
 
   // --- CHARGEMENT DES DONNÉES DEPUIS LE BACKEND (API) ---
   useEffect(() => {
-    // Vérification de la santé du backend
     axios.get('http://localhost:5000/api/health')
       .then(reponse => setBackendConnecte(reponse.data.status === 'ok'))
       .catch(() => setBackendConnecte(false));
 
-    // Charger les clients
     axios.get('http://localhost:5000/api/clients')
       .then(reponse => {
         if (reponse.data) setClientsEnregistres(Array.isArray(reponse.data) ? reponse.data : []);
       })
       .catch(err => console.error("Impossible de récupérer les clients", err));
 
-    // Charger les factures
     axios.get('http://localhost:5000/api/factures')
       .then(reponse => {
         if (reponse.data) setFacturesEnregistrees(reponse.data);
       })
       .catch(err => console.error("Impossible de récupérer les factures", err));
 
-    // Charger les banques
     axios.get('http://localhost:5000/api/banques')
       .then(reponse => {
         if (reponse.data) setBanquesEnregistrees(Array.isArray(reponse.data) ? reponse.data : []);
       })
       .catch(err => console.error("Impossible de récupérer les banques", err));
 
-    // Charger et fusionner les Administrateurs et Facturiers depuis le backend
     chargerUtilisateursBackend();
   }, []);
 
@@ -192,15 +185,8 @@ export default function App() {
         axios.get('http://localhost:5000/api/facturiers').catch(() => ({ data: [] }))
       ]);
 
-      const adminsFormates = (adminsRes.data || []).map(a => ({
-        ...a,
-        role: 'Admin'
-      }));
-
-      const facturiersFormates = (facturiersRes.data || []).map(f => ({
-        ...f,
-        role: 'Facturier'
-      }));
+      const adminsFormates = (adminsRes.data || []).map(a => ({ ...a, role: 'Admin' }));
+      const facturiersFormates = (facturiersRes.data || []).map(f => ({ ...f, role: 'Facturier' }));
 
       setUtilisateursSysteme([...adminsFormates, ...facturiersFormates]);
     } catch (err) {
@@ -208,7 +194,6 @@ export default function App() {
     }
   };
 
-  // --- ACTIONS SUR LES UTILISATEURS (Vers le Backend) ---
   const ajouterFacturier = async (nouveau) => {
     try {
       const route = nouveau.role?.toLowerCase().includes('admin') 
@@ -257,13 +242,13 @@ export default function App() {
 
   if (etatAuth === 'connexion') {
     return (
-      <>
+      <ThemeProvider theme={themeSombre}>
         <StyleGlobal />
         <Connexion 
           surConnexionReussie={(donneesUtilisateur) => {
             if (donneesUtilisateur) {
               setUtilisateurActuel({
-                id: donneesUtilisateur.id || donneesUtilisateur._id, // Récupération sécurisée de l'ID
+                id: donneesUtilisateur.id || donneesUtilisateur._id,
                 prenom: donneesUtilisateur.prenom || 'Jaël',
                 nom: donneesUtilisateur.nom || 'Mulaji',
                 postnom: donneesUtilisateur.postnom || 'Bukasa',
@@ -277,19 +262,19 @@ export default function App() {
           }} 
           allerVersInscription={() => setEtatAuth('inscription')} 
         />
-      </>
+      </ThemeProvider>
     );
   }
 
   if (etatAuth === 'inscription') {
     return (
-      <>
+      <ThemeProvider theme={themeSombre}>
         <StyleGlobal />
         <CreerCompte 
           surInscriptionReussie={(donneesUtilisateur) => {
             if (donneesUtilisateur) {
               setUtilisateurActuel({
-                id: donneesUtilisateur.id || donneesUtilisateur._id, // Récupération sécurisée de l'ID
+                id: donneesUtilisateur.id || donneesUtilisateur._id,
                 prenom: donneesUtilisateur.prenom || 'Jaël',
                 nom: donneesUtilisateur.nom || 'Mulaji',
                 postnom: donneesUtilisateur.postnom || 'Bukasa',
@@ -303,7 +288,7 @@ export default function App() {
           }} 
           allerVersConnexion={() => setEtatAuth('connexion')} 
         />
-      </>
+      </ThemeProvider>
     );
   }
 
@@ -370,14 +355,23 @@ export default function App() {
         );
 
       case 'Parametres':
-        return <Paramettre utilisateurConnecte={utilisateurActuel} />;
+        return (
+          <Parametres 
+            utilisateurConnecte={utilisateurActuel} 
+            surModificationUtilisateur={(donneesModifiees) => {
+              setUtilisateurActuel(prev => ({ ...prev, ...donneesModifiees }));
+            }}
+          />
+        );
 
       case 'Profil':
       case 'Voir Profil':
         return (
           <Profil 
             utilisateurConnecte={utilisateurActuel} 
-            surDeconnexion={() => setEtatAuth('connexion')} 
+            surModificationUtilisateur={(donneesModifiees) => {
+              setUtilisateurActuel(prev => ({ ...prev, ...donneesModifiees }));
+            }}
           />
         );
 
@@ -398,7 +392,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <ThemeProvider theme={themeSombre}>
       <StyleGlobal />
       <ConteneurApp>
         <BarreLaterale 
@@ -407,7 +401,6 @@ export default function App() {
             if (element !== 'Facturation') setClientSelectionne(null);
             setOngletActif(element);
           }} 
-          surDeconnexionEffective={() => setEtatAuth('connexion')}
           utilisateurConnecte={utilisateurActuel}
         />
         <ConteneurContenuPrincipal ref={referenceContenu}>
@@ -420,6 +413,6 @@ export default function App() {
           <span>{backendConnecte ? 'Connecté' : 'Hors ligne'}</span>
         </BadgeStatutApi>
       </ConteneurApp>
-    </>
+    </ThemeProvider>
   );
 }
