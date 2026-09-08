@@ -3,52 +3,6 @@ import styled from 'styled-components';
 import RepertoireAdministrateurs from './repertoireAccesEtRoles/repertoireAdministrateurs';
 import RepertoireFacturiers from './repertoireAccesEtRoles/repertoireFacturiers';
 
-const GrilleStats = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const CarteStat = styled.div`
-  background: linear-gradient(145deg, #18181b 0%, #121214 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 1.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; width: 4px; height: 100%;
-    background: #22c55e;
-    opacity: 0.7;
-  }
-
-  .infos-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    span.titre { color: #94a3b8; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-    span.valeur { color: #f8fafc; font-size: 2.25rem; font-weight: 800; }
-  }
-
-  .icone-stat {
-    width: 52px; height: 52px; border-radius: 12px;
-    background: rgba(34, 197, 94, 0.1); color: #22c55e;
-    display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
-    border: 1px solid rgba(34, 197, 94, 0.2);
-  }
-`;
-
 const CarteListe = styled.div`
   background: #121214;
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -196,10 +150,6 @@ export default function RepertoireAccesEtRoles({
     );
   }, [facturiers, recherche]);
 
-  const totalUtilisateurs = facturiers.length;
-  const nombreAdmins = facturiers.filter(u => u.role?.toLowerCase() === 'admin').length;
-  const nombreFacturiers = facturiers.filter(u => u.role?.toLowerCase() === 'facturier').length;
-
   const listeAdmins = utilisateursFiltres.filter(u => u.role?.toLowerCase() === 'admin');
   const listeFacturiersSeuls = utilisateursFiltres.filter(u => u.role?.toLowerCase() === 'facturier');
 
@@ -258,21 +208,6 @@ export default function RepertoireAccesEtRoles({
 
   return (
     <>
-      <GrilleStats>
-        <CarteStat>
-          <div className="infos-stat"><span className="titre">Total Utilisateurs</span><span className="valeur">{totalUtilisateurs}</span></div>
-          <div className="icone-stat">👥</div>
-        </CarteStat>
-        <CarteStat>
-          <div className="infos-stat"><span className="titre">Administrateurs</span><span className="valeur">{nombreAdmins}</span></div>
-          <div className="icone-stat">🛡️</div>
-        </CarteStat>
-        <CarteStat>
-          <div className="infos-stat"><span className="titre">Facturiers</span><span className="valeur">{nombreFacturiers}</span></div>
-          <div className="icone-stat">📄</div>
-        </CarteStat>
-      </GrilleStats>
-
       <CarteListe>
         <div className="entete-carte">
           <h3>Répertoire des accès et rôles</h3>

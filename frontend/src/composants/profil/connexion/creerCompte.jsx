@@ -158,6 +158,7 @@ const BoiteErreur = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  line-height: 1.4;
 `;
 
 const LienBas = styled.p`
@@ -189,7 +190,6 @@ export default function CreerCompte({ surInscriptionReussie, allerVersConnexion 
   const [redirectionEnCours, setRedirectionEnCours] = useState(false);
   const [donneesAdmin, setDonneesAdmin] = useState(null);
 
-  // États pour afficher/masquer les mots de passe
   const [voirMotDePasse, setVoirMotDePasse] = useState(false);
   const [voirConfirmation, setVoirConfirmation] = useState(false);
 
@@ -239,7 +239,15 @@ export default function CreerCompte({ surInscriptionReussie, allerVersConnexion 
       const resultat = await reponse.json();
 
       if (!reponse.ok) {
-        setErreur(resultat.erreur || "Erreur lors de l'inscription.");
+        // Personnalisation ou affichage direct du message renvoyé par le serveur
+        let messageErreur = resultat.erreur || "Erreur lors de l'inscription.";
+        
+        // Si la limite d'administrateurs est atteinte, on enrichit le message utilisateur
+        if (messageErreur.toLowerCase().includes('limite atteinte') || messageErreur.toLowerCase().includes('maximal')) {
+          messageErreur = "Nombre d'administrateurs atteint. Veuillez demander un accord à l'administrateur.";
+        }
+
+        setErreur(messageErreur);
         setChargement(false);
         return;
       }

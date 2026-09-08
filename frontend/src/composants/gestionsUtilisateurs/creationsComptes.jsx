@@ -222,8 +222,8 @@ const MessageErreurGlobal = styled.div`
 
 export default function CreationsComptes({ surAjoutFacturier }) {
   const [formData, setFormData] = useState({
-    prenom: '',
     nom: '',
+    prenom: '',
     email: '',
     role: 'Facturier',
     motDePasse: '',
@@ -239,13 +239,30 @@ export default function CreationsComptes({ surAjoutFacturier }) {
   const [voirMotDePasse, setVoirMotDePasse] = useState(false);
   const [voirConfirmation, setVoirConfirmation] = useState(false);
 
+  // Ordre séquentiel des champs pour la navigation par Entrée
+  const ordreChamps = ['nom', 'prenom', 'email', 'role', 'motDePasse', 'confirmationMotDePasse'];
+
   const refsChamps = {
-    prenom: useRef(null),
     nom: useRef(null),
+    prenom: useRef(null),
     email: useRef(null),
     role: useRef(null),
     motDePasse: useRef(null),
     confirmationMotDePasse: useRef(null),
+  };
+
+  const handleKeyDown = (e, nomChampActuel) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const currentIndex = ordreChamps.indexOf(nomChampActuel);
+
+      if (currentIndex !== -1 && currentIndex < ordreChamps.length - 1) {
+        const prochainChamp = ordreChamps[currentIndex + 1];
+        refsChamps[prochainChamp]?.current?.focus();
+      } else if (currentIndex === ordreChamps.length - 1) {
+        handleSubmit(e);
+      }
+    }
   };
 
   const handleChange = (e) => {
@@ -265,13 +282,13 @@ export default function CreationsComptes({ surAjoutFacturier }) {
     let nouvellesErreurs = {};
     let premierChampInvalide = null;
 
-    if (!formData.prenom.trim()) {
-      nouvellesErreurs.prenom = "Le prénom est requis.";
-      if (!premierChampInvalide) premierChampInvalide = 'prenom';
-    }
     if (!formData.nom.trim()) {
       nouvellesErreurs.nom = "Le nom est requis.";
       if (!premierChampInvalide) premierChampInvalide = 'nom';
+    }
+    if (!formData.prenom.trim()) {
+      nouvellesErreurs.prenom = "Le prénom est requis.";
+      if (!premierChampInvalide) premierChampInvalide = 'prenom';
     }
     if (!formData.email.trim()) {
       nouvellesErreurs.email = "L'adresse e-mail est requise.";
@@ -316,7 +333,7 @@ export default function CreationsComptes({ surAjoutFacturier }) {
       const urlEndpoint = estAdmin ? 'http://localhost:5000/api/admin/inscription' : 'http://localhost:5000/api/facturiers';
 
       const corpsRequete = estAdmin 
-        ? { nom: `${formData.prenom} ${formData.nom}`, email: formData.email, motDePasse: formData.motDePasse, role: formData.role }
+        ? { nom: `${formData.nom} ${formData.prenom}`, email: formData.email, motDePasse: formData.motDePasse, role: formData.role }
         : { prenom: formData.prenom, nom: formData.nom, email: formData.email, motDePasse: formData.motDePasse, role: formData.role };
 
       const reponse = await fetch(urlEndpoint, {
@@ -328,7 +345,12 @@ export default function CreationsComptes({ surAjoutFacturier }) {
       const resultat = await reponse.json();
 
       if (!reponse.ok) {
-        throw new Error(resultat.erreur || "Erreur lors de la création du compte.");
+        let messageErreur = resultat.erreur || "Erreur lors de la création du compte.";
+        if (messageErreur.toLowerCase().includes("nombre") || messageErreur.toLowerCase().includes("atteint")) {
+          const typeCompte = estAdmin ? "d'administrateurs" : "de facturiers";
+          messageErreur = `La limite maximale ${typeCompte} autorisée est atteinte. Veuillez augmenter cette valeur dans les configurations système pour pouvoir en ajouter de nouveaux.`;
+        }
+        throw new Error(messageErreur);
       }
 
       setSucces(true);
@@ -338,8 +360,8 @@ export default function CreationsComptes({ surAjoutFacturier }) {
       }
 
       setFormData({
-        prenom: '',
         nom: '',
+        prenom: '',
         email: '',
         role: 'Facturier',
         motDePasse: '',
@@ -380,56 +402,64 @@ export default function CreationsComptes({ surAjoutFacturier }) {
 
         <form onSubmit={handleSubmit} noValidate>
           <GrilleChamps>
-            <GroupeChamp ref={refsChamps.prenom}>
-              <Label>Prénom</Label>
-              <Input 
-                type="text" 
-                name="prenom" 
-                value={formData.prenom} 
-                onChange={handleChange}
-                onFocus={() => setChampActif('prenom')}
-                placeholder="Ex: Jean" 
-                $enErreur={!!erreursChamps.prenom}
-              />
-              {erreursChamps.prenom && <TexteErreurChamp>{erreursChamps.prenom}</TexteErreurChamp>}
-            </GroupeChamp>
-            
-            <GroupeChamp ref={refsChamps.nom}>
+            <GroupeChamp>
               <Label>Nom</Label>
               <Input 
+                ref={refsChamps.nom}
                 type="text" 
                 name="nom" 
                 value={formData.nom} 
                 onChange={handleChange}
                 onFocus={() => setChampActif('nom')}
+                onKeyDown={(e) => handleKeyDown(e, 'nom')}
                 placeholder="Ex: Dupont" 
                 $enErreur={!!erreursChamps.nom}
               />
               {erreursChamps.nom && <TexteErreurChamp>{erreursChamps.nom}</TexteErreurChamp>}
             </GroupeChamp>
+
+            <GroupeChamp>
+              <Label>Prénom</Label>
+              <Input 
+                ref={refsChamps.prenom}
+                type="text" 
+                name="prenom" 
+                value={formData.prenom} 
+                onChange={handleChange}
+                onFocus={() => setChampActif('prenom')}
+                onKeyDown={(e) => handleKeyDown(e, 'prenom')}
+                placeholder="Ex: Jean" 
+                $enErreur={!!erreursChamps.prenom}
+              />
+              {erreursChamps.prenom && <TexteErreurChamp>{erreursChamps.prenom}</TexteErreurChamp>}
+            </GroupeChamp>
           </GrilleChamps>
 
-          <GroupeChamp className="plein" ref={refsChamps.email}>
+          <GroupeChamp className="plein">
             <Label>Adresse E-mail</Label>
             <Input 
+              ref={refsChamps.email}
               type="email" 
               name="email" 
               value={formData.email} 
               onChange={handleChange}
               onFocus={() => setChampActif('email')}
+              onKeyDown={(e) => handleKeyDown(e, 'email')}
               placeholder="jean.dupont@profact.com" 
               $enErreur={!!erreursChamps.email}
             />
             {erreursChamps.email && <TexteErreurChamp>{erreursChamps.email}</TexteErreurChamp>}
           </GroupeChamp>
 
-          <GroupeChamp className="plein" ref={refsChamps.role}>
+          <GroupeChamp className="plein">
             <Label>Rôle du compte</Label>
             <Select 
+              ref={refsChamps.role}
               name="role" 
               value={formData.role} 
               onChange={handleChange}
               onFocus={() => setChampActif('role')}
+              onKeyDown={(e) => handleKeyDown(e, 'role')}
               $enErreur={!!erreursChamps.role}
             >
               <option value="Facturier">Facturier</option>
@@ -439,15 +469,17 @@ export default function CreationsComptes({ surAjoutFacturier }) {
           </GroupeChamp>
 
           <GrilleChamps>
-            <GroupeChamp ref={refsChamps.motDePasse}>
+            <GroupeChamp>
               <Label>Mot de passe</Label>
               <ConteneurInputMotDePasse>
                 <Input 
+                  ref={refsChamps.motDePasse}
                   type={voirMotDePasse ? "text" : "password"} 
                   name="motDePasse" 
                   value={formData.motDePasse} 
                   onChange={handleChange}
                   onFocus={() => setChampActif('motDePasse')}
+                  onKeyDown={(e) => handleKeyDown(e, 'motDePasse')}
                   placeholder="••••••••" 
                   $enErreur={!!erreursChamps.motDePasse}
                 />
@@ -468,15 +500,17 @@ export default function CreationsComptes({ surAjoutFacturier }) {
               {erreursChamps.motDePasse && <TexteErreurChamp>{erreursChamps.motDePasse}</TexteErreurChamp>}
             </GroupeChamp>
 
-            <GroupeChamp ref={refsChamps.confirmationMotDePasse}>
+            <GroupeChamp>
               <Label>Confirmer le mot de passe</Label>
               <ConteneurInputMotDePasse>
                 <Input 
+                  ref={refsChamps.confirmationMotDePasse}
                   type={voirConfirmation ? "text" : "password"} 
                   name="confirmationMotDePasse" 
                   value={formData.confirmationMotDePasse} 
                   onChange={handleChange}
                   onFocus={() => setChampActif('confirmationMotDePasse')}
+                  onKeyDown={(e) => handleKeyDown(e, 'confirmationMotDePasse')}
                   placeholder="••••••••" 
                   $enErreur={!!erreursChamps.confirmationMotDePasse}
                 />

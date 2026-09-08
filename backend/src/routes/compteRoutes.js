@@ -16,30 +16,57 @@ function compteRoutes(db) {
 
     const emailPropre = email.trim();
 
-    compteService.trouverAdminParEmail(db, emailPropre, (err, results) => {
-      if (err) {
-        console.error("Erreur SQL vérification email :", err);
-        return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
+    // 1. Récupérer la limite max d'administrateurs configurée
+    db.query("SELECT valeur FROM configurationsSysteme WHERE cle = 'limite_admin'", (errConfig, resConfig) => {
+      if (errConfig) {
+        console.error("Erreur lecture configuration :", errConfig);
+        return res.status(500).json({ erreur: "Erreur serveur lors de la vérification des quotas." });
       }
 
-      if (results.length > 0) {
-        return res.status(400).json({ erreur: "Cet email est déjà utilisé par un autre administrateur." });
-      }
+      const limiteMax = resConfig.length > 0 ? parseInt(resConfig[0].valeur, 10) : 3;
 
-      compteService.insererAdmin(db, nom.trim(), emailPropre, motDePasse, role, (errInsert, resultat) => {
-        if (errInsert) {
-          console.error("Erreur lors de l'inscription admin :", errInsert);
-          return res.status(500).json({ erreur: "Erreur lors de la création du compte administrateur." });
+      // 2. Compter le nombre d'admins actuels
+      db.query("SELECT COUNT(*) AS total FROM admin", (errCount, resCount) => {
+        if (errCount) {
+          console.error("Erreur comptage admin :", errCount);
+          return res.status(500).json({ erreur: "Erreur serveur lors du comptage des administrateurs." });
         }
 
-        res.status(201).json({
-          message: "Compte administrateur créé avec succès.",
-          admin: {
-            id: resultat.insertId,
-            nom: nom.trim(),
-            email: emailPropre,
-            role
+        const nombreActuel = resCount[0].total;
+
+        if (nombreActuel >= limiteMax) {
+          return res.status(400).json({ 
+            erreur: `Nombre d'administrateurs atteint. Veuillez demander un accord à l'administrateur.` 
+          });
+        }
+
+        // 3. Poursuivre avec la vérification de l'email et l'insertion
+        compteService.trouverAdminParEmail(db, emailPropre, (err, results) => {
+          if (err) {
+            console.error("Erreur SQL vérification email :", err);
+            return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
           }
+
+          if (results.length > 0) {
+            return res.status(400).json({ erreur: "Cet email est déjà utilisé par un autre administrateur." });
+          }
+
+          compteService.insererAdmin(db, nom.trim(), emailPropre, motDePasse, role, (errInsert, resultat) => {
+            if (errInsert) {
+              console.error("Erreur lors de l'inscription admin :", errInsert);
+              return res.status(500).json({ erreur: "Erreur lors de la création du compte administrateur." });
+            }
+
+            res.status(201).json({
+              message: "Compte administrateur créé avec succès.",
+              admin: {
+                id: resultat.insertId,
+                nom: nom.trim(),
+                email: emailPropre,
+                role
+              }
+            });
+          });
         });
       });
     });
@@ -116,6 +143,65 @@ function compteRoutes(db) {
   });
 
   // ==========================================
+  // ROUTES CONFIGURATION QUOTA ADMIN & FACTURIER
+  // ==========================================
+  router.get('/admin/limite', (req, res) => {
+    db.query("SELECT valeur FROM configurationsSysteme WHERE cle = 'limite_admin'", (err, results) => {
+      if (err) {
+        console.error("Erreur lecture limite admin :", err);
+        return res.status(500).json({ erreur: "Erreur lors de la récupération de la limite." });
+      }
+      const valeur = results.length > 0 ? results[0].valeur : 3;
+      res.json({ valeur });
+    });
+  });
+
+  router.put('/admin/limite', (req, res) => {
+    const { nouvelleLimite } = req.body;
+
+    if (nouvelleLimite === undefined || isNaN(nouvelleLimite)) {
+      return res.status(400).json({ erreur: "Une valeur numérique valide est requise." });
+    }
+
+    const sql = "UPDATE configurationsSysteme SET valeur = ? WHERE cle = 'limite_admin'";
+    db.query(sql, [parseInt(nouvelleLimite, 10)], (err, result) => {
+      if (err) {
+        console.error("Erreur modification limite admin :", err);
+        return res.status(500).json({ erreur: "Erreur lors de la mise à jour de la limite." });
+      }
+      res.json({ message: "Limite du nombre d'administrateurs mise à jour avec succès.", nouvelleLimite });
+    });
+  });
+
+  router.get('/facturier/limite', (req, res) => {
+    db.query("SELECT valeur FROM configurationsSysteme WHERE cle = 'limite_facturier'", (err, results) => {
+      if (err) {
+        console.error("Erreur lecture limite facturier :", err);
+        return res.status(500).json({ erreur: "Erreur lors de la récupération de la limite." });
+      }
+      const valeur = results.length > 0 ? results[0].valeur : 5;
+      res.json({ valeur });
+    });
+  });
+
+  router.put('/facturier/limite', (req, res) => {
+    const { nouvelleLimite } = req.body;
+
+    if (nouvelleLimite === undefined || isNaN(nouvelleLimite)) {
+      return res.status(400).json({ erreur: "Une valeur numérique valide est requise." });
+    }
+
+    const sql = "UPDATE configurationsSysteme SET valeur = ? WHERE cle = 'limite_facturier'";
+    db.query(sql, [parseInt(nouvelleLimite, 10)], (err, result) => {
+      if (err) {
+        console.error("Erreur modification limite facturier :", err);
+        return res.status(500).json({ erreur: "Erreur lors de la mise à jour de la limite." });
+      }
+      res.json({ message: "Limite du nombre de facturiers mise à jour avec succès.", nouvelleLimite });
+    });
+  });
+
+  // ==========================================
   // ROUTES FACTURIERS & LISTE ADMIN
   // ==========================================
   router.get('/admin', (req, res) => {
@@ -148,32 +234,59 @@ function compteRoutes(db) {
 
     const emailPropre = email.trim();
 
-    compteService.trouverFacturierParEmail(db, emailPropre, (err, results) => {
-      if (err) {
-        console.error("Erreur SQL vérification email facturier :", err);
-        return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
+    // 1. Récupérer la limite max de facturiers configurée
+    db.query("SELECT valeur FROM configurationsSysteme WHERE cle = 'limite_facturier'", (errConfig, resConfig) => {
+      if (errConfig) {
+        console.error("Erreur lecture configuration facturier :", errConfig);
+        return res.status(500).json({ erreur: "Erreur serveur lors de la vérification des quotas." });
       }
 
-      if (results.length > 0) {
-        return res.status(400).json({ erreur: "Cette adresse e-mail est déjà utilisée." });
-      }
+      const limiteMax = resConfig.length > 0 ? parseInt(resConfig[0].valeur, 10) : 5;
 
-      compteService.insererFacturier(db, prenom.trim(), nom.trim(), emailPropre, motDePasse, role, (errInsert, resultat) => {
-        if (errInsert) {
-          console.error("Erreur lors de l'insertion du facturier :", errInsert);
-          return res.status(500).json({ erreur: "Erreur lors de la création du compte facturier." });
+      // 2. Compter le nombre de facturiers actuels
+      db.query("SELECT COUNT(*) AS total FROM facturiers", (errCount, resCount) => {
+        if (errCount) {
+          console.error("Erreur comptage facturiers :", errCount);
+          return res.status(500).json({ erreur: "Erreur serveur lors du comptage des facturiers." });
         }
 
-        res.status(201).json({
-          success: true,
-          message: "Compte facturier créé avec succès.",
-          data: {
-            id: resultat.insertId,
-            prenom: prenom.trim(),
-            nom: nom.trim(),
-            email: emailPropre,
-            role
+        const nombreActuel = resCount[0].total;
+
+        if (nombreActuel >= limiteMax) {
+          return res.status(400).json({ 
+            erreur: `Nombre de facturiers atteint. Veuillez demander un accord à l'administrateur.` 
+          });
+        }
+
+        // 3. Poursuivre avec la vérification de l'email et l'insertion
+        compteService.trouverFacturierParEmail(db, emailPropre, (err, results) => {
+          if (err) {
+            console.error("Erreur SQL vérification email facturier :", err);
+            return res.status(500).json({ erreur: "Erreur serveur lors de la vérification de l'email." });
           }
+
+          if (results.length > 0) {
+            return res.status(400).json({ erreur: "Cette adresse e-mail est déjà utilisée." });
+          }
+
+          compteService.insererFacturier(db, prenom.trim(), nom.trim(), emailPropre, motDePasse, role, (errInsert, resultat) => {
+            if (errInsert) {
+              console.error("Erreur lors de l'insertion du facturier :", errInsert);
+              return res.status(500).json({ erreur: "Erreur lors de la création du compte facturier." });
+            }
+
+            res.status(201).json({
+              success: true,
+              message: "Compte facturier créé avec succès.",
+              data: {
+                id: resultat.insertId,
+                prenom: prenom.trim(),
+                nom: nom.trim(),
+                email: emailPropre,
+                role
+              }
+            });
+          });
         });
       });
     });
@@ -201,11 +314,9 @@ function compteRoutes(db) {
     const tableCible = estAdminAncien ? 'admin' : 'facturiers';
     const colonneMdp = estAdminAncien ? 'motDePasse' : 'mot_de_passe';
 
-    // 1. Récupération sécurisée de l'ancien mot de passe actuel en base
     db.query(`SELECT ${colonneMdp} AS mdp FROM ${tableCible} WHERE id = ?`, [id], (err, results) => {
       
       const verifierEtPoursuivre = (motDePasseActuel) => {
-        // Si l'utilisateur a rempli le champ "nouveauMotDePasse", on exige et vérifie l'ancien
         if (nouveauMotDePasse && nouveauMotDePasse.trim() !== '') {
           if (!ancienMotDePasse || ancienMotDePasse !== motDePasseActuel) {
             return res.status(400).json({ erreur: "L'ancien mot de passe saisi est incorrect." });
@@ -293,7 +404,6 @@ function compteRoutes(db) {
       if (!err && results.length > 0) {
         verifierEtPoursuivre(results[0].mdp);
       } else {
-        // Recherche de secours dans l'autre table
         const autreTable = tableCible === 'admin' ? 'facturiers' : 'admin';
         const autreColMdp = autreTable === 'admin' ? 'motDePasse' : 'mot_de_passe';
         db.query(`SELECT ${autreColMdp} AS mdp FROM ${autreTable} WHERE id = ?`, [id], (err2, results2) => {
@@ -314,6 +424,34 @@ function compteRoutes(db) {
         return res.status(500).json({ erreur: "Erreur lors de la suppression du facturier" });
       }
       res.json({ message: "Facturier supprimé avec succès" });
+    });
+  });
+
+  // ==========================================
+  // ROUTE GLOBALE : TOUS LES UTILISATEURS (Admins + Facturiers)
+  // ==========================================
+  router.get('/utilisateurs', (req, res) => {
+    db.query("SELECT id, nom, email, role, 'Admin' AS typeRole FROM admin", (errAdmin, admins) => {
+      if (errAdmin) {
+        console.error("Erreur récupération admins :", errAdmin);
+        return res.status(500).json({ erreur: "Erreur serveur" });
+      }
+
+      compteService.obtenirTousFacturiers(db, (errFact, facturiers) => {
+        if (errFact) {
+          console.error("Erreur récupération facturiers :", errFact);
+          return res.status(500).json({ erreur: "Erreur serveur" });
+        }
+
+        const facturiersFormates = facturiers.map(f => ({
+          ...f,
+          nom: `${f.prenom || ''} ${f.nom}`.trim(),
+          typeRole: f.role || 'Facturier'
+        }));
+
+        const tousLesUtilisateurs = [...admins, ...facturiersFormates];
+        res.json(tousLesUtilisateurs);
+      });
     });
   });
 

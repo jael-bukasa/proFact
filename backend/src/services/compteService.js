@@ -1,10 +1,14 @@
-// src/services/compteService.js
-
 const compteService = {
   // Vérifier ou trouver un admin par email
   trouverAdminParEmail: (db, email, callback) => {
     const query = 'SELECT * FROM admin WHERE email = ?';
     db.query(query, [email], callback);
+  },
+
+  // Récupérer tous les administrateurs
+  obtenirTousAdmins: (db, callback) => {
+    const query = "SELECT id, nom, email, role, motDePasse, cree_le AS creeLe, 'Admin' AS typeRole FROM admin ORDER BY id DESC";
+    db.query(query, callback);
   },
 
   // Insérer un nouvel administrateur
