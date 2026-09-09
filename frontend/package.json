@@ -1,6 +1,8 @@
 {
-  "name": "profact-frontend",
+  "name": "ProFact",
   "version": "1.0.0",
+  "description": "Application de gestion ProFact",
+  "author": "Bukasa Mulaji Jael",
   "main": "electron/main.js",
   "type": "commonjs",
   "scripts": {
@@ -28,24 +30,44 @@
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "electron": "^22.3.26",
+    "electron": "^22.3.27",
     "electron-builder": "^24.13.3",
     "vite": "^5.0.0",
     "wait-on": "^7.2.0"
   },
   "build": {
     "appId": "com.profact.app",
-    "productName": "proFact",
+    "productName": "ProFact",
+    "executableName": "ProFact",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
     "files": [
-      "dist/**/*",
-      "electron/**/*"
+      "dist-react/**/*",
+      "electron/**/*",
+      "../backend/**/*",
+      "public/profact-icone.ico"
     ],
     "win": {
+      "signAndEditExecutable": false,
       "target": [
         "nsis",
         "portable"
       ],
-      "icon": "public/icon.ico"
+      "icon": "public/profact-icone.ico"
+    },
+    "nsis": {
+      "installerIcon": "public/profact-icone.ico",
+      "uninstallerIcon": "public/profact-icone.ico",
+      "license": "license.txt",
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ProFact",
+      "runAfterFinish": true
     }
   }
 }

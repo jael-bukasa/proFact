@@ -1,0 +1,39 @@
+CONTRAT DE LICENCE UTILISATEUR FINAL (CLUF) ET CONDITIONS GENERALES D'UTILISATION POUR PROFACT
+
+AVERTISSEMENT : VEUILLEZ LIRE ATTENTIVEMENT LES TERMES ET CONDITIONS DU PRESENT CONTRAT DE LICENCE UTILISATEUR FINAL ("CLUF") AVANT DE PROCEDER A L'INSTALLATION, AU TELECHARGEMENT OU A L'UTILISATION DE L'APPLICATION LOGICIELLE "PROFACT". 
+
+EN CLIQUANT SUR LE BOUTON D'ACCEPTATION, EN INSTALLANT OU EN UTILISANT DE QUELQUE MANIERE QUE CE SOIT LE LOGICIEL PROFACT, VOUS RECONNAISSEZ EXPRESSEMENT ETRE LIE PAR LES PRESENTES DISPOSITIONS ET VOUS ACCEPTEZ L'INTEGRALITE DES TERMES DU PRESENT CONTRAT. SI VOUS N'ACCEPTEZ PAS CES TERMES, VEUILLEZ ANNULER L'INSTALLATION ET SUPPRIMER IMMEDIATEMENT TOUS LES FICHIERS LIES A CE LOGICIEL.
+
+1. PARTIES ET CHAMP D'APPLICATION
+Le present CLUF constitue un accord juridique contraignant conclu entre l'utilisateur final (qu'il s'agisse d'une personne physique ou morale) et le concepteur et auteur legal du logiciel, Bukasa Mulaji Jael ("l'Auteur"), regissant l'utilisation de l'application "ProFact" ainsi que l'ensemble de ses composants, modules de gestion, interfaces de facturation, scripts backend et documentations associes.
+
+2. DESCRIPTION DU LOGICIEL ET ARCHITECTURE
+ProFact est une solution logicielle integree de gestion administrative et financiere, combinant une interface utilisateur de bureau moderne (developpee sous React et packagee via Electron) et un moteur de traitement local des donnees et des requetes. Le logiciel est concu pour faciliter le suivi des biens, la gestion des clients, l'etablissement de devis et l'edition de factures automatisees.
+
+3. OCTROY DE LICENCE ET RESTRICTIONS D'USAGE
+Sous reserve de votre conformite continue aux termes du present CLUF, l'Auteur vous concede une licence limitee, non exclusive, non cessible, revocable et strictement personnelle pour installer et executer ProFact sur un poste de travail ou un environnement informatique autorise. 
+Il vous est formellement interdit de :
+- Modifier, traduire, adapter, desassembler, decompiler ou proceder a une retro-ingenierie (reverse engineering) du code source ou de l'architecture binaire du Logiciel, sauf dans la mesure ou cette restriction est expressement interdite par la loi applicable.
+- Louer, preter, revendre, sous-licencier, distribuer ou ceder de quelque maniere que ce soit des droits sur le Logiciel des tiers.
+- Supprimer, alterer ou masquer toute mention de droits d'auteur, de marques commerciales ou d'avis de propriete figurant dans le Logiciel ou ses interfaces.
+
+4. PROPRIETE INTELLECTUELLE
+Tous les droits de propriete intellectuelle, titres, interets et prerogatives relatifs au Logiciel ProFact (y compris, sans s'y limiter, le code source, les scripts, les bases de donnees, les structures logiques, les elements graphiques, les chartes visuelles et les icones proprietaires telles que "profact-icone.ico") demeurent la propriete exclusive et inalienable de l'Auteur. Le present Contrat ne confere aucun droit de propriete sur le Logiciel, mais uniquement un droit d'utilisation limite selon les termes convenus.
+
+5. GESTION DES DONNEES LOCALES ET CONFIDENTIALITE
+ProFact stocke et traite des informations operationnelles, financieres et personnelles par le biais d'une base de donnees locale (telle que SQLite ou des moteurs compatibles). Vous reconnaissez et acceptez que :
+- Vous etes l'unique responsable de l'integrite, de l'exactitude, de la securite et de la confidentialite des donnees que vous saisissez et traitez dans le Logiciel.
+- Il vous incombe de mettre en place des procedures regulieres de sauvegarde externe (backup) de vos fichiers de donnees. L'Auteur decline toute responsabilite en cas de perte, alteration, corruption ou vol de donnees consecutifs a une defaillance materielle, une attaque informatique ou une mauvaise manipulation logicielle.
+
+6. EXCLUSION DE GARANTIE ET LIMITATION DE RESPONSABILITE
+6.1. Le Logiciel ProFact est fourni "en l'etat" (as is) et "selon disponibilite", sans aucune garantie d'aucune sorte, expresse ou implicite, y compris, mais sans s'y limiter, les garanties implicites de qualite marchande, d'adequation a un usage particulier ou d'absence de contrefacon.
+6.2. L'Auteur ne garantit pas que le fonctionnement du Logiciel sera totalement ininterrompu, exempt d'erreurs, de bogues ou de failles de securite, ni que les anomalies eventuelles seront corrigees dans des delais determines.
+6.3. En aucun cas l'Auteur (Bukasa Mulaji Jael) ne pourra etre tenu responsable des dommages indirects, accessoires, speciaux, punitifs ou consecutifs (notamment la perte de benefices, la perte de chiffre d'affaires, l'interruption d'activite, la perte d'informations commerciales ou de donnees) decoulant de l'utilisation ou de l'impossibilite d'utiliser le Logiciel, et ce, meme si l'Auteur a ete informe de l'eventualite de tels dommages.
+
+7. DUREE ET RESILIATION
+Le present Contrat prend effet a compter de la date de son acceptation par l'utilisateur lors de l'installation. Il demeurera en vigueur jusqu'a sa resilition. 
+Vous pouvez resilier le present Contrat a tout moment en desinstallant definitivement ProFact et en detruisant toutes les copies en votre possession. 
+Le Contrat sera resilie de plein droit et sans preavis en cas de non-respect de l'une quelconque de ses clauses par l'utilisateur. Des la resilition, vous devez cesser immediatement toute utilisation du Logiciel et effacer l'ensemble des fichiers installes.
+
+8. DISPOSITIONS DIVERSES ET LOI APPLICABLE
+Si une disposition quelconque du present CLUF est jugee invalide ou inexecutable par un tribunal competent, les dispositions restantes conserveront toute leur force legale. Le present Contrat exprime l'integralite de l'accord intervenu entre l'utilisateur et l'Auteur concernant l'utilisation de ProFact. Tout litige relatif a l'interpretation ou a l'execution du present contrat sera soumis aux juridictions competentes.
